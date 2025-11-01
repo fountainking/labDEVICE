@@ -494,42 +494,39 @@ void handleBackgroundWiFi() {
     }
 
     // Sync time if never synced, or every hour
+    // ONLY sync when WiFi is stable (connected for at least 5 seconds)
+    static unsigned long wifiConnectedTime = 0;
+    static bool justConnected = true;
+
+    if (justConnected) {
+      wifiConnectedTime = millis();
+      justConnected = false;
+    }
+
     unsigned long timeSinceLastSync = millis() - lastSyncTime;
     bool shouldSync = !timeIsSynced || (timeSinceLastSync > 3600000); // 1 hour in milliseconds
+    bool wifiStable = (millis() - wifiConnectedTime) > 5000; // Wait 5 seconds after WiFi connects
 
-    if (shouldSync) {
-      // Non-blocking time sync - try to get time with minimal timeout
-      static bool syncInProgress = false;
-      static unsigned long syncStartTime = 0;
+    if (shouldSync && wifiStable) {
+      // Sync time using timezone with DST support
+      applyTimezone();
+      struct tm timeinfo;
+      if (getLocalTime(&timeinfo, 1000)) {  // 1 second timeout
+        timeIsSynced = true;
+        lastSyncTime = millis();
+        Serial.printf("Time synced: %02d:%02d:%02d\n",
+                      timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 
-      if (!syncInProgress) {
-        // Start sync
-        applyTimezone();
-        syncInProgress = true;
-        syncStartTime = millis();
-        Serial.println("Starting time sync...");
+        // Save synced time to preferences
+        time_t now = time(nullptr);
+        settings.lastKnownTime = now;
+        preferences.begin("settings", false);
+        preferences.putULong("lastTime", (unsigned long)now);
+        preferences.end();
       } else {
-        // Check if we got time (non-blocking with 10ms timeout)
-        struct tm timeinfo;
-        if (getLocalTime(&timeinfo, 10)) {
-          timeIsSynced = true;
-          lastSyncTime = millis();
-          syncInProgress = false;
-          Serial.printf("Time synced: %02d:%02d:%02d\n",
-                        timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-
-          // Save synced time to preferences
-          time_t now = time(nullptr);
-          settings.lastKnownTime = now;
-          preferences.begin("settings", false);
-          preferences.putULong("lastTime", (unsigned long)now);
-          preferences.end();
-        } else if (millis() - syncStartTime > 5000) {
-          // Give up after 5 seconds
-          syncInProgress = false;
-          lastSyncTime = millis(); // Don't retry immediately
-          Serial.println("Time sync timeout - will retry later");
-        }
+        // Failed to sync - try again in 30 seconds
+        lastSyncTime = millis() - 3570000; // Retry in 30 seconds instead of 1 hour
+        Serial.println("Time sync failed - will retry in 30 seconds");
       }
     }
   } else {
@@ -538,6 +535,10 @@ void handleBackgroundWiFi() {
       wifiConnected = false;
       wifiSSID = "Not Connected";
       Serial.println("WiFi disconnected");
+
+      // Reset connection timer for next time
+      static bool justConnected = true;
+      justConnected = true;
     }
   }
 
