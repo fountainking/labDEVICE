@@ -521,6 +521,7 @@ void handleBackgroundWiFi() {
       Serial.println("WiFi disconnected");
     }
   }
+
 }
 
 // Helper function to update audio - call this frequently to prevent skipping
@@ -695,10 +696,10 @@ void loop() {
           M5Cardputer.Display.drawString("NES Emulator", 60, 40);
           M5Cardputer.Display.setTextSize(1);
           M5Cardputer.Display.setTextColor(TFT_YELLOW);
-          M5Cardputer.Display.drawString("Nofrendo Core Ready", 55, 65);
+          M5Cardputer.Display.drawString("Nofrendo Core", 75, 65);
           M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-          M5Cardputer.Display.drawString("Requires restart mode", 45, 85);
-          M5Cardputer.Display.drawString("Integration in progress", 40, 100);
+          M5Cardputer.Display.drawString("Requires dedicated", 60, 85);
+          M5Cardputer.Display.drawString("integration session", 55, 100);
         } else if (currentScreenNumber == 16) {
           // LabCHAT
           enterLabChat();

@@ -13,14 +13,18 @@
   - Proper memory management (ROM/RAM allocation)
   - Added to Games menu alongside CHIP-8
 
-### ⏸️ NES Emulator Status
-- **Menu Entry Added** - NES option in Games menu (placeholder screen)
-- **Research Complete** - Found Cardputer Game Station (Nofrendo core)
-- **Integration Challenge** - Blocking architecture requires restart mode:
-  - `nofrendo_main()` never returns (unlike GB's frame-based API)
-  - Options: Boot mode with NVRAM flag, or dual-core FreeRTOS
-  - Placeholder shows "Integration in progress"
-  - Deferred pending architectural decision
+### ⏸️ NES Emulator Integration Attempt
+- **Menu Entry Added** - NES option in Games menu with restart mode UI
+- **Research Complete** - Cardputer Game Station (Nofrendo core)
+- **Boot Mode Implemented** - NVRAM flag system for restart-based launch
+- **Integration Challenges**:
+  - `nofrendo_main()` blocking architecture (no frame-based API)
+  - Missing platform functions (`_get_rom_ptr`, `_get_rom_size`)
+  - Extensive dependencies (CardputerView, CardputerInput layers)
+  - Requires significant ROM loading infrastructure
+- **What Works**: Menu launcher sets flag, restarts ESP32, boot check activates
+- **What's Missing**: ROM loader implementation, platform-specific callbacks
+- **Status**: Deferred - NES requires dedicated integration session
 
 ### 📊 Session 3 Statistics
 - **Features Added:** 1 VERY HARD tier task (GB Emulator)
