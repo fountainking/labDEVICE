@@ -486,13 +486,6 @@ void handleBackgroundWiFi() {
       Serial.println("WiFi connected! IP: " + WiFi.localIP().toString());
     }
 
-    // Auto-detect timezone on first connection if enabled
-    static bool timezoneDetected = false;
-    if (settings.timezoneAuto && !timezoneDetected) {
-      autoDetectTimezone();
-      timezoneDetected = true;
-    }
-
     // Sync time if never synced, or every hour
     // ONLY sync when WiFi is stable (connected for at least 5 seconds)
     static unsigned long wifiConnectedTime = 0;
@@ -503,9 +496,17 @@ void handleBackgroundWiFi() {
       wifiWasDisconnected = false;
     }
 
+    bool wifiStable = (millis() - wifiConnectedTime) > 5000; // Wait 5 seconds after WiFi connects
+
+    // Auto-detect timezone on first connection if enabled (ONLY when stable)
+    static bool timezoneDetected = false;
+    if (settings.timezoneAuto && !timezoneDetected && wifiStable) {
+      autoDetectTimezone();
+      timezoneDetected = true;
+    }
+
     unsigned long timeSinceLastSync = millis() - lastSyncTime;
     bool shouldSync = !timeIsSynced || (timeSinceLastSync > 3600000); // 1 hour in milliseconds
-    bool wifiStable = (millis() - wifiConnectedTime) > 5000; // Wait 5 seconds after WiFi connects
 
     if (shouldSync && wifiStable) {
       // Sync time using timezone with DST support
