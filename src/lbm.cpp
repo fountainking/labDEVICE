@@ -26,44 +26,33 @@ uint16_t trackColors[LBM_TRACKS] = {
   0x87F0   // Track 8: Light green (melody 4)
 };
 
-// Sample variations for each track
-const char* kickSamples[] = {"kick", "kick2", "kick3"};
-const char* snareSamples[] = {"snare", "snare2", "snare3"};
-const char* hatSamples[] = {"hat", "hat2", "hat3"};
-const char* tomSamples[] = {"tom", "tom2", "tom3"};
-const int numKickSamples = 3;
-const int numSnareSamples = 3;
-const int numHatSamples = 3;
-const int numTomSamples = 3;
+// All available drum sounds (can be assigned to any track)
+const char* drumSounds[] = {"kick", "snare", "hat", "tom"};
+const int numDrumSounds = 4;
 
-// Current sample selection index for each track
-uint8_t sampleIndex[LBM_TRACKS] = {0, 0, 0, 0, 0, 0, 0, 0};
+// Current sound selection for each track (index into drumSounds array)
+// Tracks 0-3 default to their namesake, tracks 4-7 are melody (no sound cycling)
+uint8_t trackSound[LBM_TRACKS] = {0, 1, 2, 3, 0, 0, 0, 0};  // kick, snare, hat, tom by default
 
 const char* trackNames[LBM_TRACKS] = {
   "kick", "snare", "hat", "tom",
   "notes", "notes", "notes", "notes"
 };
 
-// Helper: Get current sample name for a track
+// Helper: Get current sound name for a track
 const char* getCurrentSampleName(int track) {
-  switch (track) {
-    case TRACK_KICK:  return kickSamples[sampleIndex[track] % numKickSamples];
-    case TRACK_SNARE: return snareSamples[sampleIndex[track] % numSnareSamples];
-    case TRACK_HAT:   return hatSamples[sampleIndex[track] % numHatSamples];
-    case TRACK_TOM:   return tomSamples[sampleIndex[track] % numTomSamples];
-    default:          return trackNames[track];
+  if (track < 4) {
+    // Drum tracks - return selected drum sound
+    return drumSounds[trackSound[track]];
+  } else {
+    // Melody tracks
+    return trackNames[track];
   }
 }
 
-// Helper: Get max sample count for a track
-int getMaxSampleCount(int track) {
-  switch (track) {
-    case TRACK_KICK:  return numKickSamples;
-    case TRACK_SNARE: return numSnareSamples;
-    case TRACK_HAT:   return numHatSamples;
-    case TRACK_TOM:   return numTomSamples;
-    default:          return 1;
-  }
+// Helper: Check if track can cycle sounds
+bool canCycleSounds(int track) {
+  return track < 4;  // Only first 4 tracks (drums) can cycle
 }
 
 // Global state
@@ -509,23 +498,26 @@ void play808Sound(TrackType track, uint8_t note) {
   uint32_t sampleLength = 0;
   uint32_t sampleRate = 0;
 
-  switch(track) {
-    case TRACK_KICK:
+  // Use trackSound[] to determine which drum sound to play
+  uint8_t soundIndex = (track < 4) ? trackSound[track] : track;
+
+  switch(soundIndex) {
+    case 0:  // Kick
       sampleData = sample_808_kick_data;
       sampleLength = sample_808_kick_length;
       sampleRate = sample_808_kick_rate;
       break;
-    case TRACK_SNARE:
+    case 1:  // Snare
       sampleData = sample_808_snare_data;
       sampleLength = sample_808_snare_length;
       sampleRate = sample_808_snare_rate;
       break;
-    case TRACK_HAT:
+    case 2:  // Hat
       sampleData = sample_808_hat_data;
       sampleLength = sample_808_hat_length;
       sampleRate = sample_808_hat_rate;
       break;
-    case TRACK_TOM:
+    case 3:  // Tom
       sampleData = sample_808_tom_data;
       sampleLength = sample_808_tom_length;
       sampleRate = sample_808_tom_rate;
@@ -556,15 +548,19 @@ void play808Sound(TrackType track, uint8_t note) {
 void playUSERSound(TrackType track, uint8_t note) {
   const char* samplePath = nullptr;
 
-  switch(track) {
-    case TRACK_KICK:   samplePath = "/mp3s/lbm/user/kick.wav";   break;
-    case TRACK_SNARE:  samplePath = "/mp3s/lbm/user/snare.wav";  break;
-    case TRACK_HAT:    samplePath = "/mp3s/lbm/user/hat.wav";    break;
-    case TRACK_TOM:    samplePath = "/mp3s/lbm/user/tom.wav";    break;
-    default:
-      // Melody tracks use POLY mode for now
-      playPOLYSound(track, note);
-      return;
+  // Use trackSound[] to determine which drum sound to play
+  if (track < 4) {
+    uint8_t soundIndex = trackSound[track];
+    switch(soundIndex) {
+      case 0: samplePath = "/mp3s/lbm/user/kick.wav";  break;
+      case 1: samplePath = "/mp3s/lbm/user/snare.wav"; break;
+      case 2: samplePath = "/mp3s/lbm/user/hat.wav";   break;
+      case 3: samplePath = "/mp3s/lbm/user/tom.wav";   break;
+    }
+  } else {
+    // Melody tracks use POLY mode for now
+    playPOLYSound(track, note);
+    return;
   }
 
   if (samplePath) {
@@ -751,10 +747,9 @@ void handleLBMNavigation(char key) {
         currentTrack = (currentTrack - 1 + LBM_TRACKS) % LBM_TRACKS;
         drawLBM();
       } else if (selectedItem == NAV_SOUND) {
-        // Cycle to previous sample
-        int maxSamples = getMaxSampleCount(currentTrack);
-        if (maxSamples > 1) {
-          sampleIndex[currentTrack] = (sampleIndex[currentTrack] - 1 + maxSamples) % maxSamples;
+        // Cycle to previous drum sound (kick → tom → hat → snare → kick)
+        if (canCycleSounds(currentTrack)) {
+          trackSound[currentTrack] = (trackSound[currentTrack] - 1 + numDrumSounds) % numDrumSounds;
           drawTrackHeader();
         }
       } else if (selectedItem == NAV_NUDGE) {
@@ -792,10 +787,9 @@ void handleLBMNavigation(char key) {
         currentTrack = (currentTrack + 1) % LBM_TRACKS;
         drawLBM();
       } else if (selectedItem == NAV_SOUND) {
-        // Cycle to next sample
-        int maxSamples = getMaxSampleCount(currentTrack);
-        if (maxSamples > 1) {
-          sampleIndex[currentTrack] = (sampleIndex[currentTrack] + 1) % maxSamples;
+        // Cycle to next drum sound (kick → snare → hat → tom → kick)
+        if (canCycleSounds(currentTrack)) {
+          trackSound[currentTrack] = (trackSound[currentTrack] + 1) % numDrumSounds;
           drawTrackHeader();
         }
       } else if (selectedItem == NAV_NUDGE) {
