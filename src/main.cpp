@@ -25,6 +25,7 @@
 #include "labchat.h"
 #include "lbm.h"
 #include "tap_tempo.h"
+#include "gb_emulator.h"
 
 Preferences preferences;
 
@@ -680,15 +681,10 @@ void loop() {
           // CHIP-8
           drawChip8ROMBrowser();
         } else if (currentScreenNumber == 15) {
-          // Game Boy placeholder
-          M5Cardputer.Display.fillScreen(TFT_BLACK);
-          drawStatusBar(false);
-          M5Cardputer.Display.setTextSize(2);
-          M5Cardputer.Display.setTextColor(TFT_PURPLE);
-          M5Cardputer.Display.drawString("Game Boy", 70, 50);
-          M5Cardputer.Display.setTextSize(1);
-          M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-          M5Cardputer.Display.drawString("Coming Soon!", 75, 75);
+          // Game Boy
+          if (gbActive) {
+            drawGB();
+          }
         } else if (currentScreenNumber == 16) {
           // LabCHAT
           enterLabChat();
@@ -1834,6 +1830,8 @@ void loop() {
           // Call appropriate enter function
           if (currentScreenNumber == 14) {
             enterChip8();
+          } else if (currentScreenNumber == 15) {
+            enterGB();
           }
           return;
         }
@@ -2109,8 +2107,14 @@ void loop() {
         return;
       }
 
-      // Handle Game Boy placeholder input
-      if (currentState == SCREEN_VIEW && currentScreenNumber == 15) {
+      // Handle Game Boy input (handled internally by updateGB)
+      if (currentState == SCREEN_VIEW && currentScreenNumber == 15 && gbActive) {
+        // GB handles its own input and escape in updateGB()
+        return;
+      }
+
+      // Handle Game Boy ROM selection (when not yet active)
+      if (currentState == SCREEN_VIEW && currentScreenNumber == 15 && !gbActive) {
         for (auto key : status.word) {
           if (key == '`') {
             // Back to Games menu
@@ -2406,7 +2410,12 @@ void loop() {
     }
   }
 
-  // Use shorter delay when audio or CHIP-8 is running for responsiveness
+  // Update Game Boy emulator if active
+  if (currentState == SCREEN_VIEW && currentScreenNumber == 15 && gbActive) {
+    updateGB();
+  }
+
+  // Use shorter delay when audio or emulators are running for responsiveness
   if (isRadioPlaying() || isAudioPlaying()) {
     delay(1);  // Minimal delay for smooth audio
   } else if (currentState == SCREEN_VIEW && currentScreenNumber == 14) {
@@ -2416,6 +2425,8 @@ void loop() {
     } else {
       delay(10);  // Normal delay in ROM browser
     }
+  } else if (currentState == SCREEN_VIEW && currentScreenNumber == 15 && gbActive) {
+    delay(1);  // Minimal delay for responsive GB emulation
   } else {
     delay(10);  // Normal delay when no audio
   }
