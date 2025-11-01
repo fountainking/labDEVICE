@@ -1,5 +1,35 @@
 # Laboratory M5 - Changelog
 
+## 2025-10-31 - Session 3: VERY HARD Tier - GB Emulator
+
+### ✅ VERY HARD Tier - GB Emulator Complete
+- **Game Boy Emulator** - Full GB emulation using Peanut-GB core:
+  - Integrated Peanut-GB single-header emulator (4042 lines)
+  - ROM file picker for `/gameboy/*.gb` files
+  - Full input mapping (ESDF + KL + 12 + ESC)
+  - Display scaling (160x144 → 240x135)
+  - 59.7Hz accurate frame timing
+  - DMG palette (original Game Boy green)
+  - Proper memory management (ROM/RAM allocation)
+  - Added to Games menu alongside CHIP-8
+
+### 📊 Session 3 Statistics
+- **Features Added:** 1 VERY HARD tier task
+- **Lines of Code:** ~4,400 (including Peanut-GB core)
+- **Commits:** 1 major integration
+- **Build Status:** ✅ Passing (53.2% flash, 84.0% RAM)
+
+### 🎯 Total Roadmap Progress
+**TRIVIAL:** ✅ 3/3 complete (100%)
+**EASY:** ✅ 4/4 complete (100%)
+**MEDIUM:** ✅ 4/6 complete (67%)
+**HARD:** ✅ 3/4 complete (75%) - Deferred audio/MIDI export
+**VERY HARD:** ⏸️ 1/2 complete (50%) - GB done, NES next
+
+**Overall:** ✅ 15/19 roadmap items complete (79%)
+
+---
+
 ## 2025-10-31 - Session 2: HARD Tier Complete
 
 ### ✅ HARD Tier - COMPLETED

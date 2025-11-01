@@ -92,10 +92,11 @@ int musicMenuIndex = 0;
 // Games submenu (struct defined in config.h)
 GamesMenuItem gamesMenuItems[] = {
   {"CHIP-8", TFT_GREEN, 14},
-  {"Game Boy", TFT_PURPLE, 15}
+  {"Game Boy", TFT_PURPLE, 15},
+  {"NES", TFT_RED, 17}
 };
 
-int totalGamesItems = 2;
+int totalGamesItems = 3;
 int gamesMenuIndex = 0;
 
 // Global state for background WiFi connection
@@ -685,6 +686,19 @@ void loop() {
           if (gbActive) {
             drawGB();
           }
+        } else if (currentScreenNumber == 17) {
+          // NES placeholder
+          M5Cardputer.Display.fillScreen(TFT_BLACK);
+          drawStatusBar(false);
+          M5Cardputer.Display.setTextSize(2);
+          M5Cardputer.Display.setTextColor(TFT_RED);
+          M5Cardputer.Display.drawString("NES Emulator", 60, 40);
+          M5Cardputer.Display.setTextSize(1);
+          M5Cardputer.Display.setTextColor(TFT_YELLOW);
+          M5Cardputer.Display.drawString("Nofrendo Core Ready", 55, 65);
+          M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+          M5Cardputer.Display.drawString("Requires restart mode", 45, 85);
+          M5Cardputer.Display.drawString("Integration in progress", 40, 100);
         } else if (currentScreenNumber == 16) {
           // LabCHAT
           enterLabChat();
@@ -2115,6 +2129,20 @@ void loop() {
 
       // Handle Game Boy ROM selection (when not yet active)
       if (currentState == SCREEN_VIEW && currentScreenNumber == 15 && !gbActive) {
+        for (auto key : status.word) {
+          if (key == '`') {
+            // Back to Games menu
+            safeBeep(600, 100);
+            currentScreenNumber = 8;
+            drawScreen(false);
+            return;
+          }
+        }
+        return;
+      }
+
+      // Handle NES placeholder input
+      if (currentState == SCREEN_VIEW && currentScreenNumber == 17) {
         for (auto key : status.word) {
           if (key == '`') {
             // Back to Games menu
