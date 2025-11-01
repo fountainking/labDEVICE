@@ -13,10 +13,19 @@
   - Proper memory management (ROM/RAM allocation)
   - Added to Games menu alongside CHIP-8
 
+### ⏸️ NES Emulator Status
+- **Menu Entry Added** - NES option in Games menu (placeholder screen)
+- **Research Complete** - Found Cardputer Game Station (Nofrendo core)
+- **Integration Challenge** - Blocking architecture requires restart mode:
+  - `nofrendo_main()` never returns (unlike GB's frame-based API)
+  - Options: Boot mode with NVRAM flag, or dual-core FreeRTOS
+  - Placeholder shows "Integration in progress"
+  - Deferred pending architectural decision
+
 ### 📊 Session 3 Statistics
-- **Features Added:** 1 VERY HARD tier task
-- **Lines of Code:** ~4,400 (including Peanut-GB core)
-- **Commits:** 1 major integration
+- **Features Added:** 1 VERY HARD tier task (GB Emulator)
+- **Lines of Code:** ~4,460 (including Peanut-GB core)
+- **Commits:** 2 (GB integration + NES placeholder)
 - **Build Status:** ✅ Passing (53.2% flash, 84.0% RAM)
 
 ### 🎯 Total Roadmap Progress
@@ -24,7 +33,7 @@
 **EASY:** ✅ 4/4 complete (100%)
 **MEDIUM:** ✅ 4/6 complete (67%)
 **HARD:** ✅ 3/4 complete (75%) - Deferred audio/MIDI export
-**VERY HARD:** ⏸️ 1/2 complete (50%) - GB done, NES next
+**VERY HARD:** ⏸️ 1/2 complete (50%) - GB ✅, NES ⏸️ (requires restart mode)
 
 **Overall:** ✅ 15/19 roadmap items complete (79%)
 
