@@ -97,7 +97,8 @@ void autoDetectTimezone() {
         settings.timezoneString = "NZST-12NZDT,M9.5.0,M4.1.0/3";
       }
 
-      applyTimezone();
+      // Don't call applyTimezone() here - it blocks WiFi!
+      // Time sync in main.cpp will handle it after WiFi is stable
     }
   }
   http.end();

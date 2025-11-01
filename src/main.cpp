@@ -496,11 +496,11 @@ void handleBackgroundWiFi() {
     // Sync time if never synced, or every hour
     // ONLY sync when WiFi is stable (connected for at least 5 seconds)
     static unsigned long wifiConnectedTime = 0;
-    static bool justConnected = true;
+    static bool wifiWasDisconnected = true;
 
-    if (justConnected) {
+    if (wifiWasDisconnected) {
       wifiConnectedTime = millis();
-      justConnected = false;
+      wifiWasDisconnected = false;
     }
 
     unsigned long timeSinceLastSync = millis() - lastSyncTime;
@@ -536,9 +536,9 @@ void handleBackgroundWiFi() {
       wifiSSID = "Not Connected";
       Serial.println("WiFi disconnected");
 
-      // Reset connection timer for next time
-      static bool justConnected = true;
-      justConnected = true;
+      // Reset timer so next connection waits 5 seconds
+      static bool wifiWasDisconnected = true;
+      wifiWasDisconnected = true;
     }
   }
 
