@@ -498,19 +498,38 @@ void handleBackgroundWiFi() {
     bool shouldSync = !timeIsSynced || (timeSinceLastSync > 3600000); // 1 hour in milliseconds
 
     if (shouldSync) {
-      // Sync time using timezone with DST support
-      applyTimezone();
-      struct tm timeinfo;
-      if (getLocalTime(&timeinfo)) {
-        timeIsSynced = true;
-        lastSyncTime = millis();
+      // Non-blocking time sync - try to get time with minimal timeout
+      static bool syncInProgress = false;
+      static unsigned long syncStartTime = 0;
 
-        // Save synced time to preferences
-        time_t now = time(nullptr);
-        settings.lastKnownTime = now;
-        preferences.begin("settings", false);
-        preferences.putULong("lastTime", (unsigned long)now);
-        preferences.end();
+      if (!syncInProgress) {
+        // Start sync
+        applyTimezone();
+        syncInProgress = true;
+        syncStartTime = millis();
+        Serial.println("Starting time sync...");
+      } else {
+        // Check if we got time (non-blocking with 10ms timeout)
+        struct tm timeinfo;
+        if (getLocalTime(&timeinfo, 10)) {
+          timeIsSynced = true;
+          lastSyncTime = millis();
+          syncInProgress = false;
+          Serial.printf("Time synced: %02d:%02d:%02d\n",
+                        timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+
+          // Save synced time to preferences
+          time_t now = time(nullptr);
+          settings.lastKnownTime = now;
+          preferences.begin("settings", false);
+          preferences.putULong("lastTime", (unsigned long)now);
+          preferences.end();
+        } else if (millis() - syncStartTime > 5000) {
+          // Give up after 5 seconds
+          syncInProgress = false;
+          lastSyncTime = millis(); // Don't retry immediately
+          Serial.println("Time sync timeout - will retry later");
+        }
       }
     }
   } else {
