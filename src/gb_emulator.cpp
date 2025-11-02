@@ -1,4 +1,7 @@
 #include "gb_emulator.h"
+
+#ifdef ENABLE_GB_EMULATOR
+
 #include <SD.h>
 #include <vector>
 
@@ -9,7 +12,7 @@
 
 // GB state
 bool gbActive = false;
-static struct gb_s gb;
+static struct gb_s* gb = nullptr;  // Lazy allocation
 static String selectedROM = "";
 static bool romLoaded = false;
 static unsigned long lastFrameTime = 0;
@@ -19,10 +22,10 @@ static const int FRAME_TIME_US = 16742; // ~59.7Hz
 struct priv_t {
     uint8_t *rom;
     uint8_t *cart_ram;
-    uint32_t fb[144][160];  // Frame buffer
+    uint32_t fb[144][160];  // Frame buffer - 92KB!
 };
 
-static struct priv_t priv;
+static struct priv_t* priv = nullptr;  // Lazy allocation
 
 // DMG palette (original Game Boy green)
 static const uint16_t dmg_palette[4] = {
@@ -83,38 +86,38 @@ static bool loadROM(const String& filename) {
     Serial.printf("Loading ROM: %s (%d bytes)\n", filename.c_str(), romSize);
 
     // Allocate ROM memory
-    priv.rom = (uint8_t*)malloc(romSize);
-    if (priv.rom == NULL) {
+    priv->rom = (uint8_t*)malloc(romSize);
+    if (priv->rom == NULL) {
         Serial.println("Failed to allocate ROM memory");
         file.close();
         return false;
     }
 
     // Read ROM into memory
-    file.read(priv.rom, romSize);
+    file.read(priv->rom, romSize);
     file.close();
 
     // Allocate cartridge RAM (32KB should cover most games)
-    priv.cart_ram = (uint8_t*)malloc(0x8000);
-    if (priv.cart_ram != NULL) {
-        memset(priv.cart_ram, 0, 0x8000);
+    priv->cart_ram = (uint8_t*)malloc(0x8000);
+    if (priv->cart_ram != NULL) {
+        memset(priv->cart_ram, 0, 0x8000);
     }
 
     // Initialize framebuffer
-    memset(priv.fb, 0, sizeof(priv.fb));
+    memset(priv->fb, 0, sizeof(priv->fb));
 
     // Initialize emulator
-    enum gb_init_error_e ret = gb_init(&gb, &gb_rom_read, &gb_cart_ram_read,
-                                        &gb_cart_ram_write, &gb_error, &priv);
+    enum gb_init_error_e ret = gb_init(gb, &gb_rom_read, &gb_cart_ram_read,
+                                        &gb_cart_ram_write, &gb_error, priv);
 
     if (ret != GB_INIT_NO_ERROR) {
         Serial.printf("GB init error: %d\n", ret);
-        free(priv.rom);
-        if (priv.cart_ram) free(priv.cart_ram);
+        free(priv->rom);
+        if (priv->cart_ram) free(priv->cart_ram);
         return false;
     }
 
-    gb_init_lcd(&gb, &lcd_draw_line);
+    gb_init_lcd(gb, &lcd_draw_line);
 
     Serial.println("ROM loaded successfully");
     return true;
@@ -228,6 +231,52 @@ bool selectGBROM() {
 }
 
 void enterGB() {
+    // Check available heap
+    size_t freeHeap = ESP.getFreeHeap();
+    size_t gbSize = sizeof(struct gb_s);
+    size_t privSize = sizeof(struct priv_t);
+
+    Serial.printf("Free heap: %d bytes\n", freeHeap);
+    Serial.printf("GB size: %d bytes\n", gbSize);
+    Serial.printf("Priv size: %d bytes\n", privSize);
+    Serial.printf("Total needed: %d bytes\n", gbSize + privSize);
+
+    // Allocate GB structures (109KB total - only when needed!)
+    if (gb == nullptr) {
+        gb = (struct gb_s*)malloc(sizeof(struct gb_s));
+        if (gb == nullptr) {
+            M5Cardputer.Display.fillScreen(TFT_BLACK);
+            M5Cardputer.Display.setTextColor(TFT_RED);
+            M5Cardputer.Display.drawString("Out of memory for GB!", 10, 40);
+            M5Cardputer.Display.setTextSize(1);
+            M5Cardputer.Display.setTextColor(TFT_WHITE);
+            M5Cardputer.Display.drawString(String("Need: ") + String(gbSize) + " bytes", 10, 60);
+            M5Cardputer.Display.drawString(String("Free: ") + String(freeHeap) + " bytes", 10, 75);
+            delay(3000);
+            return;
+        }
+        Serial.printf("GB allocated at %p\n", gb);
+    }
+
+    if (priv == nullptr) {
+        priv = (struct priv_t*)malloc(sizeof(struct priv_t));
+        if (priv == nullptr) {
+            free(gb);
+            gb = nullptr;
+            M5Cardputer.Display.fillScreen(TFT_BLACK);
+            M5Cardputer.Display.setTextColor(TFT_RED);
+            M5Cardputer.Display.drawString("Out of memory for framebuffer!", 10, 40);
+            M5Cardputer.Display.setTextSize(1);
+            M5Cardputer.Display.setTextColor(TFT_WHITE);
+            M5Cardputer.Display.drawString(String("Need: ") + String(privSize) + " bytes", 10, 60);
+            M5Cardputer.Display.drawString(String("Free: ") + String(ESP.getFreeHeap()) + " bytes", 10, 75);
+            delay(3000);
+            return;
+        }
+        memset(priv, 0, sizeof(struct priv_t));
+        Serial.printf("Priv allocated at %p\n", priv);
+    }
+
     // Select ROM
     if (!selectGBROM()) {
         return;
@@ -260,14 +309,24 @@ void exitGB() {
     gbActive = false;
     romLoaded = false;
 
-    // Free memory
-    if (priv.rom) {
-        free(priv.rom);
-        priv.rom = NULL;
+    // Free ROM/RAM memory
+    if (priv && priv->rom) {
+        free(priv->rom);
+        priv->rom = NULL;
     }
-    if (priv.cart_ram) {
-        free(priv.cart_ram);
-        priv.cart_ram = NULL;
+    if (priv && priv->cart_ram) {
+        free(priv->cart_ram);
+        priv->cart_ram = NULL;
+    }
+
+    // Free GB structures (reclaim 109KB!)
+    if (priv) {
+        free(priv);
+        priv = nullptr;
+    }
+    if (gb) {
+        free(gb);
+        gb = nullptr;
     }
 }
 
@@ -291,27 +350,27 @@ void updateGB() {
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
 
     // D-pad
-    gb.direct.joypad_bits.up = 0;
-    gb.direct.joypad_bits.down = 0;
-    gb.direct.joypad_bits.left = 0;
-    gb.direct.joypad_bits.right = 0;
+    gb->direct.joypad_bits.up = 0;
+    gb->direct.joypad_bits.down = 0;
+    gb->direct.joypad_bits.left = 0;
+    gb->direct.joypad_bits.right = 0;
 
     // Buttons
-    gb.direct.joypad_bits.a = 0;
-    gb.direct.joypad_bits.b = 0;
-    gb.direct.joypad_bits.start = 0;
-    gb.direct.joypad_bits.select = 0;
+    gb->direct.joypad_bits.a = 0;
+    gb->direct.joypad_bits.b = 0;
+    gb->direct.joypad_bits.start = 0;
+    gb->direct.joypad_bits.select = 0;
 
     // Check all currently pressed keys
     for (auto key : status.word) {
-        if (key == 'e') gb.direct.joypad_bits.up = 1;       // E = Up
-        if (key == 'd') gb.direct.joypad_bits.down = 1;     // D = Down
-        if (key == 's') gb.direct.joypad_bits.left = 1;     // S = Left
-        if (key == 'f') gb.direct.joypad_bits.right = 1;    // F = Right
-        if (key == 'l') gb.direct.joypad_bits.a = 1;        // L = A
-        if (key == 'k') gb.direct.joypad_bits.b = 1;        // K = B
-        if (key == '1') gb.direct.joypad_bits.start = 1;    // 1 = Start
-        if (key == '2') gb.direct.joypad_bits.select = 1;   // 2 = Select
+        if (key == 'e') gb->direct.joypad_bits.up = 1;       // E = Up
+        if (key == 'd') gb->direct.joypad_bits.down = 1;     // D = Down
+        if (key == 's') gb->direct.joypad_bits.left = 1;     // S = Left
+        if (key == 'f') gb->direct.joypad_bits.right = 1;    // F = Right
+        if (key == 'l') gb->direct.joypad_bits.a = 1;        // L = A
+        if (key == 'k') gb->direct.joypad_bits.b = 1;        // K = B
+        if (key == '1') gb->direct.joypad_bits.start = 1;    // 1 = Start
+        if (key == '2') gb->direct.joypad_bits.select = 1;   // 2 = Select
     }
 
     // Frame timing (59.7Hz)
@@ -320,7 +379,7 @@ void updateGB() {
         lastFrameTime = currentTime;
 
         // Run emulator for one frame (~70224 cycles)
-        gb_run_frame(&gb);
+        gb_run_frame(gb);
 
         // Draw frame
         drawGB();
@@ -338,8 +397,10 @@ void drawGB() {
         int srcY = (y * 144) / 135;  // Map destination Y to source Y
 
         for (int x = 0; x < 160; x++) {
-            uint16_t color = priv.fb[srcY][x];
+            uint16_t color = priv->fb[srcY][x];
             M5Cardputer.Display.drawPixel(x + xOffset, y, color);
         }
     }
 }
+
+#endif // ENABLE_GB_EMULATOR

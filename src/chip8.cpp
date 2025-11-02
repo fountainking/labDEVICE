@@ -71,6 +71,14 @@ static unsigned long lastTimerUpdate = 0;
 static String romFiles[50];
 static int numRoms = 0;
 static int selectedRomIndex = 0;
+static bool showRomOverlay = false;  // TAB overlay state
+static int overlayRomIndex = 0;      // Selected ROM in overlay
+
+// Display state
+static bool prevDisplay[SCHIP_DISPLAY_WIDTH][SCHIP_DISPLAY_HEIGHT];
+static bool firstDraw = true;
+static bool showKeymap = false;
+static unsigned long keymapShowTime = 0;
 
 // Gradient settings (user customizable later)
 static uint16_t gradientColor1 = TFT_PURPLE;    // Top color
@@ -509,12 +517,21 @@ void scanForROMs() {
 static int lastSelectedRom = -1;
 static bool browserFullRedraw = true;
 
+// Forward declaration
+void drawRomOverlay();
+
 void enterChip8() {
   chip8.reset();
   chip8Running = false;
-  browserFullRedraw = true;  // Trigger full redraw
   scanForROMs();
-  drawChip8ROMBrowser();
+
+  // Start with overlay open instead of browser
+  showRomOverlay = true;
+  overlayRomIndex = 0;
+  firstDraw = true;
+
+  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  drawRomOverlay();
 }
 
 void drawChip8ROMBrowser() {
@@ -523,24 +540,16 @@ void drawChip8ROMBrowser() {
     M5Cardputer.Display.fillScreen(TFT_BLACK);
     drawStatusBar(false);
 
-    // Left side: Compact ROM list (60px wide like file manager)
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_YELLOW);
-    M5Cardputer.Display.drawString("ROMS", 3, 25);
-    M5Cardputer.Display.drawLine(60, 24, 60, 135, TFT_DARKGREY);  // Divider
-
-    // Right side: Large preview/info area (180px wide)
-    M5Cardputer.Display.setTextSize(1);
+    // Fullscreen ROM browser - centered layout
+    M5Cardputer.Display.setTextSize(2);
     M5Cardputer.Display.setTextColor(TFT_CYAN);
-    M5Cardputer.Display.drawString("CHIP-8 Controls:", 70, 30);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("4567  ->  123C", 70, 45);
-    M5Cardputer.Display.drawString("rtyu  ->  456D", 70, 55);
-    M5Cardputer.Display.drawString("dfgh  ->  789E", 70, 65);
-    M5Cardputer.Display.drawString("xcvb  ->  A0BF", 70, 75);
+    M5Cardputer.Display.drawString("CHIP-8", 85, 28);
+
+    // Controls info
+    M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("TAB=Show Keymap  ESC=Exit", 70, 95);
-    M5Cardputer.Display.drawString("ENTER=Play  `=Back", 70, 105);
+    M5Cardputer.Display.drawString("Arrows=Move  Space=Action  TAB=Switch", 20, 115);
+    M5Cardputer.Display.drawString("ENTER=Play  ESC=Exit  `=Back", 35, 125);
 
     browserFullRedraw = false;
     lastSelectedRom = -1;  // Force list redraw
@@ -549,133 +558,95 @@ void drawChip8ROMBrowser() {
   if (numRoms == 0) {
     M5Cardputer.Display.setTextSize(2);
     M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("No ROMs!", 60, 50);
+    M5Cardputer.Display.drawString("No ROMs!", 75, 55);
     M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("Place ROM files in:", 50, 75);
-    M5Cardputer.Display.drawString("/roms/chip8/", 60, 90);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("(any file type)", 60, 105);
+    M5Cardputer.Display.drawString("Place ROM files in:", 65, 75);
+    M5Cardputer.Display.drawString("/roms/chip8/", 75, 87);
     return;
   }
 
-  // Redraw visible ROM list (LEFT NARROW COLUMN - 60px)
-  // Track scroll position to detect when we need full redraw
+  // Fullscreen ROM list - centered
   static int lastStartIdx = -1;
-  int startIdx = max(0, selectedRomIndex - 4);
-  int endIdx = min(numRoms, startIdx + 9);
+  int startIdx = max(0, selectedRomIndex - 3);
+  int endIdx = min(numRoms, startIdx + 7);
 
   // Full redraw needed when scrolling or first draw
   bool needsFullRedraw = (lastSelectedRom == -1) || (lastStartIdx != startIdx);
 
   if (needsFullRedraw) {
     // Clear entire list area
-    M5Cardputer.Display.fillRect(2, 36, 56, 92, TFT_BLACK);
+    M5Cardputer.Display.fillRect(10, 48, 220, 63, TFT_BLACK);
   }
 
-  int yPos = 38;
+  int yPos = 50;
   for (int i = startIdx; i < endIdx; i++) {
     bool isSelected = (i == selectedRomIndex);
 
     // Redraw if full redraw needed, or if selection state changed
     if (needsFullRedraw || (i == lastSelectedRom) || isSelected) {
-      // Extract & format filename (VERY compact - 8 chars max)
+      // Extract & format filename (30 chars max for fullscreen)
       String filename = romFiles[i];
       int lastSlash = filename.lastIndexOf('/');
       if (lastSlash >= 0) filename = filename.substring(lastSlash + 1);
       int dot = filename.lastIndexOf('.');
       if (dot >= 0) filename = filename.substring(0, dot);
-      if (filename.length() > 8) filename = filename.substring(0, 7) + ".";  // Ultra compact
+      if (filename.length() > 30) filename = filename.substring(0, 29) + ".";
 
       // Clear and redraw row
       if (!needsFullRedraw) {
-        M5Cardputer.Display.fillRect(2, yPos - 2, 56, 9, TFT_BLACK);
+        M5Cardputer.Display.fillRect(15, yPos - 2, 210, 11, TFT_BLACK);
       }
 
       M5Cardputer.Display.setTextSize(1);
 
       if (isSelected) {
         // Selected - highlighted
-        M5Cardputer.Display.fillRoundRect(2, yPos - 2, 56, 9, 1, TFT_YELLOW);
+        M5Cardputer.Display.fillRoundRect(15, yPos - 2, 210, 11, 2, TFT_CYAN);
         M5Cardputer.Display.setTextColor(TFT_BLACK);
       } else {
         // Unselected
         M5Cardputer.Display.setTextColor(TFT_WHITE);
       }
 
-      M5Cardputer.Display.drawString(filename, 4, yPos);
+      M5Cardputer.Display.drawString(filename, 20, yPos);
     }
 
-    yPos += 10;
+    yPos += 9;
   }
 
   lastSelectedRom = selectedRomIndex;
   lastStartIdx = startIdx;
 }
 
-// Track previous display state for fast delta updates
-static bool prevDisplay[SCHIP_DISPLAY_WIDTH][SCHIP_DISPLAY_HEIGHT];
-static bool firstDraw = true;
-static bool showKeymap = false;
-static unsigned long keymapShowTime = 0;
-
 void drawChip8Screen() {
-  // GAMEPLAY ON RIGHT SIDE - maximize space (180px x 135px available)
+  // FULLSCREEN GAMEPLAY - use entire 240x135 screen
   int displayW = chip8.displayWidth;
   int displayH = chip8.displayHeight;
 
-  // Calculate max scale to fit right side (180px wide max, 111px tall after status bar)
-  int maxWidth = 180;
-  int maxHeight = 111;  // 135 - 24 status bar
-  int scale = min(maxWidth / displayW, maxHeight / displayH);
-  if (scale < 1) scale = 1;
+  // Calculate max scale to FILL full screen (240px wide, 135px tall)
+  int maxWidth = 240;
+  int maxHeight = 135;
 
-  int gameWidth = displayW * scale;
-  int gameHeight = displayH * scale;
-  int offsetX = 60 + (maxWidth - gameWidth) / 2;  // Center in right area
-  int offsetY = 24 + (maxHeight - gameHeight) / 2;  // Center vertically
+  // Find largest integer scale that doesn't exceed screen bounds
+  int scaleX = maxWidth / displayW;
+  int scaleY = maxHeight / displayH;
 
-  // First draw: clear screen and draw left ROM list sidebar
+  // Increase scales to fill more screen (allow slight overflow)
+  while ((displayW * (scaleX + 1)) <= maxWidth) scaleX++;
+  while ((displayH * (scaleY + 1)) <= maxHeight) scaleY++;
+
+  if (scaleX < 1) scaleX = 1;
+  if (scaleY < 1) scaleY = 1;
+
+  int gameWidth = displayW * scaleX;
+  int gameHeight = displayH * scaleY;
+  int offsetX = (maxWidth - gameWidth) / 2;  // Center horizontally
+  int offsetY = (maxHeight - gameHeight) / 2;  // Center vertically
+
+  // First draw: clear screen
   if (firstDraw) {
     M5Cardputer.Display.fillScreen(TFT_BLACK);
-    drawStatusBar(false);
-
-    // Draw left sidebar with ROM list during gameplay
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("ROMS", 3, 25);
-    M5Cardputer.Display.drawLine(60, 24, 60, 135, TFT_DARKGREY);
-
-    // Draw compact ROM list in left sidebar
-    int startIdx = max(0, selectedRomIndex - 4);
-    int endIdx = min(numRoms, startIdx + 9);
-    int yPos = 38;
-
-    for (int i = startIdx; i < endIdx; i++) {
-      bool isCurrentGame = (i == selectedRomIndex);
-
-      // Extract & format filename
-      String filename = romFiles[i];
-      int lastSlash = filename.lastIndexOf('/');
-      if (lastSlash >= 0) filename = filename.substring(lastSlash + 1);
-      int dot = filename.lastIndexOf('.');
-      if (dot >= 0) filename = filename.substring(0, dot);
-      if (filename.length() > 8) filename = filename.substring(0, 7) + ".";
-
-      M5Cardputer.Display.setTextSize(1);
-
-      if (isCurrentGame) {
-        // Currently playing - highlighted
-        M5Cardputer.Display.fillRoundRect(2, yPos - 2, 56, 9, 1, TFT_DARKGREY);
-        M5Cardputer.Display.setTextColor(TFT_YELLOW);
-      } else {
-        M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      }
-
-      M5Cardputer.Display.drawString(filename, 4, yPos);
-      yPos += 10;
-    }
-
     memset(prevDisplay, 0, sizeof(prevDisplay));
     firstDraw = false;
   }
@@ -687,12 +658,12 @@ void drawChip8Screen() {
       bool previous = prevDisplay[x][y];
 
       if (current != previous) {
-        int screenX = offsetX + (x * scale);
-        int screenY = offsetY + (y * scale);
+        int screenX = offsetX + (x * scaleX);
+        int screenY = offsetY + (y * scaleY);
         uint16_t color = current ? TFT_WHITE : TFT_BLACK;
 
-        if (scale > 1) {
-          M5Cardputer.Display.fillRect(screenX, screenY, scale, scale, color);
+        if (scaleX > 1 || scaleY > 1) {
+          M5Cardputer.Display.fillRect(screenX, screenY, scaleX, scaleY, color);
         } else {
           M5Cardputer.Display.drawPixel(screenX, screenY, color);
         }
@@ -729,6 +700,64 @@ void drawChip8Screen() {
       firstDraw = true;  // Force full redraw to clear keymap
     }
   }
+
+  // Draw ROM overlay (TAB menu) if enabled
+  if (showRomOverlay) {
+    drawRomOverlay();
+  }
+}
+
+void drawRomOverlay() {
+  // Draw overlay with ROM list (TAB menu)
+  // Left-aligned overlay: 100x115 px
+  int overlayX = 10;
+  int overlayY = 10;
+  int overlayW = 100;
+  int overlayH = 115;
+
+  // Semi-transparent dark background
+  M5Cardputer.Display.fillRoundRect(overlayX, overlayY, overlayW, overlayH, 5, TFT_BLACK);
+  M5Cardputer.Display.drawRoundRect(overlayX, overlayY, overlayW, overlayH, 5, TFT_CYAN);
+  M5Cardputer.Display.drawRoundRect(overlayX+1, overlayY+1, overlayW-2, overlayH-2, 4, TFT_CYAN);
+
+  // "TAB" label at top
+  M5Cardputer.Display.setTextSize(1);
+  M5Cardputer.Display.setTextColor(TFT_CYAN);
+  M5Cardputer.Display.drawString("TAB", overlayX + 5, overlayY + 3);
+
+  // Instructions
+  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+  M5Cardputer.Display.drawString("Press TAB/ESC to close", overlayX + 5, overlayY + overlayH - 12);
+
+  // Draw ROM list (max 9 items visible in taller overlay)
+  int startIdx = max(0, overlayRomIndex - 4);
+  int endIdx = min(numRoms, startIdx + 9);
+  int yPos = overlayY + 15;
+
+  M5Cardputer.Display.setTextSize(1);
+
+  for (int i = startIdx; i < endIdx; i++) {
+    bool selected = (i == overlayRomIndex);
+
+    // Extract & format filename (13 chars max for narrow overlay)
+    String filename = romFiles[i];
+    int lastSlash = filename.lastIndexOf('/');
+    if (lastSlash >= 0) filename = filename.substring(lastSlash + 1);
+    int dot = filename.lastIndexOf('.');
+    if (dot >= 0) filename = filename.substring(0, dot);
+    if (filename.length() > 13) filename = filename.substring(0, 12) + ".";
+
+    if (selected) {
+      // Highlighted selection
+      M5Cardputer.Display.fillRoundRect(overlayX + 3, yPos - 1, overlayW - 6, 10, 2, TFT_CYAN);
+      M5Cardputer.Display.setTextColor(TFT_BLACK);
+    } else {
+      M5Cardputer.Display.setTextColor(TFT_WHITE);
+    }
+
+    M5Cardputer.Display.drawString(filename, overlayX + 5, yPos);
+    yPos += 11;
+  }
 }
 
 void handleChip8Input() {
@@ -738,7 +767,83 @@ void handleChip8Input() {
   // DON'T call update() - main loop already does it
   Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
 
-  // Check for ESC to exit game back to ROM browser
+  // Check for Tab to toggle ROM overlay
+  static bool lastTabState = false;
+  if (status.tab && !lastTabState) {
+    showRomOverlay = !showRomOverlay;
+    if (showRomOverlay) {
+      overlayRomIndex = selectedRomIndex;  // Start at current ROM
+      drawRomOverlay();
+    } else {
+      // Overlay closed - redraw game or clear screen
+      firstDraw = true;
+      if (chip8Running) {
+        drawChip8Screen();
+      } else {
+        M5Cardputer.Display.fillScreen(TFT_BLACK);
+      }
+    }
+  }
+  lastTabState = status.tab;
+
+  // Handle ROM overlay navigation
+  if (showRomOverlay) {
+    // ESC or TAB to close overlay
+    if (status.del) {
+      showRomOverlay = false;
+      firstDraw = true;
+      return;
+    }
+
+    // Debounce navigation to prevent scroll spam
+    static unsigned long lastNavTime = 0;
+    static bool lastUpState = false;
+    static bool lastDownState = false;
+    unsigned long now = millis();
+
+    // Use W/S or arrow keys to navigate ROM list
+    bool upPressed = false;
+    bool downPressed = false;
+
+    for (auto key : status.word) {
+      if (key == 'w' || key == ';') upPressed = true;
+      if (key == 's' || key == '.') downPressed = true;
+    }
+
+    // Only trigger on key press (not hold) with 150ms debounce
+    if (upPressed && !lastUpState && (now - lastNavTime > 150)) {
+      overlayRomIndex = (overlayRomIndex - 1 + numRoms) % numRoms;
+      drawRomOverlay();
+      lastNavTime = now;
+    } else if (downPressed && !lastDownState && (now - lastNavTime > 150)) {
+      overlayRomIndex = (overlayRomIndex + 1) % numRoms;
+      drawRomOverlay();
+      lastNavTime = now;
+    }
+
+    lastUpState = upPressed;
+    lastDownState = downPressed;
+
+    // Enter to load selected ROM
+    if (status.enter) {
+      selectedRomIndex = overlayRomIndex;
+      showRomOverlay = false;
+      chip8Running = false;
+      firstDraw = true;
+
+      // Load and start the new ROM
+      chip8.reset();
+      if (chip8.loadROM(romFiles[selectedRomIndex].c_str())) {
+        chip8Running = true;
+      }
+      drawChip8Screen();
+      return;
+    }
+
+    return;  // Don't process game input while overlay is open
+  }
+
+  // Check for ESC to exit game back to ROM browser (only when overlay closed)
   if (status.del) {
     chip8Running = false;
     firstDraw = true;  // Reset for next game
@@ -747,45 +852,45 @@ void handleChip8Input() {
     return;
   }
 
-  // Check for Tab to toggle keymap overlay
-  static bool lastTabState = false;
-  if (status.tab && !lastTabState) {
-    showKeymap = !showKeymap;
-    if (showKeymap) {
-      keymapShowTime = millis();
-    } else {
-      firstDraw = true;  // Force redraw to clear keymap
-    }
-  }
-  lastTabState = status.tab;
-
-  // Track key states (DON'T reset every frame - that causes lag!)
+  // Track key states - simple pass-through, no debouncing
+  // (CHIP-8 games expect continuous state, not pulses)
   static bool keyStates[16] = {false};
   bool currentKeys[16] = {false};
 
-  // Map pressed keys (4567/rtyu/dfgh/xcvb)
+  // Map pressed keys - TETRIS uses: 4=left, 5=rotate, 6=right
   for (auto key : status.word) {
     switch (key) {
-      case '4': currentKeys[0x1] = true; break;
-      case '5': currentKeys[0x2] = true; break;
-      case '6': currentKeys[0x3] = true; break;
-      case '7': currentKeys[0xC] = true; break;
-      case 'r': currentKeys[0x4] = true; break;
-      case 't': currentKeys[0x5] = true; break;
-      case 'y': currentKeys[0x6] = true; break;
-      case 'u': currentKeys[0xD] = true; break;
-      case 'd': currentKeys[0x7] = true; break;
-      case 'f': currentKeys[0x8] = true; break;
-      case 'g': currentKeys[0x9] = true; break;
-      case 'h': currentKeys[0xE] = true; break;
-      case 'x': currentKeys[0xA] = true; break;
-      case 'c': currentKeys[0x0] = true; break;
-      case 'v': currentKeys[0xB] = true; break;
-      case 'b': currentKeys[0xF] = true; break;
+      // Arrow keys to CHIP-8 keys
+      case ';': currentKeys[0x5] = true; break;  // up -> 5 (rotate)
+      case ',': currentKeys[0x4] = true; break;  // left -> 4
+      case '.': currentKeys[0x2] = true; break;  // down -> 2
+      case '/': currentKeys[0x6] = true; break;  // right -> 6
+
+      // Number keys also work
+      case '0': currentKeys[0x0] = true; break;
+      case '1': currentKeys[0x1] = true; break;
+      case '2': currentKeys[0x2] = true; break;
+      case '3': currentKeys[0x3] = true; break;
+      case '4': currentKeys[0x4] = true; break;
+      case '5': currentKeys[0x5] = true; break;
+      case '6': currentKeys[0x6] = true; break;
+      case '7': currentKeys[0x7] = true; break;
+      case '8': currentKeys[0x8] = true; break;
+      case '9': currentKeys[0x9] = true; break;
+      case 'b': currentKeys[0xB] = true; break;
+      case 'c': currentKeys[0xC] = true; break;
+      case 'd': currentKeys[0xD] = true; break;
+      case 'e': currentKeys[0xE] = true; break;
+      case 'f': currentKeys[0xF] = true; break;
     }
   }
 
-  // Update chip8 key states (only when changed for instant response)
+  // Map Enter key to key 0 (common alt action)
+  if (status.enter) {
+    currentKeys[0x0] = true;
+  }
+
+  // Update chip8 key states (continuous state, games handle their own timing)
   for (int i = 0; i < 16; i++) {
     if (currentKeys[i] != keyStates[i]) {
       chip8.setKey(i, currentKeys[i]);

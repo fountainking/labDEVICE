@@ -25,7 +25,6 @@
 #include "labchat.h"
 #include "lbm.h"
 #include "tap_tempo.h"
-#include "gb_emulator.h"
 
 Preferences preferences;
 
@@ -91,12 +90,10 @@ int musicMenuIndex = 0;
 
 // Games submenu (struct defined in config.h)
 GamesMenuItem gamesMenuItems[] = {
-  {"CHIP-8", TFT_GREEN, 14},
-  {"Game Boy", TFT_PURPLE, 15},
-  {"NES", TFT_RED, 17}
+  {"CHIP-8", TFT_GREEN, 14}
 };
 
-int totalGamesItems = 3;
+int totalGamesItems = 1;
 int gamesMenuIndex = 0;
 
 // Global state for background WiFi connection
@@ -703,24 +700,6 @@ void loop() {
         } else if (currentScreenNumber == 14) {
           // CHIP-8
           drawChip8ROMBrowser();
-        } else if (currentScreenNumber == 15) {
-          // Game Boy
-          if (gbActive) {
-            drawGB();
-          }
-        } else if (currentScreenNumber == 17) {
-          // NES placeholder
-          M5Cardputer.Display.fillScreen(TFT_BLACK);
-          drawStatusBar(false);
-          M5Cardputer.Display.setTextSize(2);
-          M5Cardputer.Display.setTextColor(TFT_RED);
-          M5Cardputer.Display.drawString("NES Emulator", 60, 40);
-          M5Cardputer.Display.setTextSize(1);
-          M5Cardputer.Display.setTextColor(TFT_YELLOW);
-          M5Cardputer.Display.drawString("Nofrendo Core", 75, 65);
-          M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-          M5Cardputer.Display.drawString("Requires dedicated", 60, 85);
-          M5Cardputer.Display.drawString("integration session", 55, 100);
         } else if (currentScreenNumber == 16) {
           // LabCHAT
           enterLabChat();
@@ -1866,8 +1845,6 @@ void loop() {
           // Call appropriate enter function
           if (currentScreenNumber == 14) {
             enterChip8();
-          } else if (currentScreenNumber == 15) {
-            enterGB();
           }
           return;
         }
@@ -2138,44 +2115,11 @@ void loop() {
       }
 
       // Handle CHIP-8 ROM browser input
-      if (currentState == SCREEN_VIEW && currentScreenNumber == 14) {
-        handleChip8BrowserInput(status);
-        return;
-      }
-
-      // Handle Game Boy input (handled internally by updateGB)
-      if (currentState == SCREEN_VIEW && currentScreenNumber == 15 && gbActive) {
-        // GB handles its own input and escape in updateGB()
-        return;
-      }
-
-      // Handle Game Boy ROM selection (when not yet active)
-      if (currentState == SCREEN_VIEW && currentScreenNumber == 15 && !gbActive) {
-        for (auto key : status.word) {
-          if (key == '`') {
-            // Back to Games menu
-            safeBeep(600, 100);
-            currentScreenNumber = 8;
-            drawScreen(false);
-            return;
-          }
-        }
-        return;
-      }
-
-      // Handle NES placeholder input
-      if (currentState == SCREEN_VIEW && currentScreenNumber == 17) {
-        for (auto key : status.word) {
-          if (key == '`') {
-            // Back to Games menu
-            safeBeep(600, 100);
-            currentScreenNumber = 8;
-            drawScreen(false);
-            return;
-          }
-        }
-        return;
-      }
+      // DISABLED: Now using TAB overlay system instead of separate browser
+      // if (currentState == SCREEN_VIEW && currentScreenNumber == 14) {
+      //   handleChip8BrowserInput(status);
+      //   return;
+      // }
 
       // Handle LabCHAT input
       if (currentState == SCREEN_VIEW && currentScreenNumber == 16 && chatActive) {
@@ -2432,14 +2376,15 @@ void loop() {
     audioCurrentlyMuted = false;
   }
 
-  // Update CHIP-8 emulator if game is running
+  // Update CHIP-8 emulator (always handle input for overlay)
   if (currentState == SCREEN_VIEW && currentScreenNumber == 14) {
     extern bool chip8Running;
     extern Chip8 chip8;
-    if (chip8Running) {
-      // Handle CHIP-8 game input FIRST for instant response
-      handleChip8Input();
 
+    // ALWAYS handle input (overlay or game)
+    handleChip8Input();
+
+    if (chip8Running) {
       // Run 10 cycles per frame (~600 Hz at 60fps)
       for (int i = 0; i < 10; i++) {
         chip8.cycle();
@@ -2460,11 +2405,6 @@ void loop() {
     }
   }
 
-  // Update Game Boy emulator if active
-  if (currentState == SCREEN_VIEW && currentScreenNumber == 15 && gbActive) {
-    updateGB();
-  }
-
   // Use shorter delay when audio or emulators are running for responsiveness
   if (isRadioPlaying() || isAudioPlaying()) {
     delay(1);  // Minimal delay for smooth audio
@@ -2475,8 +2415,6 @@ void loop() {
     } else {
       delay(10);  // Normal delay in ROM browser
     }
-  } else if (currentState == SCREEN_VIEW && currentScreenNumber == 15 && gbActive) {
-    delay(1);  // Minimal delay for responsive GB emulation
   } else {
     delay(10);  // Normal delay when no audio
   }
