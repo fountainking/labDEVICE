@@ -22,6 +22,7 @@
 #include "the_book.h"
 #include "music_tools.h"
 #include "chip8.h"
+#include "emoji_maker.h"
 #include "labchat.h"
 #include "lbm.h"
 #include "tap_tempo.h"
@@ -90,10 +91,11 @@ int musicMenuIndex = 0;
 
 // Games submenu (struct defined in config.h)
 GamesMenuItem gamesMenuItems[] = {
-  {"CHIP-8", TFT_GREEN, 14}
+  {"CHIP-8", TFT_GREEN, 14},
+  {"Emoji Maker", TFT_PINK, 18}
 };
 
-int totalGamesItems = 1;
+int totalGamesItems = 2;
 int gamesMenuIndex = 0;
 
 // Global state for background WiFi connection
@@ -700,6 +702,9 @@ void loop() {
         } else if (currentScreenNumber == 14) {
           // CHIP-8
           drawChip8ROMBrowser();
+        } else if (currentScreenNumber == 18) {
+          // Emoji Maker
+          drawEmojiMaker();
         } else if (currentScreenNumber == 16) {
           // LabCHAT
           enterLabChat();
@@ -1845,6 +1850,8 @@ void loop() {
           // Call appropriate enter function
           if (currentScreenNumber == 14) {
             enterChip8();
+          } else if (currentScreenNumber == 18) {
+            enterEmojiMaker();
           }
           return;
         }
@@ -2138,6 +2145,12 @@ void loop() {
         return;
       }
 
+      // Handle Emoji Maker input
+      if (currentState == SCREEN_VIEW && currentScreenNumber == 18 && emojiMakerActive) {
+        handleEmojiMakerInput();
+        return;
+      }
+
       // Handle password input mode
       if (currentState == WIFI_PASSWORD) {
         for (auto key : status.word) {
@@ -2403,6 +2416,11 @@ void loop() {
         drawChip8Screen();
       }
     }
+  }
+
+  // Update Emoji Maker
+  if (currentState == SCREEN_VIEW && currentScreenNumber == 18 && emojiMakerActive) {
+    updateEmojiMaker();
   }
 
   // Use shorter delay when audio or emulators are running for responsiveness
