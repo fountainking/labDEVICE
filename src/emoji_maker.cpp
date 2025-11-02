@@ -114,6 +114,7 @@ static void drawSaveMenu();
 static void drawLoadMenu();
 static void clearCanvas();
 static void saveEmojiToLabChat();
+static void exportEmojiToLabChat();
 static void loadSavedEmojis();
 static void loadEmojiFromFile(const String& filename);
 static void loadGalleryCache();
@@ -152,10 +153,13 @@ void exitEmojiMaker() {
     needsFullRedraw = true;
 }
 
+// Transparency color (lime green) - will be transparent in LabChat
+#define TRANSPARENCY_COLOR 0x07E0  // Bright lime green (RGB565)
+
 void clearCanvas() {
     for (int y = 0; y < GRID_SIZE; y++) {
         for (int x = 0; x < GRID_SIZE; x++) {
-            canvas[y][x] = TFT_WHITE;  // White background
+            canvas[y][x] = TRANSPARENCY_COLOR;  // Lime green = transparent
         }
     }
 }
@@ -406,10 +410,16 @@ static void drawHints() {
     M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setTextColor(TFT_DARKGREY);
 
-    int hintX = 10;  // Move hints right
-    int hintY = 125;  // Bottom area
+    int hintX = 10;
+    int hintY = 125;
 
     M5Cardputer.Display.drawString("Spc=Erase Del=Undo C=Clear S=Save", hintX, hintY);
+
+    // Show transparency indicator with lime green square
+    M5Cardputer.Display.fillRect(2, 118, 6, 6, TRANSPARENCY_COLOR);
+    M5Cardputer.Display.drawRect(1, 117, 8, 8, TFT_BLACK);
+    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+    M5Cardputer.Display.drawString("=Transparent", 10, 118);
 }
 
 static void drawGallery() {
@@ -474,7 +484,8 @@ static void drawSaveMenu() {
         M5Cardputer.Display.drawString("Type name, Enter=Done", menuX + 15, menuY + 45);
     } else {
         M5Cardputer.Display.drawString("N=Edit Name", menuX + 15, menuY + 45);
-        M5Cardputer.Display.drawString("Enter=Save  `=Cancel", menuX + 15, menuY + 55);
+        M5Cardputer.Display.drawString("Enter=Save E=Export", menuX + 15, menuY + 55);
+        M5Cardputer.Display.drawString("`=Cancel", menuX + 15, menuY + 65);
     }
 }
 
@@ -673,6 +684,14 @@ void handleEmojiMakerInput() {
                 editingShortcut = true;
                 drawEmojiMaker();
                 return;
+            } else if (key == 'e' && !editingShortcut) {
+                // E to export to LabChat
+                if (emojiShortcut.length() > 0) {
+                    exportEmojiToLabChat();
+                }
+                showSaveMenu = false;
+                drawEmojiMaker();
+                return;
             }
         }
 
@@ -826,11 +845,11 @@ void handleEmojiMakerInput() {
             }
         }
 
-        // Spacebar to erase (paint white on current pixel)
+        // Spacebar to erase (paint transparent/lime green on current pixel)
         if (key == ' ') {
             if (navMode == NAV_GRID) {
                 saveUndo();
-                canvas[cursorY][cursorX] = TFT_WHITE;
+                canvas[cursorY][cursorX] = TRANSPARENCY_COLOR;
                 drawEmojiMaker();
             }
         }
@@ -972,6 +991,79 @@ static void saveEmojiToLabChat() {
     needsFullRedraw = true;
 }
 
+static void exportEmojiToLabChat() {
+    // Create /labchat/system_emojis directory if it doesn't exist
+    if (!SD.exists("/labchat")) {
+        SD.mkdir("/labchat");
+    }
+    if (!SD.exists("/labchat/system_emojis")) {
+        SD.mkdir("/labchat/system_emojis");
+    }
+
+    // Show converting message
+    M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_BLUE);
+    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    M5Cardputer.Display.drawString("Converting...", 80, 5);
+    delay(300); // Give user visual feedback
+
+    // Check if we already have 20 system emojis
+    File dir = SD.open("/labchat/system_emojis");
+    int emojiCount = 0;
+    if (dir && dir.isDirectory()) {
+        File file = dir.openNextFile();
+        while (file) {
+            if (!file.isDirectory() && String(file.name()).endsWith(".emoji")) {
+                emojiCount++;
+            }
+            file = dir.openNextFile();
+        }
+        dir.close();
+    }
+
+    // Count strawberry as slot 0 if it exists
+    bool hasStrawberry = SD.exists("/labchat/system_emojis/strawberry.emoji");
+    if (!hasStrawberry) emojiCount++; // Reserve slot 0 for strawberry
+
+    if (emojiCount >= 20) {
+        M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_RED);
+        M5Cardputer.Display.setTextColor(TFT_WHITE);
+        M5Cardputer.Display.drawString("Error: 20 slots full!", 50, 5);
+        delay(2000);
+        return;
+    }
+
+    // Save system emoji with shortcut name
+    String filename = "/labchat/system_emojis/" + emojiShortcut + ".emoji";
+
+    File file = SD.open(filename, FILE_WRITE);
+    if (!file) {
+        M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_RED);
+        M5Cardputer.Display.setTextColor(TFT_WHITE);
+        M5Cardputer.Display.drawString("Export failed!", 70, 5);
+        delay(1000);
+        return;
+    }
+
+    // Write 16x16 grid of uint16_t colors (512 bytes)
+    file.write((uint8_t*)canvas, sizeof(canvas));
+    file.close();
+
+    // Update manifest file
+    File manifest = SD.open("/labchat/system_emojis/manifest.txt", FILE_WRITE);
+    if (manifest) {
+        manifest.println(emojiShortcut);
+        manifest.close();
+    }
+
+    // Success message
+    M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_GREEN);
+    M5Cardputer.Display.setTextColor(TFT_BLACK);
+    M5Cardputer.Display.drawString("Exported: :" + emojiShortcut, 50, 5);
+    delay(1500);
+
+    needsFullRedraw = true;
+}
+
 static void loadSavedEmojis() {
     savedEmojis.clear();
 
@@ -1024,7 +1116,7 @@ static void loadGalleryCache() {
     // Red circle (radius 3*scale=3*5.33≈16px diameter) + green rectangle on top
     for (int y = 0; y < GRID_SIZE; y++) {
         for (int x = 0; x < GRID_SIZE; x++) {
-            galleryCache[0][y][x] = TFT_WHITE;  // Start with white background
+            galleryCache[0][y][x] = TRANSPARENCY_COLOR;  // Start with transparent background
         }
     }
 

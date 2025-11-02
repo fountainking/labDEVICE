@@ -19,7 +19,8 @@ enum LabChatState {
   CHAT_NETWORK_INFO,      // Network information display
   CHAT_CHANGE_USERNAME,   // Change username input
   CHAT_RENAME_CHANNEL,    // Rename current channel
-  CHAT_EMOJI_PICKER       // Emoji picker overlay
+  CHAT_EMOJI_PICKER,      // Emoji picker overlay
+  CHAT_EMOJI_MANAGER      // Emoji manager (view/delete slots)
 };
 
 // LabCHAT functions
@@ -44,6 +45,7 @@ void drawNetworkInfo();
 void drawChangeUsername();
 void drawRenameChannel();
 void drawEmojiPicker();
+void drawEmojiManager();
 
 // Helper functions
 void drawLabChatHeader(const char* subtitle = nullptr);

@@ -4,6 +4,18 @@
 #include "message_handler.h"
 #include "ui.h"
 #include <M5Cardputer.h>
+#include <SD.h>
+
+// System emoji data structure
+struct SystemEmoji {
+  String shortcut;              // :name:
+  uint16_t pixels[16][16];      // 16x16 pixel data
+};
+
+// System emoji storage (20 max, slot 0 = strawberry)
+static SystemEmoji systemEmojis[20];
+static int systemEmojiCount = 0;
+static bool systemEmojisLoaded = false;
 
 // LabCHAT state
 LabChatState chatState = CHAT_SETUP_PIN;
@@ -16,6 +28,7 @@ String channelNameInput = "";
 int scrollPosition = 0;
 int selectedUserIndex = 0;
 int selectedEmojiIndex = 0;
+int selectedEmojiManagerIndex = 0;  // For emoji manager navigation
 int chatCurrentChannel = 0;
 bool chatActive = false;
 unsigned long lastPresenceBroadcast = 0;
@@ -48,6 +61,7 @@ extern void drawStar(int x, int y, int size, uint16_t color);
 extern void drawNavHint(const char* text, int x, int y);
 extern void drawEmojiIcon(int x, int y, const char* emoji, uint16_t color, int size);
 extern uint16_t interpolateColor(uint16_t color1, uint16_t color2, float t);
+void drawCustomEmoji(int screenX, int screenY, int emojiIndex, int scale); // Forward declaration
 
 // Helper to render text with embedded emojis
 // Returns the x position after rendering
@@ -57,49 +71,41 @@ int drawTextWithEmojis(const char* text, int startX, int y, uint16_t textColor) 
   int i = 0;
 
   while (i < len) {
-    // Check for emoji UTF-8 sequences
-    bool isEmoji = false;
-    const char* emojiBytes = &text[i];
+    bool handled = false;
 
-    // 4-byte emojis
-    if (i + 3 < len) {
-      if (memcmp(emojiBytes, "\xF0\x9F\x8D\x93", 4) == 0 ||  // 🍓 Strawberry
-          memcmp(emojiBytes, "\xF0\x9F\x8D\x8D", 4) == 0 ||  // 🍍 Pineapple
-          memcmp(emojiBytes, "\xF0\x9F\x8D\xB0", 4) == 0 ||  // 🍰 Cake
-          memcmp(emojiBytes, "\xF0\x9F\x8D\x89", 4) == 0 ||  // 🍉 Watermelon
-          memcmp(emojiBytes, "\xF0\x9F\x90\x9A", 4) == 0 ||  // 🐚 Shell
-          memcmp(emojiBytes, "\xF0\x9F\x8D\xAC", 4) == 0 ||  // 🍬 Peppermint
-          memcmp(emojiBytes, "\xF0\x9F\x94\xA5", 4) == 0 ||  // 🔥 Fire
-          memcmp(emojiBytes, "\xF0\x9F\x92\x80", 4) == 0 ||  // 💀 Skull
-          memcmp(emojiBytes, "\xF0\x9F\x9A\x80", 4) == 0 ||  // 🚀 Rocket
-          memcmp(emojiBytes, "\xF0\x9F\x8E\xB5", 4) == 0 ||  // 🎵 Music
-          memcmp(emojiBytes, "\xF0\x9F\x91\xBE", 4) == 0 ||  // 👾 Invader
-          memcmp(emojiBytes, "\xF0\x9F\x8E\xAE", 4) == 0 ||  // 🎮 Game
-          memcmp(emojiBytes, "\xF0\x9F\x8C\x99", 4) == 0 ||  // 🌙 Moon
-          memcmp(emojiBytes, "\xF0\x9F\x92\x8E", 4) == 0) {  // 💎 Diamond
-        // Draw emoji at 1x scale in chat
-        drawEmojiIcon(xPos, y, emojiBytes, textColor, 1);
-        xPos += 8; // 8 pixels * 1 scale = 8 pixels
-        i += 4;
-        isEmoji = true;
+    // Check for :shortcut: pattern for custom emojis
+    if (text[i] == ':') {
+      int endColon = -1;
+      for (int j = i + 1; j < len && j < i + 20; j++) { // Max shortcut length 20
+        if (text[j] == ':') {
+          endColon = j;
+          break;
+        }
       }
-    }
 
-    // 3-byte emojis
-    if (!isEmoji && i + 2 < len) {
-      if (memcmp(emojiBytes, "\xE2\xAD\x90", 3) == 0 ||  // ⭐ Star
-          memcmp(emojiBytes, "\xE2\x98\x95", 3) == 0 ||  // ☕ Coffee
-          memcmp(emojiBytes, "\xE2\x9A\xA1", 3) == 0 ||  // ⚡ Lightning
-          memcmp(emojiBytes, "\xE2\x9D\xA4", 3) == 0) {  // ❤️ Heart
-        drawEmojiIcon(xPos, y, emojiBytes, textColor, 1);
-        xPos += 8;
-        i += 3;
-        isEmoji = true;
+      if (endColon > i + 1) {
+        // Extract shortcut
+        String shortcut = "";
+        for (int j = i + 1; j < endColon; j++) {
+          shortcut += text[j];
+        }
+
+        // Find matching system emoji
+        for (int e = 0; e < systemEmojiCount; e++) {
+          if (systemEmojis[e].shortcut == shortcut) {
+            // Draw custom emoji at 1x scale
+            drawCustomEmoji(xPos, y, e, 1);
+            xPos += 16; // 16 pixels wide
+            i = endColon + 1; // Skip past :shortcut:
+            handled = true;
+            break;
+          }
+        }
       }
     }
 
     // Regular ASCII character
-    if (!isEmoji) {
+    if (!handled) {
       M5Cardputer.Display.setTextSize(1);
       M5Cardputer.Display.setTextColor(textColor);
       M5Cardputer.Display.drawChar(text[i], xPos, y);
@@ -617,33 +623,41 @@ void drawChatSettings() {
   M5Cardputer.Display.fillScreen(TFT_WHITE);
   drawLabChatHeader("Settings");
 
-  // Settings box (taller for 4 items)
-  M5Cardputer.Display.fillRoundRect(20, 35, 200, 85, 12, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(20, 35, 200, 85, 12, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(21, 36, 198, 83, 11, TFT_BLACK);
+  // Settings box (taller for 5 items)
+  M5Cardputer.Display.fillRoundRect(20, 35, 200, 100, 12, TFT_WHITE);
+  M5Cardputer.Display.drawRoundRect(20, 35, 200, 100, 12, TFT_BLACK);
+  M5Cardputer.Display.drawRoundRect(21, 36, 198, 98, 11, TFT_BLACK);
 
-  const char* options[] = {"Change Username", "Switch Channel: ", "Network Info", "Leave Network"};
+  const char* options[] = {"Change Username", "Switch Channel: ", "Manage Emojis", "Network Info", "Leave Network"};
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 5; i++) {
     M5Cardputer.Display.setTextSize(1);
     if (i == chatSettingsMenuIndex) {
       M5Cardputer.Display.setTextColor(TFT_WHITE);
-      M5Cardputer.Display.fillRect(30, 43 + (i * 18), 180, 14, TFT_BLACK);
+      M5Cardputer.Display.fillRect(30, 40 + (i * 18), 180, 14, TFT_BLACK);
       if (i == 1) {
         // Switch Channel - show current channel number
         String channelText = String(options[i]) + String(chatCurrentChannel);
-        M5Cardputer.Display.drawString(channelText.c_str(), 40, 46 + (i * 18));
+        M5Cardputer.Display.drawString(channelText.c_str(), 40, 43 + (i * 18));
+      } else if (i == 2) {
+        // Manage Emojis - show count
+        String emojiText = String(options[i]) + " (" + String(systemEmojiCount) + "/20)";
+        M5Cardputer.Display.drawString(emojiText.c_str(), 40, 43 + (i * 18));
       } else {
-        M5Cardputer.Display.drawString(options[i], 40, 46 + (i * 18));
+        M5Cardputer.Display.drawString(options[i], 40, 43 + (i * 18));
       }
     } else {
       M5Cardputer.Display.setTextColor(TFT_BLACK);
       if (i == 1) {
         // Switch Channel - show current channel number
         String channelText = String(options[i]) + String(chatCurrentChannel);
-        M5Cardputer.Display.drawString(channelText.c_str(), 40, 46 + (i * 18));
+        M5Cardputer.Display.drawString(channelText.c_str(), 40, 43 + (i * 18));
+      } else if (i == 2) {
+        // Manage Emojis - show count
+        String emojiText = String(options[i]) + " (" + String(systemEmojiCount) + "/20)";
+        M5Cardputer.Display.drawString(emojiText.c_str(), 40, 43 + (i * 18));
       } else {
-        M5Cardputer.Display.drawString(options[i], 40, 46 + (i * 18));
+        M5Cardputer.Display.drawString(options[i], 40, 43 + (i * 18));
       }
     }
   }
@@ -784,19 +798,21 @@ void drawEmojiPicker() {
     "\xE2\x9D\xA4",      // ❤️ Heart
     "\xF0\x9F\x92\x8E"   // 💎 Diamond
   };
-  int emojiCount = 18;
+
+  // Use system emojis instead of hardcoded ones
+  int displayCount = min(systemEmojiCount, 18); // Show max 18 in picker (3 rows of 6)
 
   // Picker box (taller for 3 rows)
   M5Cardputer.Display.fillRoundRect(10, 35, 220, 75, 12, TFT_BLACK);
   M5Cardputer.Display.drawRoundRect(10, 35, 220, 75, 12, TFT_ORANGE);
 
-  // Draw emojis in 3 rows of 6 (2x scale)
+  // Draw system emojis in 3 rows of 6
   int startX = 20;
   int startY = 42;
   int spacingX = 34;
   int spacingY = 20;
 
-  for (int i = 0; i < emojiCount; i++) {
+  for (int i = 0; i < displayCount; i++) {
     int row = i / 6;
     int col = i % 6;
     int x = startX + (col * spacingX);
@@ -807,12 +823,166 @@ void drawEmojiPicker() {
       M5Cardputer.Display.fillRoundRect(x - 3, y - 3, 22, 22, 6, TFT_ORANGE);
     }
 
-    // Draw emoji icon at 2x scale in picker
-    drawEmojiIcon(x, y, emojis[i], TFT_WHITE, 2);
+    // Draw custom emoji at 1x scale (16x16)
+    drawCustomEmoji(x, y, i, 1);
   }
 
   // Nav hints
   drawNavHint("Arrows=Nav  Enter=Add  `=Back", 35, 118);
+}
+
+void drawEmojiManager() {
+  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  drawLabChatHeader("Manage Emojis");
+
+  // Info text
+  M5Cardputer.Display.setTextSize(1);
+  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+  String slotInfo = "Slots: " + String(systemEmojiCount) + "/20";
+  M5Cardputer.Display.drawString(slotInfo.c_str(), 85, 30);
+
+  // Draw emoji grid (4 columns x 5 rows = 20 slots)
+  int startX = 20;
+  int startY = 45;
+  int spacingX = 52;
+  int spacingY = 18;
+
+  for (int i = 0; i < 20; i++) {
+    int row = i / 4;
+    int col = i % 4;
+    int x = startX + (col * spacingX);
+    int y = startY + (row * spacingY);
+
+    // Slot box
+    if (i == selectedEmojiManagerIndex) {
+      M5Cardputer.Display.drawRect(x - 2, y - 2, 50, 16, TFT_YELLOW);
+      M5Cardputer.Display.drawRect(x - 1, y - 1, 48, 14, TFT_YELLOW);
+    } else {
+      M5Cardputer.Display.drawRect(x - 1, y - 1, 48, 14, TFT_DARKGREY);
+    }
+
+    if (i < systemEmojiCount) {
+      // Draw emoji at 1x scale
+      drawCustomEmoji(x, y, i, 1);
+
+      // Draw shortcut name (truncated)
+      String shortcut = systemEmojis[i].shortcut;
+      if (shortcut.length() > 5) shortcut = shortcut.substring(0, 5);
+      M5Cardputer.Display.setTextSize(1);
+      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+      M5Cardputer.Display.drawString(shortcut.c_str(), x + 18, y + 2);
+    } else {
+      // Empty slot
+      M5Cardputer.Display.setTextSize(1);
+      M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
+      M5Cardputer.Display.drawString("empty", x + 10, y + 4);
+    }
+  }
+
+  // Nav hints
+  if (selectedEmojiManagerIndex < systemEmojiCount && systemEmojis[selectedEmojiManagerIndex].shortcut != "strawberry") {
+    drawNavHint("Arrows=Nav  Del=Remove  `=Back", 35, 118);
+  } else {
+    drawNavHint("Arrows=Nav  `=Back", 70, 118);
+  }
+}
+
+// ============================================================================
+// SYSTEM EMOJI FUNCTIONS
+// ============================================================================
+
+// Transparency color (lime green) - matches emoji_maker.cpp
+#define TRANSPARENCY_COLOR 0x07E0
+
+// Helper function to draw custom emoji at specified position and scale
+void drawCustomEmoji(int screenX, int screenY, int emojiIndex, int scale) {
+  if (emojiIndex < 0 || emojiIndex >= systemEmojiCount) return;
+
+  for (int y = 0; y < 16; y++) {
+    for (int x = 0; x < 16; x++) {
+      uint16_t color = systemEmojis[emojiIndex].pixels[y][x];
+
+      // Skip lime green pixels (treat as transparent)
+      if (color == TRANSPARENCY_COLOR) continue;
+
+      if (scale == 1) {
+        M5Cardputer.Display.drawPixel(screenX + x, screenY + y, color);
+      } else {
+        // Draw scaled pixel
+        M5Cardputer.Display.fillRect(screenX + (x * scale), screenY + (y * scale), scale, scale, color);
+      }
+    }
+  }
+}
+
+void loadSystemEmojis() {
+  if (systemEmojisLoaded) return; // Already loaded this session
+
+  systemEmojiCount = 0;
+
+  // Create strawberry emoji in slot 0 (system default)
+  systemEmojis[0].shortcut = "strawberry";
+  // Draw strawberry (same as in emoji_maker.cpp gallery cache)
+  for (int y = 0; y < 16; y++) {
+    for (int x = 0; x < 16; x++) {
+      systemEmojis[0].pixels[y][x] = TRANSPARENCY_COLOR;
+    }
+  }
+  // Green leaf
+  for (int y = 1; y < 4; y++) {
+    for (int x = 3; x < 10; x++) {
+      systemEmojis[0].pixels[y][x] = TFT_GREEN;
+    }
+  }
+  // Red circle
+  int cx = 8, cy = 9, radius = 5;
+  for (int y = 0; y < 16; y++) {
+    for (int x = 0; x < 16; x++) {
+      int dx = x - cx;
+      int dy = y - cy;
+      if (dx*dx + dy*dy <= radius*radius) {
+        systemEmojis[0].pixels[y][x] = TFT_RED;
+      }
+    }
+  }
+  systemEmojiCount = 1;
+
+  // Load custom system emojis from SD card
+  if (!SD.exists("/labchat/system_emojis")) {
+    systemEmojisLoaded = true;
+    return;
+  }
+
+  File dir = SD.open("/labchat/system_emojis");
+  if (!dir || !dir.isDirectory()) {
+    systemEmojisLoaded = true;
+    return;
+  }
+
+  // Load each .emoji file (up to 19 more, total 20)
+  File file = dir.openNextFile();
+  while (file && systemEmojiCount < 20) {
+    String filename = file.name();
+    if (!file.isDirectory() && filename.endsWith(".emoji") && filename != "strawberry.emoji") {
+      // Extract shortcut name
+      String shortcut = filename;
+      shortcut.replace(".emoji", "");
+
+      // Load pixel data
+      file.read((uint8_t*)systemEmojis[systemEmojiCount].pixels, 512);
+      systemEmojis[systemEmojiCount].shortcut = shortcut;
+      systemEmojiCount++;
+
+      Serial.println("Loaded system emoji: " + shortcut);
+    }
+    file = dir.openNextFile();
+  }
+  dir.close();
+
+  Serial.print("Total system emojis loaded: ");
+  Serial.println(systemEmojiCount);
+
+  systemEmojisLoaded = true;
 }
 
 // ============================================================================
@@ -947,6 +1117,9 @@ void drawLabChat() {
     case CHAT_EMOJI_PICKER:
       drawEmojiPicker();
       break;
+    case CHAT_EMOJI_MANAGER:
+      drawEmojiManager();
+      break;
   }
 }
 
@@ -959,10 +1132,12 @@ void handleLabChatNavigation(char key) {
         if (pinInput.length() == 4) {
           if (chatState == CHAT_SETUP_PIN) {
             DevicePIN::create(pinInput);
+            loadSystemEmojis(); // Load system emojis once per session
             chatState = CHAT_NETWORK_MENU;
             pinInput = "";
           } else {
             if (DevicePIN::verify(pinInput)) {
+              loadSystemEmojis(); // Load system emojis once per session
               // Always go to network menu - no auto-connect
               chatState = CHAT_NETWORK_MENU;
               pinInput = "";
@@ -1178,9 +1353,9 @@ void handleLabChatNavigation(char key) {
 
     case CHAT_SETTINGS: {
       if (key == ';') {
-        chatSettingsMenuIndex = (chatSettingsMenuIndex - 1 + 4) % 4;
+        chatSettingsMenuIndex = (chatSettingsMenuIndex - 1 + 5) % 5;
       } else if (key == '.') {
-        chatSettingsMenuIndex = (chatSettingsMenuIndex + 1) % 4;
+        chatSettingsMenuIndex = (chatSettingsMenuIndex + 1) % 5;
       } else if (key == ',' && chatSettingsMenuIndex == 1) {
         // Left arrow - decrement channel
         chatCurrentChannel = (chatCurrentChannel - 1 + 10) % 10;
@@ -1211,9 +1386,13 @@ void handleLabChatNavigation(char key) {
           // Switch channel - just go back to main (channel already changed with arrows)
           chatState = CHAT_MAIN;
         } else if (chatSettingsMenuIndex == 2) {
+          // Manage emojis
+          selectedEmojiManagerIndex = 0;
+          chatState = CHAT_EMOJI_MANAGER;
+        } else if (chatSettingsMenuIndex == 3) {
           // Network info
           chatState = CHAT_NETWORK_INFO;
-        } else if (chatSettingsMenuIndex == 3) {
+        } else if (chatSettingsMenuIndex == 4) {
           // Leave network - clear and go to network menu
           messageHandler.clearQueue();
           securityManager.leaveNetwork();
@@ -1309,27 +1488,55 @@ void handleLabChatNavigation(char key) {
     }
 
     case CHAT_EMOJI_PICKER: {
-      // All 18 emojis (same as in drawEmojiPicker)
-      const char* emojis[] = {
-        "\xF0\x9F\x8D\x93", "\xF0\x9F\x8D\x8D", "\xF0\x9F\x8D\xB0", "\xF0\x9F\x8D\x89", "\xF0\x9F\x90\x9A", "\xE2\xAD\x90",
-        "\xF0\x9F\x8D\xAC", "\xF0\x9F\x94\xA5", "\xF0\x9F\x92\x80", "\xF0\x9F\x9A\x80", "\xE2\x9A\xA1", "\xF0\x9F\x8E\xB5",
-        "\xE2\x98\x95", "\xF0\x9F\x91\xBE", "\xF0\x9F\x8E\xAE", "\xF0\x9F\x8C\x99", "\xE2\x9D\xA4", "\xF0\x9F\x92\x8E"
-      };
-      int emojiCount = 18;
+      // Use system emojis
+      int maxEmojis = min(systemEmojiCount, 18);
 
       if (key == ',') { // Left
         if (selectedEmojiIndex % 6 > 0) selectedEmojiIndex--;
       } else if (key == '/') { // Right
-        if (selectedEmojiIndex % 6 < 5) selectedEmojiIndex++;
+        if (selectedEmojiIndex % 6 < 5 && selectedEmojiIndex < maxEmojis - 1) selectedEmojiIndex++;
       } else if (key == ';') { // Up
         if (selectedEmojiIndex >= 6) selectedEmojiIndex -= 6;
       } else if (key == '.') { // Down
-        if (selectedEmojiIndex < 12) selectedEmojiIndex += 6;
-      } else if (key == '\n') { // Enter - add emoji to chat input
-        chatInput += String(emojis[selectedEmojiIndex]);
+        if (selectedEmojiIndex + 6 < maxEmojis) selectedEmojiIndex += 6;
+      } else if (key == '\n') { // Enter - add emoji shortcut to chat input
+        if (selectedEmojiIndex < systemEmojiCount) {
+          chatInput += ":" + systemEmojis[selectedEmojiIndex].shortcut + ":";
+        }
         chatState = CHAT_MAIN;
       } else if (key == '`') { // Back
         chatState = CHAT_MAIN;
+      }
+      break;
+    }
+
+    case CHAT_EMOJI_MANAGER: {
+      if (key == ',') { // Left
+        if (selectedEmojiManagerIndex % 4 > 0) selectedEmojiManagerIndex--;
+      } else if (key == '/') { // Right
+        if (selectedEmojiManagerIndex % 4 < 3 && selectedEmojiManagerIndex < 19) selectedEmojiManagerIndex++;
+      } else if (key == ';') { // Up
+        if (selectedEmojiManagerIndex >= 4) selectedEmojiManagerIndex -= 4;
+      } else if (key == '.') { // Down
+        if (selectedEmojiManagerIndex + 4 < 20) selectedEmojiManagerIndex += 4;
+      } else if (key == 8 || key == 127) { // Delete - remove emoji
+        if (selectedEmojiManagerIndex < systemEmojiCount &&
+            systemEmojis[selectedEmojiManagerIndex].shortcut != "strawberry") {
+          // Delete the emoji file
+          String filename = "/labchat/system_emojis/" + systemEmojis[selectedEmojiManagerIndex].shortcut + ".emoji";
+          SD.remove(filename.c_str());
+
+          // Reload system emojis
+          systemEmojisLoaded = false;
+          loadSystemEmojis();
+
+          // Adjust selection if needed
+          if (selectedEmojiManagerIndex >= systemEmojiCount && selectedEmojiManagerIndex > 0) {
+            selectedEmojiManagerIndex--;
+          }
+        }
+      } else if (key == '`') { // Back
+        chatState = CHAT_SETTINGS;
       }
       break;
     }
