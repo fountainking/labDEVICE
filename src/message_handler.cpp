@@ -2,10 +2,13 @@
 #include "security_manager.h"
 #include "esp_now_manager.h"
 #include <time.h>
+#include <SD.h>
 
 MessageHandler messageHandler;
 
-MessageHandler::MessageHandler() : queueHead(0), queueTail(0), queueCount(0), onMessageAddedCallback(nullptr) {
+MessageHandler::MessageHandler() : queueHead(0), queueTail(0), queueCount(0), onMessageAddedCallback(nullptr),
+                                    emojiChunkCallback(nullptr),
+                                    receiveBuffer(nullptr), receiveBufferSize(0), receivedBytes(0), isReceivingFile(false) {
   memset(messageQueue, 0, sizeof(messageQueue));
 }
 
@@ -133,6 +136,33 @@ bool MessageHandler::handleReceivedMessage(const uint8_t* mac, const uint8_t* da
   // Add peer if not already known
   espNowManager.addPeer(mac, msg->deviceID, msg->username);
 
+  // Filter out emoji chunk messages - DON'T add to queue, process via callback
+  String content = String(msg->payload);
+  if (content.startsWith("EMOJI:")) {
+    Serial.println("Received emoji chunk - processing via callback");
+    // Call the emoji chunk processing callback if set
+    if (emojiChunkCallback) {
+      emojiChunkCallback(content);
+    }
+    return true; // Successfully received but don't add to display queue
+  }
+
+  // Check if message contains custom emoji shortcuts
+  // If so, delay adding to queue to give chunks time to arrive
+  bool hasCustomEmoji = false;
+  int colonPos = content.indexOf(':');
+  if (colonPos >= 0 && colonPos < content.length() - 1) {
+    int endColon = content.indexOf(':', colonPos + 1);
+    if (endColon > colonPos + 1) {
+      hasCustomEmoji = true;
+    }
+  }
+
+  if (hasCustomEmoji) {
+    // Small delay to let emoji chunks arrive (8 chunks * 50ms = ~400ms)
+    delay(450);
+  }
+
   // Create display message
   DisplayMessage displayMsg;
   strncpy(displayMsg.deviceID, msg->deviceID, 15);
@@ -142,7 +172,7 @@ bool MessageHandler::handleReceivedMessage(const uint8_t* mac, const uint8_t* da
   displayMsg.channel = msg->channel;
   displayMsg.type = (MessageType)msg->type;
   displayMsg.timestamp = msg->timestamp;
-  displayMsg.content = String(msg->payload);
+  displayMsg.content = content;
   displayMsg.isOwn = false;
 
   // Add to queue
@@ -196,16 +226,19 @@ bool MessageHandler::sendBroadcast(const char* content, uint8_t channel) {
                 msg.type, msg.deviceID, msg.username);
   Serial.printf("  Payload: \"%s\", Length: %d\n", msg.payload, msg.msgLen);
 
-  // Add to our own queue for display
-  DisplayMessage displayMsg;
-  strncpy(displayMsg.deviceID, msg.deviceID, 15);
-  strncpy(displayMsg.username, msg.username, 15);
-  displayMsg.channel = msg.channel;
-  displayMsg.type = MSG_BROADCAST;
-  displayMsg.timestamp = msg.timestamp;
-  displayMsg.content = String(msg.payload);
-  displayMsg.isOwn = true;
-  addToQueue(displayMsg);
+  // Add to our own queue for display (but not emoji chunks)
+  String msgPayload = String(msg.payload);
+  if (!msgPayload.startsWith("EMOJI:")) {
+    DisplayMessage displayMsg;
+    strncpy(displayMsg.deviceID, msg.deviceID, 15);
+    strncpy(displayMsg.username, msg.username, 15);
+    displayMsg.channel = msg.channel;
+    displayMsg.type = MSG_BROADCAST;
+    displayMsg.timestamp = msg.timestamp;
+    displayMsg.content = msgPayload;
+    displayMsg.isOwn = true;
+    addToQueue(displayMsg);
+  }
 
   // Send via ESP-NOW
   return espNowManager.sendBroadcast((uint8_t*)&msg, sizeof(msg));
@@ -217,16 +250,19 @@ bool MessageHandler::sendDirect(const char* targetID, const char* content) {
     return false;
   }
 
-  // Add to our own queue
-  DisplayMessage displayMsg;
-  strncpy(displayMsg.deviceID, msg.deviceID, 15);
-  strncpy(displayMsg.username, msg.username, 15);
-  displayMsg.channel = 0;
-  displayMsg.type = MSG_DIRECT;
-  displayMsg.timestamp = msg.timestamp;
-  displayMsg.content = String("→ ") + String(targetID) + ": " + String(msg.payload);
-  displayMsg.isOwn = true;
-  addToQueue(displayMsg);
+  // Add to our own queue (but not emoji chunks)
+  String msgContent = String(msg.payload);
+  if (!msgContent.startsWith("EMOJI:")) {
+    DisplayMessage displayMsg;
+    strncpy(displayMsg.deviceID, msg.deviceID, 15);
+    strncpy(displayMsg.username, msg.username, 15);
+    displayMsg.channel = 0;
+    displayMsg.type = MSG_DIRECT;
+    displayMsg.timestamp = msg.timestamp;
+    displayMsg.content = String("→ ") + String(targetID) + ": " + msgContent;
+    displayMsg.isOwn = true;
+    addToQueue(displayMsg);
+  }
 
   // Send to specific device
   return espNowManager.sendToDeviceID(targetID, (uint8_t*)&msg, sizeof(msg));
@@ -251,6 +287,124 @@ void MessageHandler::addSystemMessage(const char* message, uint8_t channel) {
   displayMsg.content = String(message);
   displayMsg.isOwn = false;
   addToQueue(displayMsg);
+}
+
+bool MessageHandler::sendEmojiFile(const char* targetID, const char* filename) {
+  // Load emoji file from SD card
+  if (!SD.begin()) {
+    Serial.println("SD card not available for emoji send");
+    return false;
+  }
+
+  File file = SD.open(filename, FILE_READ);
+  if (!file) {
+    Serial.print("Failed to open emoji file: ");
+    Serial.println(filename);
+    return false;
+  }
+
+  // Read emoji pixel data (512 bytes = 16x16 uint16_t)
+  uint8_t pixelData[512];
+  size_t bytesRead = file.read(pixelData, 512);
+  file.close();
+
+  if (bytesRead != 512) {
+    Serial.println("Failed to read complete emoji file");
+    return false;
+  }
+
+  // Extract shortcut name from filename
+  String path = String(filename);
+  int lastSlash = path.lastIndexOf('/');
+  String shortcut = path.substring(lastSlash + 1);
+  shortcut.replace(".emoji", "");
+
+  Serial.print("Sending emoji file to ");
+  Serial.print(targetID);
+  Serial.print(": ");
+  Serial.println(shortcut);
+
+  // Send in 8 chunks of 64 bytes each (128 hex chars per chunk)
+  for (int chunk = 0; chunk < 8; chunk++) {
+    String chunkData = "EMOJI:" + shortcut + ":" + String(chunk) + ":";
+
+    // Encode 64 bytes as hex (128 chars)
+    for (int b = chunk * 64; b < (chunk + 1) * 64 && b < 512; b++) {
+      char hex[3];
+      sprintf(hex, "%02X", pixelData[b]);
+      chunkData += hex;
+    }
+
+    // Send chunk as direct message
+    if (!sendDirect(targetID, chunkData.c_str())) {
+      Serial.print("Failed to send chunk ");
+      Serial.println(chunk);
+      return false;
+    }
+
+    delay(250); // Longer delay to prevent buffer overflow
+  }
+
+  Serial.println("Emoji file sent successfully");
+  return true;
+}
+
+bool MessageHandler::sendEmojiFileBroadcast(const char* filename) {
+  // Load emoji file from SD card
+  if (!SD.begin()) {
+    Serial.println("SD card not available for emoji broadcast");
+    return false;
+  }
+
+  File file = SD.open(filename, FILE_READ);
+  if (!file) {
+    Serial.print("Failed to open emoji file: ");
+    Serial.println(filename);
+    return false;
+  }
+
+  // Read emoji pixel data (512 bytes = 16x16 uint16_t)
+  uint8_t pixelData[512];
+  size_t bytesRead = file.read(pixelData, 512);
+  file.close();
+
+  if (bytesRead != 512) {
+    Serial.println("Failed to read complete emoji file");
+    return false;
+  }
+
+  // Extract shortcut name from filename
+  String path = String(filename);
+  int lastSlash = path.lastIndexOf('/');
+  String shortcut = path.substring(lastSlash + 1);
+  shortcut.replace(".emoji", "");
+
+  Serial.print("Broadcasting emoji file: ");
+  Serial.println(shortcut);
+
+  // Send in 8 chunks of 64 bytes each (128 hex chars per chunk)
+  for (int chunk = 0; chunk < 8; chunk++) {
+    String chunkData = "EMOJI:" + shortcut + ":" + String(chunk) + ":";
+
+    // Encode 64 bytes as hex (128 chars)
+    for (int b = chunk * 64; b < (chunk + 1) * 64 && b < 512; b++) {
+      char hex[3];
+      sprintf(hex, "%02X", pixelData[b]);
+      chunkData += hex;
+    }
+
+    // Send chunk as broadcast on channel 0
+    if (!sendBroadcast(chunkData.c_str(), 0)) {
+      Serial.print("Failed to broadcast chunk ");
+      Serial.println(chunk);
+      return false;
+    }
+
+    delay(250); // Longer delay to prevent buffer overflow
+  }
+
+  Serial.println("Emoji file broadcast successfully");
+  return true;
 }
 
 // ESP-NOW callback implementation

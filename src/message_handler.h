@@ -9,7 +9,10 @@ enum MessageType : uint8_t {
   MSG_DIRECT = 0x02,
   MSG_CHANNEL = 0x03,
   MSG_SYSTEM = 0x04,
-  MSG_PRESENCE = 0x05
+  MSG_PRESENCE = 0x05,
+  MSG_FILE_START = 0x06,    // Start of file transfer (contains filename + total size)
+  MSG_FILE_CHUNK = 0x07,    // File data chunk
+  MSG_FILE_END = 0x08       // End of file transfer
 };
 
 // Protocol version
@@ -56,6 +59,13 @@ private:
   // Callback for display updates
   void (*onMessageAddedCallback)();
 
+  // File transfer state
+  String receivingFilename;
+  uint8_t* receiveBuffer;
+  size_t receiveBufferSize;
+  size_t receivedBytes;
+  bool isReceivingFile;
+
 public:
   MessageHandler();
 
@@ -77,11 +87,19 @@ public:
   bool sendDirect(const char* targetID, const char* content);
   bool sendPresence(); // Announce presence to network
 
+  // File transfer
+  bool sendEmojiFile(const char* targetID, const char* filename); // Send .emoji file to specific user
+  bool sendEmojiFileBroadcast(const char* filename); // Broadcast .emoji file to all
+
   // Local system messages (not sent over network)
   void addSystemMessage(const char* message, uint8_t channel = 0);
 
   // Set callback for real-time display updates
   void setMessageCallback(void (*callback)()) { onMessageAddedCallback = callback; }
+
+  // Set callback for emoji chunk processing
+  void (*emojiChunkCallback)(const String& content);
+  void setEmojiChunkCallback(void (*callback)(const String&)) { emojiChunkCallback = callback; }
 };
 
 extern MessageHandler messageHandler;

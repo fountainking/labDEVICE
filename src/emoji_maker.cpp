@@ -35,7 +35,7 @@ static const int TOOL_BUTTON_WIDTH = 22;   // Wider buttons for better visibilit
 static const int TOOL_BUTTON_HEIGHT = 20;  // Taller for icons
 static const int TOOL_BUTTON_SPACING = 2;
 static const int TOOL_GRID_X = PREVIEW_X;  // Left-aligned with preview
-static const int TOOL_GRID_Y = GRID_Y + GRID_WIDTH - (3 * TOOL_BUTTON_HEIGHT) - (2 * TOOL_BUTTON_SPACING);  // Bottom-aligned with grid
+static const int TOOL_GRID_Y = GRID_Y + GRID_WIDTH - (3 * TOOL_BUTTON_HEIGHT) - (2 * TOOL_BUTTON_SPACING) + 2;  // Bottom-aligned with grid + 2px offset
 
 // Gallery (3 columns x 4 rows, to the right of tools)
 static const int GALLERY_X = TOOL_GRID_X + (2 * TOOL_BUTTON_WIDTH) + (2 * TOOL_BUTTON_SPACING) + 10;  // After tools
@@ -65,6 +65,29 @@ enum ToolMode { TOOL_PENCIL, TOOL_BIG_BRUSH, TOOL_FILL, TOOL_CIRCLE, TOOL_LINE, 
 static ToolMode activeTool = TOOL_PENCIL;
 static bool toolWaitingForInput = false;  // For multi-click tools (circle, line)
 static int toolStartX = 0, toolStartY = 0;  // First click position for multi-click tools
+static bool useGhostCenter = false;  // True if circle is centered on ghost point (7.5, 7.5)
+static bool moveMode = false;  // True when in move canvas mode (M key)
+static bool resizeMode = false;  // True when in resize mode (R key)
+
+// Custom tool icon - paint bucket from paint.emoji
+static const uint16_t PAINT_BUCKET_ICON[16][16] = {
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x07E0, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0x7BEF, 0x0000, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0x7BEF, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0x7BEF, 0x7BEF, 0x7BEF, 0xFFE0, 0xFFE0, 0xFFE0, 0x7BEF, 0x7BEF, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0x7BEF, 0x7BEF, 0x7BEF, 0xFDA0, 0xFDA0, 0xFDA0, 0x7BEF, 0x7BEF, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x7BEF, 0x7BEF, 0xF800, 0xF800, 0xF800, 0x7BEF, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x001F, 0x001F, 0x001F, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x000F, 0x000F, 0x000F, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x000F, 0x000F, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x000F, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+};
 
 // Color palette (16 colors - vibrant and useful)
 static const uint16_t palette[] = {
@@ -133,6 +156,9 @@ void enterEmojiMaker() {
     navMode = NAV_GRID;
     paletteIndex = 12;  // Start at dark grey
     galleryIndex = 0;
+    activeTool = TOOL_PENCIL;  // Reset tool to pencil on entry
+    moveMode = false;  // Clear move mode
+    resizeMode = false;  // Clear resize mode
 
     // Clear canvas (white background)
     clearCanvas();
@@ -191,7 +217,7 @@ void drawEmojiMaker() {
 }
 
 static void drawGrid() {
-    // Draw 8x8 grid with white background and grid lines
+    // Draw 16x16 grid with white background and grid lines
     for (int y = 0; y < GRID_SIZE; y++) {
         for (int x = 0; x < GRID_SIZE; x++) {
             int screenX = GRID_X + (x * PIXEL_SIZE);
@@ -355,17 +381,20 @@ static void drawToolButtons() {
                     M5Cardputer.Display.fillRect(cx - 4, cy - 4, 8, 8, TFT_BLACK);
                     break;
 
-                case TOOL_FILL:  // Fill - paint bucket (from screenshot 1)
-                    // Bucket body
-                    M5Cardputer.Display.fillRect(cx - 3, cy - 2, 7, 5, TFT_BLACK);
-                    M5Cardputer.Display.fillRect(cx - 2, cy - 3, 5, 1, TFT_BLACK);
-                    // Handle arc
-                    M5Cardputer.Display.drawLine(cx - 1, cy - 5, cx + 2, cy - 5, TFT_BLACK);
-                    M5Cardputer.Display.drawPixel(cx - 2, cy - 4, TFT_BLACK);
-                    M5Cardputer.Display.drawPixel(cx + 3, cy - 4, TFT_BLACK);
-                    // Paint drip
-                    M5Cardputer.Display.fillRect(cx, cy + 3, 2, 2, TFT_BLACK);
-                    M5Cardputer.Display.drawPixel(cx, cy + 5, TFT_BLACK);
+                case TOOL_FILL:  // Fill - paint bucket from custom emoji
+                    // Draw the 16x16 paint bucket icon, centered in button
+                    for (int py = 0; py < 16; py++) {
+                        for (int px = 0; px < 16; px++) {
+                            uint16_t color = PAINT_BUCKET_ICON[py][px];
+                            if (color != TRANSPARENCY_COLOR) {  // Skip transparent pixels
+                                M5Cardputer.Display.drawPixel(
+                                    x + 3 + px,
+                                    y + 2 + py,
+                                    color
+                                );
+                            }
+                        }
+                    }
                     break;
 
                 case TOOL_CIRCLE:  // Circle - hollow circle (from screenshot 2)
@@ -413,13 +442,19 @@ static void drawHints() {
     int hintX = 10;
     int hintY = 125;
 
-    M5Cardputer.Display.drawString("Spc=Erase Del=Undo C=Clear S=Save", hintX, hintY);
-
     // Show transparency indicator with lime green square
     M5Cardputer.Display.fillRect(2, 118, 6, 6, TRANSPARENCY_COLOR);
     M5Cardputer.Display.drawRect(1, 117, 8, 8, TFT_BLACK);
     M5Cardputer.Display.setTextColor(TFT_DARKGREY);
     M5Cardputer.Display.drawString("=Transparent", 10, 118);
+
+    if (moveMode) {
+        M5Cardputer.Display.drawString("MOVE MODE: Arrows=Move M=Exit", hintX, hintY);
+    } else if (resizeMode) {
+        M5Cardputer.Display.drawString("RESIZE MODE: +=Grow -=Shrink R=Exit", hintX, hintY);
+    } else {
+        M5Cardputer.Display.drawString("Spc=Erase Del=Undo M=Move R=Resize S=Save", hintX, hintY);
+    }
 }
 
 static void drawGallery() {
@@ -557,7 +592,26 @@ static void floodFill(int x, int y, uint16_t targetColor, uint16_t replacementCo
 }
 
 static void drawCircle(int cx, int cy, int radius, uint16_t color) {
-    // Bresenham circle algorithm
+    // If using ghost center, draw from 7.5, 7.5 (between pixels)
+    if (useGhostCenter && cx == 7 && cy == 7) {
+        // Draw circle centered at 7.5, 7.5 using floating point math
+        for (int py = 0; py < GRID_SIZE; py++) {
+            for (int px = 0; px < GRID_SIZE; px++) {
+                // Calculate distance from 7.5, 7.5
+                float dx = (float)px - 7.5f;
+                float dy = (float)py - 7.5f;
+                float dist = sqrt(dx*dx + dy*dy);
+
+                // Draw if within 0.5 pixels of the radius
+                if (dist >= radius - 0.5f && dist <= radius + 0.5f) {
+                    canvas[py][px] = color;
+                }
+            }
+        }
+        return;
+    }
+
+    // Standard Bresenham circle algorithm for non-ghost center
     int x = 0;
     int y = radius;
     int d = 3 - 2 * radius;
@@ -737,7 +791,26 @@ void handleEmojiMakerInput() {
     for (auto key : status.word) {
         // UP arrow
         if (key == ';') {
-            if (navMode == NAV_GRID) {
+            if (moveMode && navMode == NAV_GRID) {
+                // Move canvas up (shift all pixels up)
+                saveUndo();
+                uint16_t temp[GRID_SIZE];
+                // Save top row
+                for (int x = 0; x < GRID_SIZE; x++) {
+                    temp[x] = canvas[0][x];
+                }
+                // Shift all rows up
+                for (int y = 0; y < GRID_SIZE - 1; y++) {
+                    for (int x = 0; x < GRID_SIZE; x++) {
+                        canvas[y][x] = canvas[y + 1][x];
+                    }
+                }
+                // Wrap top row to bottom
+                for (int x = 0; x < GRID_SIZE; x++) {
+                    canvas[GRID_SIZE - 1][x] = temp[x];
+                }
+                drawEmojiMaker();
+            } else if (navMode == NAV_GRID) {
                 cursorY = (cursorY - 1 + GRID_SIZE) % GRID_SIZE;
             } else if (navMode == NAV_PALETTE) {
                 if (paletteIndex >= 2) paletteIndex -= 2;
@@ -751,7 +824,26 @@ void handleEmojiMakerInput() {
 
         // DOWN arrow
         if (key == '.') {
-            if (navMode == NAV_GRID) {
+            if (moveMode && navMode == NAV_GRID) {
+                // Move canvas down (shift all pixels down)
+                saveUndo();
+                uint16_t temp[GRID_SIZE];
+                // Save bottom row
+                for (int x = 0; x < GRID_SIZE; x++) {
+                    temp[x] = canvas[GRID_SIZE - 1][x];
+                }
+                // Shift all rows down
+                for (int y = GRID_SIZE - 1; y > 0; y--) {
+                    for (int x = 0; x < GRID_SIZE; x++) {
+                        canvas[y][x] = canvas[y - 1][x];
+                    }
+                }
+                // Wrap bottom row to top
+                for (int x = 0; x < GRID_SIZE; x++) {
+                    canvas[0][x] = temp[x];
+                }
+                drawEmojiMaker();
+            } else if (navMode == NAV_GRID) {
                 cursorY = (cursorY + 1) % GRID_SIZE;
             } else if (navMode == NAV_PALETTE) {
                 if (paletteIndex < PALETTE_SIZE - 2) paletteIndex += 2;
@@ -765,7 +857,26 @@ void handleEmojiMakerInput() {
 
         // LEFT arrow
         if (key == ',') {
-            if (navMode == NAV_GRID) {
+            if (moveMode && navMode == NAV_GRID) {
+                // Move canvas left (shift all pixels left)
+                saveUndo();
+                uint16_t temp[GRID_SIZE];
+                // Save left column
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    temp[y] = canvas[y][0];
+                }
+                // Shift all columns left
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    for (int x = 0; x < GRID_SIZE - 1; x++) {
+                        canvas[y][x] = canvas[y][x + 1];
+                    }
+                }
+                // Wrap left column to right
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    canvas[y][GRID_SIZE - 1] = temp[y];
+                }
+                drawEmojiMaker();
+            } else if (navMode == NAV_GRID) {
                 if (cursorX == 0) {
                     // Move to palette RIGHT column (closest to grid)
                     navMode = NAV_PALETTE;
@@ -801,7 +912,26 @@ void handleEmojiMakerInput() {
 
         // RIGHT arrow
         if (key == '/') {
-            if (navMode == NAV_GRID) {
+            if (moveMode && navMode == NAV_GRID) {
+                // Move canvas right (shift all pixels right)
+                saveUndo();
+                uint16_t temp[GRID_SIZE];
+                // Save right column
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    temp[y] = canvas[y][GRID_SIZE - 1];
+                }
+                // Shift all columns right
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    for (int x = GRID_SIZE - 1; x > 0; x--) {
+                        canvas[y][x] = canvas[y][x - 1];
+                    }
+                }
+                // Wrap right column to left
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    canvas[y][0] = temp[y];
+                }
+                drawEmojiMaker();
+            } else if (navMode == NAV_GRID) {
                 if (cursorX == GRID_SIZE - 1) {
                     // Move to tools - map grid Y position to tool row
                     navMode = NAV_TOOLS;
@@ -872,6 +1002,87 @@ void handleEmojiMakerInput() {
             editingShortcut = true;
             drawEmojiMaker();
         }
+
+        // M to toggle move mode
+        if (key == 'm') {
+            moveMode = !moveMode;
+            drawEmojiMaker();
+        }
+
+        // R to toggle resize mode
+        if (key == 'r') {
+            resizeMode = !resizeMode;
+            drawEmojiMaker();
+        }
+
+        // + to grow (2x upscale - each pixel becomes 2x2)
+        if (key == '+' || key == '=') {
+            if (resizeMode) {
+                saveUndo();
+                uint16_t newCanvas[GRID_SIZE][GRID_SIZE];
+                // Fill with transparency first
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    for (int x = 0; x < GRID_SIZE; x++) {
+                        newCanvas[y][x] = TRANSPARENCY_COLOR;
+                    }
+                }
+                // Scale up 2x (each pixel becomes 2x2), centered
+                for (int y = 0; y < GRID_SIZE / 2; y++) {
+                    for (int x = 0; x < GRID_SIZE / 2; x++) {
+                        uint16_t color = canvas[y][x];
+                        // Place 2x2 block in center of grid
+                        int newX = x * 2 + GRID_SIZE / 4;
+                        int newY = y * 2 + GRID_SIZE / 4;
+                        if (newX < GRID_SIZE - 1 && newY < GRID_SIZE - 1) {
+                            newCanvas[newY][newX] = color;
+                            newCanvas[newY][newX + 1] = color;
+                            newCanvas[newY + 1][newX] = color;
+                            newCanvas[newY + 1][newX + 1] = color;
+                        }
+                    }
+                }
+                // Copy back to canvas
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    for (int x = 0; x < GRID_SIZE; x++) {
+                        canvas[y][x] = newCanvas[y][x];
+                    }
+                }
+                drawEmojiMaker();
+            }
+        }
+
+        // - to shrink (2x downscale - each 2x2 becomes 1 pixel)
+        if (key == '-' || key == '_') {
+            if (resizeMode) {
+                saveUndo();
+                uint16_t newCanvas[GRID_SIZE][GRID_SIZE];
+                // Fill with transparency first
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    for (int x = 0; x < GRID_SIZE; x++) {
+                        newCanvas[y][x] = TRANSPARENCY_COLOR;
+                    }
+                }
+                // Scale down 2x (sample every other pixel), centered
+                for (int y = 0; y < GRID_SIZE; y += 2) {
+                    for (int x = 0; x < GRID_SIZE; x += 2) {
+                        // Sample the pixel (could average 2x2 block but let's just take top-left)
+                        uint16_t color = canvas[y][x];
+                        int newX = x / 2 + GRID_SIZE / 4;
+                        int newY = y / 2 + GRID_SIZE / 4;
+                        if (newX < GRID_SIZE && newY < GRID_SIZE) {
+                            newCanvas[newY][newX] = color;
+                        }
+                    }
+                }
+                // Copy back to canvas
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    for (int x = 0; x < GRID_SIZE; x++) {
+                        canvas[y][x] = newCanvas[y][x];
+                    }
+                }
+                drawEmojiMaker();
+            }
+        }
     }
 
     // Delete key for undo
@@ -903,9 +1114,17 @@ void handleEmojiMakerInput() {
                 drawEmojiMaker();
             } else if (activeTool == TOOL_CIRCLE) {
                 if (!toolWaitingForInput) {
-                    // First click - store center
-                    toolStartX = cursorX;
-                    toolStartY = cursorY;
+                    // First click - check if near ghost center (7,7) or (7,8) or (8,7) or (8,8)
+                    // If cursor is on any of the 4 center pixels, snap to ghost center
+                    useGhostCenter = false;
+                    if ((cursorX == 7 || cursorX == 8) && (cursorY == 7 || cursorY == 8)) {
+                        useGhostCenter = true;
+                        toolStartX = 7;  // Will use 7.5 in drawing
+                        toolStartY = 7;  // Will use 7.5 in drawing
+                    } else {
+                        toolStartX = cursorX;
+                        toolStartY = cursorY;
+                    }
                     toolWaitingForInput = true;
                 } else {
                     // Second click - draw circle
@@ -914,6 +1133,7 @@ void handleEmojiMakerInput() {
                     int radius = (int)sqrt(dx*dx + dy*dy);
                     drawCircle(toolStartX, toolStartY, radius, palette[selectedColor]);
                     toolWaitingForInput = false;
+                    useGhostCenter = false;
                     drawEmojiMaker();
                 }
             } else if (activeTool == TOOL_LINE) {
