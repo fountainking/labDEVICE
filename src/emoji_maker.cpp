@@ -1266,24 +1266,31 @@ static void exportEmojiToLabChat() {
 
     // Write 16x16 grid of uint16_t colors (512 bytes)
     file.write((uint8_t*)canvas, sizeof(canvas));
+    file.flush(); // Force write to SD card
     file.close();
 
     // Update manifest file
     File manifest = SD.open("/labchat/system_emojis/manifest.txt", FILE_WRITE);
     if (manifest) {
         manifest.println(emojiShortcut);
+        manifest.flush(); // Force write to SD card
         manifest.close();
     }
+
+    // CRITICAL: Wait for SD card to finish writing before reload
+    delay(100);
 
     // Success message
     M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_GREEN);
     M5Cardputer.Display.setTextColor(TFT_BLACK);
     M5Cardputer.Display.drawString("Exported: :" + emojiShortcut, 50, 5);
-    delay(1500);
 
     // Reload system emojis so new emoji is immediately available in LabCHAT
     extern void reloadSystemEmojis();
     reloadSystemEmojis();
+
+    // Show success message after reload completes
+    delay(1500);
 
     needsFullRedraw = true;
 }

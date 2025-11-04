@@ -217,20 +217,27 @@ void processEmojiChunk(const String& content) {
 
     // Check if all chunks received
     bool allReceived = true;
+    Serial.print("  Chunks status: [");
     for (int i = 0; i < 8; i++) {
+      Serial.print(emojiReceiveBuffer.chunksReceived[i] ? "✓" : "✗");
       if (!emojiReceiveBuffer.chunksReceived[i]) {
         allReceived = false;
-        break;
       }
     }
+    Serial.println("]");
 
     if (allReceived) {
       // Save complete emoji
+      Serial.println("  ✓ ALL CHUNKS RECEIVED!");
       emojiReceiveBuffer.isComplete = true;
       uint16_t (*pixels)[16] = (uint16_t (*)[16])emojiReceiveBuffer.pixelData;
       saveFriendEmoji(shortcut, pixels);
       receivingEmoji = false;
-      Serial.println("Received complete emoji: " + shortcut);
+      Serial.print("  ✓ Saved friend emoji: ");
+      Serial.print(shortcut);
+      Serial.print(" (total friend emojis: ");
+      Serial.print(friendEmojiCount);
+      Serial.println(")");
 
       // Trigger a single redraw now that emoji is ready
       if (chatActive && chatState == CHAT_MAIN) {
@@ -1239,8 +1246,11 @@ void saveFriendEmoji(const String& shortcut, const uint16_t pixels[16][16]) {
 }
 
 void reloadSystemEmojis() {
+  Serial.println("=== reloadSystemEmojis() called ===");
   systemEmojisLoaded = false; // Force reload
   loadSystemEmojis();
+  Serial.print("=== Reload complete. Total emojis: ");
+  Serial.println(systemEmojiCount);
 }
 
 void loadSystemEmojis() {
@@ -1685,7 +1695,7 @@ void handleLabChatNavigation(char key) {
                       } else {
                         messageHandler.sendBroadcast(chunkData.c_str(), chatCurrentChannel);
                       }
-                      delay(50); // Fast transfer - 400ms total for 8 chunks
+                      delay(100); // Reliable transfer - 800ms total for 8 chunks (still 2.5x faster than original!)
                     }
 
                     // Mark emoji as sent to recipient(s)
