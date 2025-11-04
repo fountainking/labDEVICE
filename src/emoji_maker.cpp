@@ -1281,6 +1281,10 @@ static void exportEmojiToLabChat() {
     M5Cardputer.Display.drawString("Exported: :" + emojiShortcut, 50, 5);
     delay(1500);
 
+    // Reload system emojis so new emoji is immediately available in LabCHAT
+    extern void reloadSystemEmojis();
+    reloadSystemEmojis();
+
     needsFullRedraw = true;
 }
 

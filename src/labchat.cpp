@@ -32,6 +32,29 @@ struct EmojiReceiveBuffer {
 static EmojiReceiveBuffer emojiReceiveBuffer;
 static bool receivingEmoji = false;
 
+// Track which emojis have been sent to which peers to avoid redundant transfers
+struct EmojiSentRecord {
+  String shortcut;
+  String peerDeviceIDs[10]; // Track up to 10 peers who have this emoji
+  int peerCount;
+};
+static EmojiSentRecord sentEmojiHistory[32]; // Track 32 recent sends (system + friend)
+static int sentEmojiHistoryCount = 0;
+
+// Message buffering for messages with pending emoji transfers
+struct BufferedMessage {
+  String content;
+  String deviceID;
+  char username[16];
+  int channel;
+  MessageType type;
+  unsigned long timestamp;
+  String pendingEmojis[5]; // Track up to 5 emojis we're waiting for
+  int pendingEmojiCount;
+};
+static BufferedMessage bufferedMessages[10];
+static int bufferedMessageCount = 0;
+
 // LabCHAT state
 LabChatState chatState = CHAT_SETUP_PIN;
 String pinInput = "";
@@ -81,6 +104,57 @@ extern void drawEmojiIcon(int x, int y, const char* emoji, uint16_t color, int s
 extern uint16_t interpolateColor(uint16_t color1, uint16_t color2, float t);
 void drawCustomEmoji(int screenX, int screenY, int emojiIndex, int scale); // Forward declaration
 void saveFriendEmoji(const String& shortcut, const uint16_t pixels[16][16]); // Forward declaration
+void loadSystemEmojis(); // Forward declaration
+
+// Helper to check if emoji was already sent to a peer
+bool wasEmojiSentToPeer(const String& shortcut, const String& peerDeviceID) {
+  for (int i = 0; i < sentEmojiHistoryCount; i++) {
+    if (sentEmojiHistory[i].shortcut == shortcut) {
+      // Found this emoji - check if peer has it
+      for (int p = 0; p < sentEmojiHistory[i].peerCount; p++) {
+        if (sentEmojiHistory[i].peerDeviceIDs[p] == peerDeviceID) {
+          return true; // Already sent to this peer
+        }
+      }
+    }
+  }
+  return false; // Not sent yet
+}
+
+// Helper to mark emoji as sent to a peer
+void markEmojiSentToPeer(const String& shortcut, const String& peerDeviceID) {
+  // Find or create record for this emoji
+  int recordIndex = -1;
+  for (int i = 0; i < sentEmojiHistoryCount; i++) {
+    if (sentEmojiHistory[i].shortcut == shortcut) {
+      recordIndex = i;
+      break;
+    }
+  }
+
+  if (recordIndex == -1) {
+    // Create new record
+    if (sentEmojiHistoryCount < 32) {
+      recordIndex = sentEmojiHistoryCount++;
+      sentEmojiHistory[recordIndex].shortcut = shortcut;
+      sentEmojiHistory[recordIndex].peerCount = 0;
+    } else {
+      return; // History full
+    }
+  }
+
+  // Add peer to this emoji's record (if not already there)
+  EmojiSentRecord* record = &sentEmojiHistory[recordIndex];
+  for (int i = 0; i < record->peerCount; i++) {
+    if (record->peerDeviceIDs[i] == peerDeviceID) {
+      return; // Already tracked
+    }
+  }
+
+  if (record->peerCount < 10) {
+    record->peerDeviceIDs[record->peerCount++] = peerDeviceID;
+  }
+}
 
 // Helper to process incoming emoji chunk messages
 void processEmojiChunk(const String& content) {
@@ -1164,6 +1238,11 @@ void saveFriendEmoji(const String& shortcut, const uint16_t pixels[16][16]) {
   }
 }
 
+void reloadSystemEmojis() {
+  systemEmojisLoaded = false; // Force reload
+  loadSystemEmojis();
+}
+
 void loadSystemEmojis() {
   if (systemEmojisLoaded) return; // Already loaded this session
 
@@ -1514,16 +1593,7 @@ void handleLabChatNavigation(char key) {
       // Text input mode - handle typing first
       if (key == '\n') { // Enter - send message
         if (chatInput.length() > 0) {
-          // First, send the text message as usual
-          if (dmTargetID.length() > 0) {
-            // Send DM
-            messageHandler.sendDirect(dmTargetID.c_str(), chatInput.c_str());
-          } else {
-            // Send broadcast
-            messageHandler.sendBroadcast(chatInput.c_str(), chatCurrentChannel);
-          }
-
-          // Now check if message contains custom emojis and send their data
+          // FIRST: Send emoji chunks BEFORE text message so receiver has emojis ready!
           // Parse for :shortcut: patterns
           Serial.print("Checking for custom emojis in message. systemEmojiCount=");
           Serial.println(systemEmojiCount);
@@ -1537,21 +1607,68 @@ void handleLabChatNavigation(char key) {
                 Serial.print("Found :shortcut: = ");
                 Serial.println(shortcut);
 
-                // Check if this is a system emoji
+                // Check if this is a system OR friend emoji
                 bool foundEmoji = false;
+                uint8_t* pixelBytes = nullptr;
+
+                // First check system emojis
                 for (int e = 0; e < systemEmojiCount; e++) {
-                  Serial.print("  Comparing with systemEmojis[");
-                  Serial.print(e);
-                  Serial.print("] = ");
-                  Serial.println(systemEmojis[e].shortcut);
-
                   if (systemEmojis[e].shortcut == shortcut) {
-                    // Found a custom emoji! Send its pixel data
                     foundEmoji = true;
-                    Serial.println("  MATCH! Sending emoji chunks...");
+                    pixelBytes = (uint8_t*)systemEmojis[e].pixels;
+                    Serial.println("  MATCH in systemEmojis! Preparing to send...");
+                    break;
+                  }
+                }
 
-                    // Encode pixel data as hex string (8 chunks of 64 bytes each)
-                    uint8_t* pixelBytes = (uint8_t*)systemEmojis[e].pixels;
+                // If not found in system, check friend emojis
+                if (!foundEmoji) {
+                  for (int e = 0; e < friendEmojiCount; e++) {
+                    if (friendEmojis[e].shortcut == shortcut) {
+                      foundEmoji = true;
+                      pixelBytes = (uint8_t*)friendEmojis[e].pixels;
+                      Serial.println("  MATCH in friendEmojis! Preparing to send...");
+                      break;
+                    }
+                  }
+                }
+
+                if (foundEmoji && pixelBytes) {
+                  // Check if we need to send this emoji
+                  bool needsTransfer = false;
+
+                  if (dmTargetID.length() > 0) {
+                    // DM mode - check if target peer has it
+                    if (!wasEmojiSentToPeer(shortcut, dmTargetID)) {
+                      needsTransfer = true;
+                      Serial.println("  DM target needs this emoji");
+                    } else {
+                      Serial.println("  DM target already has this emoji - skipping transfer");
+                    }
+                  } else {
+                    // Broadcast mode - check ALL peers
+                    int peerCount = espNowManager.getPeerCount();
+                    for (int p = 0; p < peerCount; p++) {
+                      PeerDevice* peer = espNowManager.getPeer(p);
+                      if (peer) {
+                        String peerID = String(peer->deviceID);
+                        if (!wasEmojiSentToPeer(shortcut, peerID)) {
+                          needsTransfer = true;
+                          Serial.print("  Peer ");
+                          Serial.print(peer->username);
+                          Serial.println(" needs this emoji");
+                          break; // At least one peer needs it
+                        }
+                      }
+                    }
+                    if (!needsTransfer) {
+                      Serial.println("  All peers already have this emoji - skipping transfer");
+                    }
+                  }
+
+                  // Only send chunks if needed
+                  if (needsTransfer) {
+                    Serial.println("  Sending emoji chunks...");
 
                     // Send in 8 chunks of 64 bytes each (128 hex chars per chunk)
                     for (int chunk = 0; chunk < 8; chunk++) {
@@ -1568,15 +1685,29 @@ void handleLabChatNavigation(char key) {
                       } else {
                         messageHandler.sendBroadcast(chunkData.c_str(), chatCurrentChannel);
                       }
-                      delay(250); // Longer delay to prevent buffer overflow
+                      delay(50); // Fast transfer - 400ms total for 8 chunks
                     }
 
-                    break;
+                    // Mark emoji as sent to recipient(s)
+                    if (dmTargetID.length() > 0) {
+                      markEmojiSentToPeer(shortcut, dmTargetID);
+                    } else {
+                      // Mark for all current peers
+                      int peerCount = espNowManager.getPeerCount();
+                      for (int p = 0; p < peerCount; p++) {
+                        PeerDevice* peer = espNowManager.getPeer(p);
+                        if (peer) {
+                          markEmojiSentToPeer(shortcut, String(peer->deviceID));
+                        }
+                      }
+                    }
+
+                    Serial.println("  Emoji transfer complete!");
                   }
                 }
 
                 if (!foundEmoji) {
-                  Serial.println("  No match found in systemEmojis");
+                  Serial.println("  No match found in systemEmojis or friendEmojis");
                 }
 
                 i = endColon + 1;
@@ -1586,6 +1717,16 @@ void handleLabChatNavigation(char key) {
             } else {
               i++;
             }
+          }
+
+          // NOW send the text message AFTER emoji chunks are complete
+          // Receiver will have all emojis ready and can display message immediately!
+          if (dmTargetID.length() > 0) {
+            // Send DM
+            messageHandler.sendDirect(dmTargetID.c_str(), chatInput.c_str());
+          } else {
+            // Send broadcast
+            messageHandler.sendBroadcast(chatInput.c_str(), chatCurrentChannel);
           }
 
           chatInput = "";

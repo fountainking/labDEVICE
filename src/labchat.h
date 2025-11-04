@@ -51,6 +51,7 @@ void drawEmojiManager();
 void drawLabChatHeader(const char* subtitle = nullptr);
 void drawTextInputBox(const char* prompt, String& input, bool isPassword = false);
 void drawNavHint(const char* text, int x, int y);
+void reloadSystemEmojis(); // Force reload of system emojis from SD card
 
 // LabCHAT globals
 extern LabChatState chatState;
