@@ -1929,6 +1929,10 @@ void loop() {
             safeBeep(1000, 50);
             settingsState = SETTINGS_MAIN;
             drawSettingsMenu();
+          } else if (settingsState == SETTINGS_THEME) {
+            // Theme placeholder - do nothing
+            safeBeep(1000, 50);
+            drawThemePlaceholder();
           }
         }
 

@@ -4,7 +4,7 @@
 #include <M5Cardputer.h>
 
 // Version
-#define FIRMWARE_VERSION "v0.9b"
+#define FIRMWARE_VERSION "v0.9x"
 
 // ============================================================================
 // DEBUG FLAGS - Disable non-visual processes to find performance culprit
