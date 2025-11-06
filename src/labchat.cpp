@@ -6,6 +6,26 @@
 #include <M5Cardputer.h>
 #include <SD.h>
 
+// Berry emoji - hardcoded from cberry.emoji (centered for title bar/WiFi icons)
+static const uint16_t BERRY_ICON[16][16] = {
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x03E0, 0x03E0, 0x07E0, 0x07E0, 0x03E0, 0x03E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x03E0, 0x03E0, 0x03E0, 0x03E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0xF800, 0xF800, 0xF800, 0x03E0, 0x03E0, 0xF800, 0xF800, 0xF800, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0xF800, 0xF800, 0xFFE0, 0xF800, 0xFFE0, 0xF800, 0xFFE0, 0xF800, 0xF800, 0xF800, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0xF800, 0xF800, 0xF800, 0xFFE0, 0xF800, 0xFFE0, 0xF800, 0xF800, 0xF800, 0xF800, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0xF800, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0xF800, 0xF800, 0xF800, 0xF800, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+};
+
 // System emoji data structure
 struct SystemEmoji {
   String shortcut;              // :name:
@@ -163,7 +183,7 @@ void processEmojiChunk(const String& content) {
 
   // Safety check - don't accept emoji if slots are full
   if (friendEmojiCount >= 12) {
-    Serial.println("Friend emoji slots full, rejecting chunk");
+    Serial.println("⚠️ Friend emoji slots full, rejecting chunk");
     return;
   }
 
@@ -177,10 +197,14 @@ void processEmojiChunk(const String& content) {
   int chunkNum = content.substring(firstColon + 1, secondColon).toInt();
   String hexData = content.substring(secondColon + 1);
 
-  Serial.print("Processing chunk ");
+  Serial.println("================================================");
+  Serial.print("📥 RECEIVING CHUNK ");
   Serial.print(chunkNum);
-  Serial.print(" for emoji: ");
+  Serial.print("/8 for emoji: ");
   Serial.println(shortcut);
+  Serial.print("   Data length: ");
+  Serial.print(hexData.length());
+  Serial.println(" chars");
 
   // Initialize receive buffer if this is a new emoji
   if (!receivingEmoji || emojiReceiveBuffer.shortcut != shortcut) {
@@ -228,16 +252,20 @@ void processEmojiChunk(const String& content) {
 
     if (allReceived) {
       // Save complete emoji
-      Serial.println("  ✓ ALL CHUNKS RECEIVED!");
+      Serial.println("================================================");
+      Serial.println("✅ ALL 8 CHUNKS RECEIVED SUCCESSFULLY!");
+      Serial.println("   Assembling emoji: " + shortcut);
       emojiReceiveBuffer.isComplete = true;
       uint16_t (*pixels)[16] = (uint16_t (*)[16])emojiReceiveBuffer.pixelData;
       saveFriendEmoji(shortcut, pixels);
       receivingEmoji = false;
-      Serial.print("  ✓ Saved friend emoji: ");
+      Serial.print("   ✓ Saved friend emoji: ");
       Serial.print(shortcut);
       Serial.print(" (total friend emojis: ");
       Serial.print(friendEmojiCount);
-      Serial.println(")");
+      Serial.println("/12)");
+      Serial.println("   Ready to display in messages!");
+      Serial.println("================================================");
 
       // Trigger a single redraw now that emoji is ready
       if (chatActive && chatState == CHAT_MAIN) {
@@ -1258,31 +1286,9 @@ void loadSystemEmojis() {
 
   systemEmojiCount = 0;
 
-  // Create strawberry emoji in slot 0 (system default)
-  systemEmojis[0].shortcut = "strawberry";
-  // Draw strawberry (same as in emoji_maker.cpp gallery cache)
-  for (int y = 0; y < 16; y++) {
-    for (int x = 0; x < 16; x++) {
-      systemEmojis[0].pixels[y][x] = TRANSPARENCY_COLOR;
-    }
-  }
-  // Green leaf
-  for (int y = 1; y < 4; y++) {
-    for (int x = 3; x < 10; x++) {
-      systemEmojis[0].pixels[y][x] = TFT_GREEN;
-    }
-  }
-  // Red circle
-  int cx = 8, cy = 9, radius = 5;
-  for (int y = 0; y < 16; y++) {
-    for (int x = 0; x < 16; x++) {
-      int dx = x - cx;
-      int dy = y - cy;
-      if (dx*dx + dy*dy <= radius*radius) {
-        systemEmojis[0].pixels[y][x] = TFT_RED;
-      }
-    }
-  }
+  // Load berry emoji in slot 0 (system default) from hardcoded BERRY_ICON
+  systemEmojis[0].shortcut = "berry";
+  memcpy(systemEmojis[0].pixels, BERRY_ICON, sizeof(BERRY_ICON));
   systemEmojiCount = 1;
 
   // Load custom system emojis from SD card
@@ -1605,6 +1611,9 @@ void handleLabChatNavigation(char key) {
         if (chatInput.length() > 0) {
           // FIRST: Send emoji chunks BEFORE text message so receiver has emojis ready!
           // Parse for :shortcut: patterns
+          Serial.println("==================================================");
+          Serial.print("📤 SENDING MESSAGE: ");
+          Serial.println(chatInput);
           Serial.print("Checking for custom emojis in message. systemEmojiCount=");
           Serial.println(systemEmojiCount);
 
@@ -1644,41 +1653,40 @@ void handleLabChatNavigation(char key) {
                 }
 
                 if (foundEmoji && pixelBytes) {
-                  // Check if we need to send this emoji
-                  bool needsTransfer = false;
+                  // ALWAYS send custom emojis for now (simplified logic)
+                  // TODO: Implement reliable receipt confirmation before optimizing
+                  bool needsTransfer = true;
 
-                  if (dmTargetID.length() > 0) {
-                    // DM mode - check if target peer has it
-                    if (!wasEmojiSentToPeer(shortcut, dmTargetID)) {
-                      needsTransfer = true;
-                      Serial.println("  DM target needs this emoji");
-                    } else {
-                      Serial.println("  DM target already has this emoji - skipping transfer");
-                    }
-                  } else {
-                    // Broadcast mode - check ALL peers
-                    int peerCount = espNowManager.getPeerCount();
-                    for (int p = 0; p < peerCount; p++) {
-                      PeerDevice* peer = espNowManager.getPeer(p);
-                      if (peer) {
-                        String peerID = String(peer->deviceID);
-                        if (!wasEmojiSentToPeer(shortcut, peerID)) {
-                          needsTransfer = true;
-                          Serial.print("  Peer ");
-                          Serial.print(peer->username);
-                          Serial.println(" needs this emoji");
-                          break; // At least one peer needs it
-                        }
-                      }
-                    }
-                    if (!needsTransfer) {
-                      Serial.println("  All peers already have this emoji - skipping transfer");
-                    }
-                  }
+                  Serial.println("  ✓ Will send emoji to all peers (always send mode)");
+
+                  // OLD LOGIC - disabled for reliability:
+                  // Check if we need to send this emoji
+                  // bool needsTransfer = false;
+                  // if (dmTargetID.length() > 0) {
+                  //   if (!wasEmojiSentToPeer(shortcut, dmTargetID)) {
+                  //     needsTransfer = true;
+                  //   }
+                  // } else {
+                  //   int peerCount = espNowManager.getPeerCount();
+                  //   for (int p = 0; p < peerCount; p++) {
+                  //     PeerDevice* peer = espNowManager.getPeer(p);
+                  //     if (peer && !wasEmojiSentToPeer(shortcut, String(peer->deviceID))) {
+                  //       needsTransfer = true;
+                  //       break;
+                  //     }
+                  //   }
+                  // }
 
                   // Only send chunks if needed
                   if (needsTransfer) {
-                    Serial.println("  Sending emoji chunks...");
+                    Serial.println("  🚀 SENDING EMOJI CHUNKS FOR: " + shortcut);
+
+                    // Show visual feedback on screen
+                    M5Cardputer.Display.fillRect(5, 107, 230, 23, TFT_PURPLE);
+                    M5Cardputer.Display.setTextSize(1);
+                    M5Cardputer.Display.setTextColor(TFT_WHITE);
+                    String statusMsg = "Sending :" + shortcut + ":...";
+                    M5Cardputer.Display.drawString(statusMsg.c_str(), 10, 112);
 
                     // Send in 8 chunks of 64 bytes each (128 hex chars per chunk)
                     for (int chunk = 0; chunk < 8; chunk++) {
@@ -1689,13 +1697,24 @@ void handleLabChatNavigation(char key) {
                         chunkData += hex;
                       }
 
+                      Serial.print("    📦 Sending chunk ");
+                      Serial.print(chunk);
+                      Serial.print("/8 (");
+                      Serial.print(chunkData.length());
+                      Serial.println(" bytes)");
+
                       // Send chunk as broadcast or DM
                       if (dmTargetID.length() > 0) {
                         messageHandler.sendDirect(dmTargetID.c_str(), chunkData.c_str());
                       } else {
                         messageHandler.sendBroadcast(chunkData.c_str(), chatCurrentChannel);
                       }
-                      delay(100); // Reliable transfer - 800ms total for 8 chunks (still 2.5x faster than original!)
+                      delay(150); // Increased to 150ms for better reliability
+
+                      // Update progress on screen
+                      M5Cardputer.Display.fillRect(5, 107, 230, 23, TFT_PURPLE);
+                      String progressMsg = ":" + shortcut + ": " + String(chunk + 1) + "/8";
+                      M5Cardputer.Display.drawString(progressMsg.c_str(), 10, 112);
                     }
 
                     // Mark emoji as sent to recipient(s)
@@ -1712,7 +1731,13 @@ void handleLabChatNavigation(char key) {
                       }
                     }
 
-                    Serial.println("  Emoji transfer complete!");
+                    Serial.println("  ✅ Emoji transfer complete!");
+
+                    // Show completion briefly
+                    M5Cardputer.Display.fillRect(5, 107, 230, 23, TFT_GREEN);
+                    M5Cardputer.Display.setTextColor(TFT_BLACK);
+                    M5Cardputer.Display.drawString(("Sent :" + shortcut + ":").c_str(), 10, 112);
+                    delay(300);
                   }
                 }
 
@@ -1804,6 +1829,17 @@ void handleLabChatNavigation(char key) {
         } else if (key == '#') { // Rename current channel
           channelNameInput = channelNames[chatCurrentChannel];
           chatState = CHAT_RENAME_CHANNEL;
+        } else if (key == '!' || key == '1') { // ! or 1 - Clear emoji send history (force resend)
+          extern int sentEmojiHistoryCount;
+          sentEmojiHistoryCount = 0;
+          Serial.println("🔄 EMOJI SEND HISTORY CLEARED - All emojis will be resent!");
+          // Show visual feedback
+          M5Cardputer.Display.fillRect(5, 107, 230, 23, TFT_ORANGE);
+          M5Cardputer.Display.setTextSize(1);
+          M5Cardputer.Display.setTextColor(TFT_BLACK);
+          M5Cardputer.Display.drawString("Emoji cache cleared!", 50, 112);
+          delay(800);
+          drawLabChat();
         } else if (key == 27) { // ESC - exit DM mode
           dmTargetID = "";
           dmTargetUsername = "";
