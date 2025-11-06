@@ -10,5 +10,6 @@ void handleSelect();
 void handleBack();
 void drawStillStar();
 void updateStarGifPlayback();
+void returnToMainMenu(); // Helper to return to main menu with CPU scaling
 
 #endif

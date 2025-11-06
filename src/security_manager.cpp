@@ -130,7 +130,14 @@ bool SecurityManager::joinNetwork(String password) {
   generateDeviceID();
   deriveKeysFromPassword(password);
 
-  // Generate network name from password hash (first 8 chars)
+  // Generate color-based room name from password hash
+  const char* colors[] = {
+    "Red", "Orange", "Yellow", "Green", "Blue",
+    "Purple", "Pink", "Cyan", "Magenta", "Black",
+    "White", "Gray", "Crimson", "Gold", "Silver",
+    "Violet", "Indigo", "Lime", "Navy", "Teal"
+  };
+
   mbedtls_sha256_context ctx;
   uint8_t hash[32];
   mbedtls_sha256_init(&ctx);
@@ -139,10 +146,13 @@ bool SecurityManager::joinNetwork(String password) {
   mbedtls_sha256_finish(&ctx, hash);
   mbedtls_sha256_free(&ctx);
 
-  snprintf(networkName, NETWORK_NAME_SIZE, "NET%02X%02X%02X", hash[0], hash[1], hash[2]);
+  // Use hash to pick a color (20 options)
+  int colorIndex = hash[0] % 20;
+  snprintf(networkName, NETWORK_NAME_SIZE, "%s Room", colors[colorIndex]);
 
   initialized = true;
-  saveToPreferences();
+  // Don't save to preferences - rooms are temporary until device powers off
+  // saveToPreferences();
   return true;
 }
 

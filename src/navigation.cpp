@@ -308,14 +308,20 @@ void handleSelect() {
     if (currentScreenNumber == 1) {
       enterFileManager();
     } else if (currentScreenNumber == 2) {
+      setCpuFrequencyMhz(240); // WiFi operations need 240MHz
+      Serial.println("CPU: 240MHz (WiFi Fun)");
       enterWiFiFunApp();
     } else if (currentScreenNumber == 3) {
+      setCpuFrequencyMhz(240); // WiFi transfer needs 240MHz
+      Serial.println("CPU: 240MHz (Transfer)");
       enterWiFiTransferApp();
     } else if (currentScreenNumber == 4) {
       enterRadioApp();
     } else if (currentScreenNumber == 5) {
       enterTerminal();
     } else if (currentScreenNumber == 6) {
+      setCpuFrequencyMhz(240); // Audio needs 240MHz
+      Serial.println("CPU: 240MHz (Music)");
       enterMusicPlayer();
     } else if (currentScreenNumber == 7) {
       enterTheBook();
@@ -436,7 +442,17 @@ void handleBack() {
     drawWiFiScan();
   } else if (currentState == WIFI_SAVED) {
     if (settings.soundEnabled) M5Cardputer.Speaker.tone(600, 100);
-    currentState = MAIN_MENU;
-    drawScreen(uiInverted);
+    returnToMainMenu();
   }
+}
+
+// Helper function to return to main menu with CPU scaling
+void returnToMainMenu() {
+  // Drop CPU to 80MHz for battery savings
+  setCpuFrequencyMhz(80);
+  Serial.println("CPU: 80MHz (idle)");
+
+  currentState = MAIN_MENU;
+  extern bool uiInverted;
+  drawScreen(uiInverted);
 }

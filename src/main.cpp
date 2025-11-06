@@ -107,6 +107,10 @@ unsigned long lastActivityTime = 0;
 const unsigned long SCREENSAVER_TIMEOUT = 120000; // 2 minutes
 bool screensaverActive = false;
 
+// Screen dimming (battery saver)
+const unsigned long SCREEN_DIM_TIMEOUT = 30000; // 30 seconds
+bool screenDimmed = false;
+
 // Audio mute during navigation (to avoid hearing skips)
 unsigned long lastKeyPressTime = 0;
 const unsigned long AUDIO_UNMUTE_DELAY = 300; // Unmute after 300ms of no input
@@ -341,14 +345,18 @@ void setup() {
   M5Cardputer.begin(cfg, true);
   M5Cardputer.Display.setRotation(1);
 
+  // Set CPU to 80MHz for battery savings (~100mA reduction from 240MHz)
+  setCpuFrequencyMhz(80);
+  Serial.println("CPU frequency: 80MHz (idle mode)");
+
   // Try to enable Unicode/emoji rendering
   M5Cardputer.Display.setFont(&fonts::Font0); // Default font
   M5Cardputer.Display.setTextWrap(false);
   M5Cardputer.Display.cp437(true); // Enable extended ASCII
 
-  // Initialize WiFi mode early but don't connect yet
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
+  // WiFi OFF by default to save battery (~80mA)
+  // Will be enabled on-demand when needed
+  WiFi.mode(WIFI_OFF);
 
   // CRITICAL: M5Cardputer.begin() auto-initializes Speaker, which claims I2S port 0
   // We MUST release it immediately so audio can use I2S port 0
@@ -387,6 +395,10 @@ void setup() {
   // Auto-connect WiFi BEFORE boot animation (if we have saved networks)
   if (numSavedNetworks > 0) {
     Serial.println("=== AUTO-CONNECT: Scanning for saved networks ===");
+
+    // Enable WiFi for auto-connect
+    WiFi.mode(WIFI_STA);
+    delay(100);
 
     // Initialize starfield
     initStarfield();
@@ -621,6 +633,13 @@ void loop() {
       stopStarRain();
       lastActivityTime = millis();
 
+      // Restore brightness if dimmed
+      if (screenDimmed) {
+        M5Cardputer.Display.setBrightness(255);
+        screenDimmed = false;
+        Serial.println("Screen brightness restored (from screensaver)");
+      }
+
       // MAGIC: Toggle UI inversion after dissolve effect!
       uiInverted = !uiInverted;
 
@@ -750,6 +769,10 @@ void loop() {
     M5Cardputer.Display.setTextColor(TFT_WHITE);
     M5Cardputer.Display.drawString("Scanning...", 80, 125);
 
+    // Enable WiFi for scan
+    WiFi.mode(WIFI_STA);
+    delay(100);
+
     // Quick scan to see which networks are available
     WiFi.disconnect();
     delay(100);
@@ -814,6 +837,13 @@ void loop() {
     if (M5Cardputer.Keyboard.isPressed()) {
       // Reset activity timer on any key press
       lastActivityTime = millis();
+
+      // Restore brightness if dimmed
+      if (screenDimmed) {
+        M5Cardputer.Display.setBrightness(255); // Full brightness
+        screenDimmed = false;
+        Serial.println("Screen brightness restored");
+      }
 
       // Temporarily mute audio during navigation to prevent clicks
       if (isRadioPlaying() || isAudioPlaying()) {
@@ -1847,6 +1877,10 @@ void loop() {
           safeBeep(800, 100);
           currentScreenNumber = gamesMenuItems[gamesMenuIndex].screenNumber;
 
+          // Boost CPU for games (160MHz is enough for CHIP-8)
+          setCpuFrequencyMhz(160);
+          Serial.println("CPU: 160MHz (game)");
+
           // Call appropriate enter function
           if (currentScreenNumber == 14) {
             enterChip8();
@@ -2425,6 +2459,14 @@ void loop() {
   // Update Emoji Maker
   if (currentState == SCREEN_VIEW && currentScreenNumber == 18 && emojiMakerActive) {
     updateEmojiMaker();
+  }
+
+  // Screen dimming for battery saving
+  if (!screensaverActive && !screenDimmed &&
+      millis() - lastActivityTime > SCREEN_DIM_TIMEOUT) {
+    M5Cardputer.Display.setBrightness(50); // Dim to 20%
+    screenDimmed = true;
+    Serial.println("Screen dimmed (battery saver)");
   }
 
   // Use shorter delay when audio or emulators are running for responsiveness

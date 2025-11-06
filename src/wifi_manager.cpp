@@ -11,6 +11,14 @@ void scanWiFiNetworks() {
   numNetworks = 0;
   selectedNetworkIndex = 0;
 
+  // Boost CPU for WiFi operations (240MHz)
+  setCpuFrequencyMhz(240);
+  Serial.println("CPU: 240MHz (WiFi scan)");
+
+  // Enable WiFi for scanning
+  WiFi.mode(WIFI_STA);
+  delay(100);
+
   // Disconnect from any active connection before scanning
   WiFi.disconnect();
   delay(100);
@@ -103,7 +111,7 @@ void connectToWiFi() {
     }
     
     delay(500);
-    
+
     // Save network if connection successful
     saveNetwork(targetSSID, inputPassword);
   } else {
@@ -114,8 +122,11 @@ void connectToWiFi() {
     M5Cardputer.Display.drawString("Failed!", 70, 60);
     // M5Cardputer.Speaker.tone(400, 200);
     delay(1500);
+
+    // Turn off WiFi if connection failed (save ~80mA)
+    WiFi.mode(WIFI_OFF);
   }
-  
+
   currentState = MAIN_MENU;
   inputPassword = "";
   drawScreen(false);
@@ -243,8 +254,11 @@ void connectToSavedNetwork(int index) {
     M5Cardputer.Display.drawString("Failed!", 70, 60);
     // M5Cardputer.Speaker.tone(400, 200);
     delay(1500);
+
+    // Turn off WiFi if connection failed (save ~80mA)
+    WiFi.mode(WIFI_OFF);
   }
-  
+
   currentState = MAIN_MENU;
   drawScreen(false);
 }

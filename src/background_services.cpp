@@ -113,7 +113,7 @@ void startBackgroundTransfer() {
 void stopBackgroundFakeAP() {
   if (currentStatus.fakeAPRunning) {
     WiFi.softAPdisconnect(true);
-    WiFi.mode(WIFI_STA);
+    WiFi.mode(WIFI_OFF); // Save battery when AP stopped
 
     currentStatus.fakeAPRunning = false;
     currentStatus.fakeAPName = "";
@@ -123,6 +123,7 @@ void stopBackgroundFakeAP() {
 void stopBackgroundPortal() {
   if (currentStatus.portalRunning || isPortalRunning()) {
     stopCaptivePortal();
+    WiFi.mode(WIFI_OFF); // Save battery when portal stopped
 
     currentStatus.portalRunning = false;
     currentStatus.portalName = "";

@@ -106,6 +106,16 @@ String channelNames[10] = {
   "study", "chill"
 };
 
+// Room management (temporary, cleared on power off)
+struct RoomInfo {
+  String name;
+  String password;
+};
+#define MAX_ROOMS 10
+RoomInfo activeRooms[MAX_ROOMS];
+int activeRoomCount = 0;
+int currentRoomIndex = -1;
+
 // Menu indices
 int networkMenuIndex = 0;
 int chatSettingsMenuIndex = 0;
@@ -742,17 +752,17 @@ void drawMainChat() {
     displayedCount++;
   }
 
-  // Show emoji hint in center if no messages
+  // Show emoji hint and berry on same line if no messages
   if (filteredCount == 0) {
     M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("\\ = symbols", 85, 65);
 
-    // Draw centered berry emoji
+    // Draw berry emoji and text on same line
     const char* berry = "\xF0\x9F\x8D\x93";  // 🍓 Strawberry
-    int centerX = 120 - 4;  // Screen width/2 - emoji width/2
-    int y = 78;
-    drawEmojiIcon(centerX, y, berry, TFT_RED, 1);
+    int y = 70;
+    int berryX = 90;
+    drawEmojiIcon(berryX, y, berry, TFT_RED, 1);
+    M5Cardputer.Display.drawString("\\ = emojis", berryX + 12, y + 2);
   }
 
   // Input area (black background with yellow outline, terminal style, with margins)
@@ -863,22 +873,27 @@ void drawChatSettings() {
   M5Cardputer.Display.fillScreen(TFT_WHITE);
   drawLabChatHeader("Settings");
 
-  // Settings box (taller for 5 items)
-  M5Cardputer.Display.fillRoundRect(20, 35, 200, 100, 12, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(20, 35, 200, 100, 12, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(21, 36, 198, 98, 11, TFT_BLACK);
+  // Settings box (taller for 4 items)
+  M5Cardputer.Display.fillRoundRect(20, 35, 200, 85, 12, TFT_WHITE);
+  M5Cardputer.Display.drawRoundRect(20, 35, 200, 85, 12, TFT_BLACK);
+  M5Cardputer.Display.drawRoundRect(21, 36, 198, 83, 11, TFT_BLACK);
 
-  const char* options[] = {"Change Username", "Switch Channel: ", "Manage Emojis", "Network Info", "Leave Network"};
+  const char* options[] = {"Change Username", "Room: ", "Manage Emojis", "Leave Network"};
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 4; i++) {
     M5Cardputer.Display.setTextSize(1);
     if (i == chatSettingsMenuIndex) {
       M5Cardputer.Display.setTextColor(TFT_WHITE);
       M5Cardputer.Display.fillRect(30, 40 + (i * 18), 180, 14, TFT_BLACK);
       if (i == 1) {
-        // Switch Channel - show current channel number
-        String channelText = String(options[i]) + String(chatCurrentChannel);
-        M5Cardputer.Display.drawString(channelText.c_str(), 40, 43 + (i * 18));
+        // Room - show current room name or "New Room"
+        String roomText = String(options[i]);
+        if (currentRoomIndex >= 0 && currentRoomIndex < activeRoomCount) {
+          roomText += activeRooms[currentRoomIndex].name;
+        } else {
+          roomText += "New Room";
+        }
+        M5Cardputer.Display.drawString(roomText.c_str(), 40, 43 + (i * 18));
       } else if (i == 2) {
         // Manage Emojis - show count
         String emojiText = String(options[i]) + " (" + String(systemEmojiCount) + "/20)";
@@ -889,9 +904,14 @@ void drawChatSettings() {
     } else {
       M5Cardputer.Display.setTextColor(TFT_BLACK);
       if (i == 1) {
-        // Switch Channel - show current channel number
-        String channelText = String(options[i]) + String(chatCurrentChannel);
-        M5Cardputer.Display.drawString(channelText.c_str(), 40, 43 + (i * 18));
+        // Room - show current room name or "New Room"
+        String roomText = String(options[i]);
+        if (currentRoomIndex >= 0 && currentRoomIndex < activeRoomCount) {
+          roomText += activeRooms[currentRoomIndex].name;
+        } else {
+          roomText += "New Room";
+        }
+        M5Cardputer.Display.drawString(roomText.c_str(), 40, 43 + (i * 18));
       } else if (i == 2) {
         // Manage Emojis - show count
         String emojiText = String(options[i]) + " (" + String(systemEmojiCount) + "/20)";
@@ -902,26 +922,34 @@ void drawChatSettings() {
     }
   }
 
-  drawNavHint("Up/Down  Enter/Left/Right  `=Back", 20, 118);
+  drawNavHint("Up/Down  Enter  `=Home", 20, 118);
 }
 
 void drawChannelSwitch() {
   M5Cardputer.Display.fillScreen(TFT_WHITE);
-  drawLabChatHeader("Switch Channel");
+  drawLabChatHeader("Switch Room");
 
-  // Channel selector box
-  M5Cardputer.Display.fillRoundRect(40, 45, 160, 50, 10, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(40, 45, 160, 50, 10, TFT_RED);
-  M5Cardputer.Display.drawRoundRect(41, 46, 158, 48, 9, TFT_RED);
+  // Room selector box
+  M5Cardputer.Display.fillRoundRect(30, 45, 180, 50, 10, TFT_WHITE);
+  M5Cardputer.Display.drawRoundRect(30, 45, 180, 50, 10, TFT_RED);
+  M5Cardputer.Display.drawRoundRect(31, 46, 178, 48, 9, TFT_RED);
 
   M5Cardputer.Display.setTextSize(2);
-  String channelName = channelNames[chatCurrentChannel];
+  String roomName;
+  if (currentRoomIndex < activeRoomCount) {
+    roomName = activeRooms[currentRoomIndex].name;
+  } else {
+    roomName = "New Room";
+  }
+
   M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString(("#" + channelName).c_str(), 70, 60);
+  int textWidth = roomName.length() * 12;
+  int xPos = 120 - (textWidth / 2);
+  M5Cardputer.Display.drawString(roomName.c_str(), xPos, 60);
 
   M5Cardputer.Display.setTextSize(1);
   M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("< Up/Down >", 85, 105);
+  M5Cardputer.Display.drawString("< Left/Right >", 85, 105);
 
   drawNavHint("`=Back  Enter=Select", 60, 118);
 }
@@ -1678,6 +1706,22 @@ void handleLabChatNavigation(char key) {
                 messageHandler.clearQueue();
               }
 
+              // Store this room in activeRooms (if not already there)
+              bool roomExists = false;
+              for (int i = 0; i < activeRoomCount; i++) {
+                if (activeRooms[i].password == networkPasswordInput) {
+                  roomExists = true;
+                  currentRoomIndex = i;
+                  break;
+                }
+              }
+              if (!roomExists && activeRoomCount < MAX_ROOMS) {
+                activeRooms[activeRoomCount].name = newNetwork;
+                activeRooms[activeRoomCount].password = networkPasswordInput;
+                currentRoomIndex = activeRoomCount;
+                activeRoomCount++;
+              }
+
               espNowManager.deinit();
               espNowManager.init(securityManager.getPMK());
               chatState = CHAT_MAIN;
@@ -1959,17 +2003,17 @@ void handleLabChatNavigation(char key) {
 
     case CHAT_SETTINGS: {
       if (key == ';') {
-        chatSettingsMenuIndex = (chatSettingsMenuIndex - 1 + 5) % 5;
+        chatSettingsMenuIndex = (chatSettingsMenuIndex - 1 + 4) % 4;
       } else if (key == '.') {
-        chatSettingsMenuIndex = (chatSettingsMenuIndex + 1) % 5;
+        chatSettingsMenuIndex = (chatSettingsMenuIndex + 1) % 4;
       } else if (key == ',' && chatSettingsMenuIndex == 1) {
-        // Left arrow - decrement channel
-        chatCurrentChannel = (chatCurrentChannel - 1 + 10) % 10;
-        scrollPosition = 0;
+        // Left arrow - cycle through rooms
+        int totalOptions = activeRoomCount + 1;
+        currentRoomIndex = (currentRoomIndex - 1 + totalOptions) % totalOptions;
       } else if (key == '/' && chatSettingsMenuIndex == 1) {
-        // Right arrow - increment channel
-        chatCurrentChannel = (chatCurrentChannel + 1) % 10;
-        scrollPosition = 0;
+        // Right arrow - cycle through rooms
+        int totalOptions = activeRoomCount + 1;
+        currentRoomIndex = (currentRoomIndex + 1) % totalOptions;
       } else if (key == '\n') {
         if (chatSettingsMenuIndex == 0) {
           // Change username
@@ -1989,37 +2033,83 @@ void handleLabChatNavigation(char key) {
           prefs.end();
           chatState = CHAT_CHANGE_USERNAME;
         } else if (chatSettingsMenuIndex == 1) {
-          // Switch channel - just go back to main (channel already changed with arrows)
-          chatState = CHAT_MAIN;
+          // Switch Room - confirm selection
+          if (currentRoomIndex < activeRoomCount) {
+            // Reconnect to existing room
+            String roomPassword = activeRooms[currentRoomIndex].password;
+            String oldNetwork = String(securityManager.getNetworkName());
+
+            if (securityManager.joinNetwork(roomPassword)) {
+              String newNetwork = String(securityManager.getNetworkName());
+
+              espNowManager.deinit();
+              espNowManager.init(securityManager.getPMK());
+              chatState = CHAT_MAIN;
+              messageHandler.sendPresence();
+              lastPresenceBroadcast = millis();
+              lastNetworkName = newNetwork;
+            }
+          } else {
+            // New Room - go to Room Key entry
+            chatState = CHAT_JOIN_NETWORK;
+            networkPasswordInput = "";
+          }
         } else if (chatSettingsMenuIndex == 2) {
           // Manage emojis
           selectedEmojiManagerIndex = 0;
           chatState = CHAT_EMOJI_MANAGER;
         } else if (chatSettingsMenuIndex == 3) {
-          // Network info
-          chatState = CHAT_NETWORK_INFO;
-        } else if (chatSettingsMenuIndex == 4) {
-          // Leave network - clear and go to network menu
-          messageHandler.clearQueue();
-          securityManager.leaveNetwork();
-          espNowManager.deinit();
-          chatState = CHAT_NETWORK_MENU;
+          // Leave network - go to home menu
+          exitLabChat();
+          currentScreenNumber = 0;
+          currentState = MAIN_MENU;
+          extern void drawScreen(bool statusBar);
+          drawScreen(true);
+          return;
         }
       } else if (key == '`') {
-        chatState = CHAT_NETWORK_MENU;
+        // ESC from settings - go to home menu
+        exitLabChat();
+        currentScreenNumber = 0;
+        currentState = MAIN_MENU;
+        extern void drawScreen(bool statusBar);
+        drawScreen(true);
+        return;
       }
       break;
     }
 
     case CHAT_CHANNEL_SWITCH: {
-      if (key == ';') { // Up
-        chatCurrentChannel = (chatCurrentChannel - 1 + 10) % 10;
-        scrollPosition = 0;
-      } else if (key == '.') { // Down
-        chatCurrentChannel = (chatCurrentChannel + 1) % 10;
-        scrollPosition = 0;
-      } else if (key == '\n') { // Enter - confirm
-        chatState = CHAT_SETTINGS;
+      // Total options = active rooms + "New Room"
+      int totalOptions = activeRoomCount + 1;
+
+      if (key == ',') { // Left
+        currentRoomIndex = (currentRoomIndex - 1 + totalOptions) % totalOptions;
+      } else if (key == '/') { // Right
+        currentRoomIndex = (currentRoomIndex + 1) % totalOptions;
+      } else if (key == '\n') { // Enter - select room
+        if (currentRoomIndex < activeRoomCount) {
+          // Reconnect to existing room
+          String roomPassword = activeRooms[currentRoomIndex].password;
+          String oldNetwork = String(securityManager.getNetworkName());
+
+          if (securityManager.joinNetwork(roomPassword)) {
+            String newNetwork = String(securityManager.getNetworkName());
+
+            // Don't clear messages when switching rooms (user said "no")
+
+            espNowManager.deinit();
+            espNowManager.init(securityManager.getPMK());
+            chatState = CHAT_MAIN;
+            messageHandler.sendPresence();
+            lastPresenceBroadcast = millis();
+            lastNetworkName = newNetwork;
+          }
+        } else {
+          // New Room - go to Room Key entry
+          chatState = CHAT_JOIN_NETWORK;
+          networkPasswordInput = "";
+        }
       } else if (key == '`') {
         chatState = CHAT_SETTINGS;
       }
@@ -2149,5 +2239,7 @@ void handleLabChatNavigation(char key) {
     }
   }
 
-  drawLabChat();
+  // Let updateLabChat() handle redraws via needsRedraw flag
+  // This prevents constant redraws on every key press (battery drain)
+  needsRedraw = true;
 }
