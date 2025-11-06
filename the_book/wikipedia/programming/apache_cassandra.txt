@@ -1,0 +1,27 @@
+Apache Cassandra
+
+Apache Cassandra is a free and
+open-source database management system
+designed to handle large volumes of
+data across multiple commodity servers.
+The system prioritizes availability and
+scalability over consistency, making it
+particularly suited for systems with
+high write throughput requirements due
+to its LSM tree indexing storage layer.
+As a wide-column database, Cassandra
+supports flexible schemas and
+efficiently handles data models with
+numerous sparse columns. The system is
+optimized for applications with
+well-defined data access patterns that
+can be incorporated into the schema
+design. Cassandra supports computer
+clusters which may span multiple data
+centers, featuring asynchronous and
+masterless replication. It enables
+low-latency operations for all clients
+and incorporates Amazon's Dynamo
+distributed storage and replication
+techniques, combined with Google's
+Bigtable data storage engine model.

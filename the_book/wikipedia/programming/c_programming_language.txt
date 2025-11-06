@@ -1,13 +1,3 @@
-**C PROGRAMMING LANGUAGE**
-
-Category: Wikipedia › Programming
----------------------------------------
-
-**C PROGRAMMING LANGUAGE**
-
-Category: Wikipedia › Programming
----------------------------------------
-
 C (programming language)
 
 C is a general-purpose programming
@@ -26,35 +16,3 @@ decreasing. C is used on computers that
 range from the largest supercomputers
 to the smallest microcontrollers and
 embedded systems.
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Python Programming Language
-• Sql
-
-
-=======================================
-Processed: 2025-10-20 06:09
-Words: ~91
-Category: Wikipedia › Programming
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Python Programming Language
-• Sql
-
-
-=======================================
-Processed: 2025-10-20 10:57
-Words: ~125
-Category: Wikipedia › Programming
-
-<!-- FORMATTED: 767d13a4 -->

@@ -1,0 +1,26 @@
+NoSQL
+
+NoSQL refers to a type of database
+design that stores and retrieves data
+differently from the traditional
+table-based structure of relational
+databases. Unlike relational databases,
+which organize data into rows and
+columns like a spreadsheet, NoSQL
+databases use a single data
+structure—such as key–value pairs, wide
+columns, graphs, or documents—to hold
+information. Since this non-relational
+design does not require a fixed schema,
+it scales easily to manage large, often
+unstructured datasets. NoSQL systems
+are sometimes called "Not only SQL"
+because they can support SQL-like query
+languages or work alongside SQL
+databases in polyglot-persistent
+setups, where multiple database types
+are combined. Non-relational databases
+date back to the late 1960s, but the
+term "NoSQL" emerged in the early
+2000s, spurred by the needs of Web 2.0
+companies like social media platforms.

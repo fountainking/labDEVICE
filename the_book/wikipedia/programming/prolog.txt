@@ -1,0 +1,6 @@
+Prolog
+
+Prolog is a logic programming language
+that has its origins in artificial
+intelligence, automated theorem
+proving, and computational linguistics.

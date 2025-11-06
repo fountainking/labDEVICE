@@ -1,0 +1,6 @@
+Relational database
+
+A relational database (RDB) is a
+database based on the relational model
+of data, as proposed by E. F. Codd in
+1970.

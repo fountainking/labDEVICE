@@ -1,0 +1,18 @@
+Object-oriented programming
+
+Object-oriented programming (OOP) is a
+programming paradigm based on the
+object – a software entity that
+encapsulates data and function(s). An
+OOP computer program consists of
+objects that interact with one another.
+A programming language that provides
+OOP features is classified as an OOP
+language but as the set of features
+that contribute to OOP is contended,
+classifying a language as OOP and the
+degree to which it supports or is OOP,
+are debatable. As paradigms are not
+mutually exclusive, a language can be
+multi-paradigm; can be categorized as
+more than only OOP.

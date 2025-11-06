@@ -1,0 +1,20 @@
+PostgreSQL
+
+PostgreSQL also known as Postgres, is a
+free and open-source relational
+database management system (RDBMS)
+emphasizing extensibility and SQL
+compliance. PostgreSQL features
+transactions with atomicity,
+consistency, isolation, durability
+(ACID) properties, automatically
+updatable views, materialized views,
+triggers, foreign keys, and stored
+procedures.
+It is supported on all major operating
+systems, including Windows, Linux,
+macOS, FreeBSD, and OpenBSD, and
+handles a range of workloads from
+single machines to data warehouses,
+data lakes, or web services with many
+concurrent users.

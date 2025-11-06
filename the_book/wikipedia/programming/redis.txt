@@ -1,0 +1,10 @@
+Redis
+
+Redis is an in-memory key–value
+database, used as a distributed cache
+and message broker, with optional
+durability. Because it holds all data
+in memory and because of its design,
+Redis offers low-latency reads and
+writes, making it particularly suitable
+for use cases that require a cache.

@@ -593,12 +593,76 @@ String getCurrentTime() {
   return cachedTime;
 }
 
+// Battery reading smoothing and caching
+static int batteryReadings[10] = {0};
+static int batteryReadingIndex = 0;
+static bool batteryReadingsInitialized = false;
+static int cachedBatteryPercent = 0;
+static bool cachedChargingState = false;
+static unsigned long lastBatteryUpdate = 0;
+
+// Accurate LiPo discharge curve (voltage -> percentage)
+int voltageToPercent(int voltage) {
+  // LiPo discharge curve lookup table (voltage in mV -> %)
+  // Based on typical 18650/LiPo discharge characteristics
+  if (voltage >= 4200) return 100;
+  if (voltage >= 4100) return 95;
+  if (voltage >= 4000) return 85;
+  if (voltage >= 3900) return 70;
+  if (voltage >= 3800) return 50;
+  if (voltage >= 3700) return 30;
+  if (voltage >= 3600) return 15;
+  if (voltage >= 3500) return 8;
+  if (voltage >= 3400) return 3;
+  if (voltage >= 3300) return 1;
+  return 0;
+}
+
+void updateBatteryReadings() {
+  int voltage = M5Cardputer.Power.getBatteryVoltage();
+
+  // Initialize smoothing array on first call
+  if (!batteryReadingsInitialized) {
+    for (int i = 0; i < 10; i++) {
+      batteryReadings[i] = voltage;
+    }
+    batteryReadingsInitialized = true;
+  }
+
+  // Add new reading to circular buffer
+  batteryReadings[batteryReadingIndex] = voltage;
+  batteryReadingIndex = (batteryReadingIndex + 1) % 10;
+
+  // Calculate average voltage
+  int avgVoltage = 0;
+  for (int i = 0; i < 10; i++) {
+    avgVoltage += batteryReadings[i];
+  }
+  avgVoltage /= 10;
+
+  // Convert to percentage using discharge curve and cache it
+  cachedBatteryPercent = voltageToPercent(avgVoltage);
+
+  // Update charging state
+  cachedChargingState = M5Cardputer.Power.isCharging();
+
+  lastBatteryUpdate = millis();
+}
+
 int getBatteryPercent() {
-  return M5Cardputer.Power.getBatteryLevel();
+  // Update battery readings every 10 minutes
+  if (millis() - lastBatteryUpdate > 600000 || !batteryReadingsInitialized) {
+    updateBatteryReadings();
+  }
+  return cachedBatteryPercent;
 }
 
 bool isCharging() {
-  return M5Cardputer.Power.isCharging();
+  // Return cached charging state (updated with battery readings)
+  if (millis() - lastBatteryUpdate > 600000 || !batteryReadingsInitialized) {
+    updateBatteryReadings();
+  }
+  return cachedChargingState;
 }
 
 void drawStar(int x, int y, int size, float angle, uint16_t fillColor, uint16_t outlineColor) {
@@ -777,11 +841,7 @@ void drawStatusBar(bool inverted) {
   
   // Battery indicator - colored based on charge level
 #if DEBUG_ENABLE_BATTERY
-  int voltage = M5Cardputer.Power.getBatteryVoltage();
-
-  // Convert voltage to percentage (LiPo: 4200mV=100%, 3300mV=0%)
-  int batteryPercent = map(voltage, 3300, 4200, 0, 100);
-  batteryPercent = constrain(batteryPercent, 0, 100);
+  int batteryPercent = getBatteryPercent();
 
   // Choose color based on battery level
   uint16_t batteryColor;
@@ -794,8 +854,9 @@ void drawStatusBar(bool inverted) {
   }
 #else
   uint16_t batteryColor = TFT_DARKGREY;  // Gray when disabled
+  int batteryPercent = 0;
 #endif
-  
+
   // Fill the entire battery box with the color
   M5Cardputer.Display.fillRoundRect(180, 5, 55, 18, 9, batteryColor);
 
@@ -804,11 +865,21 @@ void drawStatusBar(bool inverted) {
     M5Cardputer.Display.drawRoundRect(180+i, 5+i, 55-i*2, 18-i*2, 9-i, fgColor);
   }
 
+#if DEBUG_ENABLE_BATTERY
+  // Show percentage text in center of battery
+  M5Cardputer.Display.setTextSize(1);
+  M5Cardputer.Display.setTextColor(fgColor);
+  String percentText = String(batteryPercent) + "%";
+  int textWidth = percentText.length() * 6;
+  int textX = 207 - (textWidth / 2);
+  M5Cardputer.Display.drawString(percentText.c_str(), textX, 9);
+#endif
+
   // Message notification indicator (heart icon over battery)
   extern bool hasUnreadMessages;
   if (hasUnreadMessages) {
-    // Draw a small heart icon centered on battery
-    int heartX = 205;
+    // Draw a small heart icon on right side
+    int heartX = 225;
     int heartY = 9;
     M5Cardputer.Display.fillCircle(heartX, heartY + 2, 2, TFT_BLUE);
     M5Cardputer.Display.fillCircle(heartX + 4, heartY + 2, 2, TFT_BLUE);
@@ -1192,18 +1263,13 @@ void drawGamesMenu() {
   M5Cardputer.Display.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  // Title
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_PURPLE);
-  M5Cardputer.Display.drawString("GAMES", 80, 25);
-
   // Menu items
   M5Cardputer.Display.setTextSize(1);
   int yPos = 50;
   for (int i = 0; i < totalGamesItems; i++) {
     if (i == gamesMenuIndex) {
-      // Selected item - draw with highlight
-      M5Cardputer.Display.fillRect(10, yPos - 2, 220, 12, gamesMenuItems[i].color);
+      // Selected item - draw with yellow highlight
+      M5Cardputer.Display.fillRect(10, yPos - 2, 220, 12, TFT_YELLOW);
       M5Cardputer.Display.setTextColor(TFT_BLACK);
       M5Cardputer.Display.drawString("> " + gamesMenuItems[i].name, 15, yPos);
     } else {

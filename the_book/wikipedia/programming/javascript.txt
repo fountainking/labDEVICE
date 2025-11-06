@@ -1,50 +1,9 @@
-**JAVASCRIPT**
-
-Category: Wikipedia › Programming
----------------------------------------
-
-**JAVASCRIPT**
-
-Category: Wikipedia › Programming
----------------------------------------
-
 JavaScript
 
 JavaScript (JS) is a programming
-language and core technology of the web
-platform, alongside HTML and CSS.
-Ninety-nine percent of websites on the
-World Wide Web use JavaScript on the
-client side for webpage behavior.
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Python Programming Language
-• Sql
-
-
-=======================================
-Processed: 2025-10-20 06:09
-Words: ~36
-Category: Wikipedia › Programming
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Python Programming Language
-• Sql
-
-
-=======================================
-Processed: 2025-10-20 10:57
-Words: ~68
-Category: Wikipedia › Programming
-
-<!-- FORMATTED: 767d13a4 -->
+language and core technology of the
+Web, alongside HTML and CSS. It was
+created by Brendan Eich in 1995.
+Ninety-nine percent of websites use
+JavaScript on the client side for
+webpage behavior.

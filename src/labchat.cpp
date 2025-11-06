@@ -504,7 +504,7 @@ void drawJoinNetwork() {
   M5Cardputer.Display.fillScreen(TFT_WHITE);
   drawLabChatHeader("Join");
 
-  drawTextInputBox("Network Password:", networkPasswordInput, true);
+  drawTextInputBox("Room Key:", networkPasswordInput, true);
 }
 
 void drawMainChat() {
@@ -748,26 +748,11 @@ void drawMainChat() {
     M5Cardputer.Display.setTextColor(TFT_DARKGREY);
     M5Cardputer.Display.drawString("\\ = symbols", 85, 65);
 
-    // Draw 12 symbols underneath at 1x scale (full row)
-    const char* emojis[] = {
-      "\xF0\x9F\x8D\x93",  // 🍓 Strawberry
-      "\xF0\x9F\x8D\x8D",  // 🍍 Pineapple
-      "\xF0\x9F\x8D\xB0",  // 🍰 Cake
-      "\xF0\x9F\x8D\x89",  // Pill
-      "\xF0\x9F\x90\x9A",  // Atom
-      "\xE2\xAD\x90",      // Radioactive
-      "\xF0\x9F\x8D\xAC",  // 🍬 Peppermint
-      "\xF0\x9F\x94\xA5",  // Biohazard
-      "\xF0\x9F\x92\x80",  // Syringe
-      "\xF0\x9F\x9A\x80",  // 🚀 Rocket
-      "\xE2\x9A\xA1",      // DNA
-      "\xF0\x9F\x8E\xB5"   // Flask
-    };
-    int startX = 20;
+    // Draw centered berry emoji
+    const char* berry = "\xF0\x9F\x8D\x93";  // 🍓 Strawberry
+    int centerX = 120 - 4;  // Screen width/2 - emoji width/2
     int y = 78;
-    for (int i = 0; i < 12; i++) {
-      drawEmojiIcon(startX + (i * 18), y, emojis[i], TFT_DARKGREY, 1);
-    }
+    drawEmojiIcon(centerX, y, berry, TFT_RED, 1);
   }
 
   // Input area (black background with yellow outline, terminal style, with margins)
@@ -1027,57 +1012,35 @@ void drawRenameChannel() {
 
 void drawEmojiPicker() {
   M5Cardputer.Display.fillScreen(TFT_WHITE);
-  drawLabChatHeader("Emoji Picker");
+  drawLabChatHeader("Emojis");
 
-  // Debug logging
-  Serial.print("drawEmojiPicker - showFriendEmojis: ");
-  Serial.print(showFriendEmojis);
-  Serial.print(", friendEmojiCount: ");
-  Serial.print(friendEmojiCount);
-  Serial.print(", systemEmojiCount: ");
-  Serial.println(systemEmojiCount);
-
-  if (showFriendEmojis && friendEmojiCount > 0) {
-    Serial.println("Friend emojis in array:");
-    for (int i = 0; i < friendEmojiCount; i++) {
-      Serial.print("  [");
-      Serial.print(i);
-      Serial.print("] ");
-      Serial.println(friendEmojis[i].shortcut);
-    }
-  }
-
-  // Picker box (split horizontally into two rows)
+  // Picker box (single unified area)
   M5Cardputer.Display.fillRoundRect(10, 35, 220, 75, 12, TFT_BLACK);
   M5Cardputer.Display.drawRoundRect(10, 35, 220, 75, 12, TFT_ORANGE);
 
-  // Draw labels for top row (My Emojis)
+  // Info text
   M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(showFriendEmojis ? TFT_DARKGREY : TFT_ORANGE);
-  M5Cardputer.Display.drawString("My Emojis", 85, 40);
+  M5Cardputer.Display.setTextColor(TFT_ORANGE);
+  String slotInfo = String(systemEmojiCount) + "/20 loaded";
+  M5Cardputer.Display.drawString(slotInfo.c_str(), 85, 40);
 
-  // Draw horizontal divider in middle
-  M5Cardputer.Display.drawFastHLine(10, 72, 220, TFT_DARKGREY);
-
-  // Draw label for bottom row (Friend Emojis)
-  M5Cardputer.Display.setTextColor(showFriendEmojis ? TFT_ORANGE : TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Friend Emojis", 75, 77);
-
-  // Draw emojis in appropriate row
+  // Draw emojis in two rows (12 per row, max 20 visible)
   int startX = 20;
-  int startY = showFriendEmojis ? 88 : 50; // Top row for My, bottom row for Friends
+  int startY = 55;
   int spacingX = 18;
-  int displayCount = showFriendEmojis ? min(friendEmojiCount, 12) : min(systemEmojiCount, 12);
+  int spacingY = 25;
+  int emojisPerRow = 12;
 
   Serial.print("Drawing ");
-  Serial.print(displayCount);
-  Serial.print(" emojis starting at Y=");
-  Serial.println(startY);
+  Serial.print(systemEmojiCount);
+  Serial.println(" emojis");
 
-  // Draw up to 12 emojis in a single horizontal row
-  for (int i = 0; i < displayCount && i < 12; i++) {
-    int x = startX + (i * spacingX);
-    int y = startY;
+  // Draw up to 20 emojis (12 in first row, 8 in second)
+  for (int i = 0; i < systemEmojiCount && i < 20; i++) {
+    int row = i / emojisPerRow;
+    int col = i % emojisPerRow;
+    int x = startX + (col * spacingX);
+    int y = startY + (row * spacingY);
 
     // Highlight selected emoji
     if (i == selectedEmojiIndex) {
@@ -1085,24 +1048,11 @@ void drawEmojiPicker() {
     }
 
     // Draw custom emoji at 1x scale (16x16)
-    if (showFriendEmojis) {
-      // Draw from friendEmojis array
-      for (int py = 0; py < 16; py++) {
-        for (int px = 0; px < 16; px++) {
-          uint16_t color = friendEmojis[i].pixels[py][px];
-          if (color != TRANSPARENCY_COLOR) {
-            M5Cardputer.Display.drawPixel(x + px, y + py, color);
-          }
-        }
-      }
-    } else {
-      // Draw from systemEmojis array
-      drawCustomEmoji(x, y, i, 1);
-    }
+    drawCustomEmoji(x, y, i, 1);
   }
 
   // Nav hints
-  drawNavHint("Arrows=Nav Tab=Switch Enter=Add `=Back", 20, 118);
+  drawNavHint("Arrows=Nav Enter=Add `=Back", 50, 118);
 }
 
 void drawEmojiManager() {
@@ -1189,64 +1139,131 @@ void drawCustomEmoji(int screenX, int screenY, int emojiIndex, int scale) {
 void loadFriendEmojis() {
   friendEmojiCount = 0;
 
+  Serial.println("================================================");
+  Serial.println("=== loadFriendEmojis() called ===");
+
   // Load friend emojis from SD card if available
   if (!SD.exists("/labchat/received_emojis")) {
+    Serial.println("❌ Directory /labchat/received_emojis does NOT exist");
+    Serial.println("================================================");
     return; // No received emojis yet
   }
 
+  Serial.println("✓ Directory /labchat/received_emojis exists");
+
   File dir = SD.open("/labchat/received_emojis");
-  if (!dir || !dir.isDirectory()) {
+  if (!dir) {
+    Serial.println("❌ Could not open directory");
+    Serial.println("================================================");
+    return;
+  }
+  if (!dir.isDirectory()) {
+    Serial.println("❌ Path is not a directory");
+    dir.close();
+    Serial.println("================================================");
     return;
   }
 
+  Serial.println("✓ Directory opened successfully");
+
   // Load each .emoji file (up to 12)
+  Serial.println("Starting file iteration...");
   File file = dir.openNextFile();
+  int fileIndex = 0;
   while (file && friendEmojiCount < 12) {
-    String filename = file.name();
+    String filename = String(file.name());
+    fileIndex++;
+
+    Serial.print("File #");
+    Serial.print(fileIndex);
+    Serial.print(": ");
+    Serial.print(filename);
+    Serial.print(" (isDir: ");
+    Serial.print(file.isDirectory() ? "yes" : "no");
+    Serial.println(")");
+
     if (!file.isDirectory() && filename.endsWith(".emoji")) {
-      // Extract shortcut name
+      // Extract just the filename without path (in case it has one)
+      int lastSlash = filename.lastIndexOf('/');
+      if (lastSlash >= 0) {
+        filename = filename.substring(lastSlash + 1);
+      }
+
+      Serial.print("  → Filename: ");
+      Serial.println(filename);
+
+      // Extract shortcut name (remove .emoji extension)
       String shortcut = filename;
       shortcut.replace(".emoji", "");
 
-      // Load pixel data
-      file.read((uint8_t*)friendEmojis[friendEmojiCount].pixels, 512);
-      friendEmojis[friendEmojiCount].shortcut = shortcut;
-      friendEmojiCount++;
+      Serial.print("  → Shortcut: ");
+      Serial.println(shortcut);
 
-      Serial.println("Loaded friend emoji: " + shortcut);
+      // Construct full path manually
+      String fullPath = "/labchat/received_emojis/" + filename;
+      Serial.print("  → Full path: ");
+      Serial.println(fullPath);
+
+      // Close directory file handle and reopen with full path
+      file.close();
+      File emojiFile = SD.open(fullPath, FILE_READ);
+      if (emojiFile) {
+        // Load pixel data
+        size_t bytesRead = emojiFile.read((uint8_t*)friendEmojis[friendEmojiCount].pixels, 512);
+        emojiFile.close();
+
+        Serial.print("  → Read ");
+        Serial.print(bytesRead);
+        Serial.println(" bytes");
+
+        friendEmojis[friendEmojiCount].shortcut = shortcut;
+        friendEmojiCount++;
+
+        Serial.print("  ✓ Loaded friend emoji: ");
+        Serial.print(shortcut);
+        Serial.print(" from ");
+        Serial.println(fullPath);
+      } else {
+        Serial.print("  ❌ Failed to open: ");
+        Serial.println(fullPath);
+      }
+    } else {
+      Serial.println("  → Skipped (directory or not .emoji)");
+      file.close();
     }
     file = dir.openNextFile();
   }
   dir.close();
 
-  Serial.print("Total friend emojis loaded: ");
+  Serial.print("✓ Total friend emojis loaded: ");
   Serial.println(friendEmojiCount);
+  Serial.println("================================================");
 }
 
 void saveFriendEmoji(const String& shortcut, const uint16_t pixels[16][16]) {
   Serial.println("=== saveFriendEmoji called for: " + shortcut);
 
   // Check if already exists in RAM
-  for (int i = 0; i < friendEmojiCount; i++) {
-    if (friendEmojis[i].shortcut == shortcut) {
+  for (int i = 0; i < systemEmojiCount; i++) {
+    if (systemEmojis[i].shortcut == shortcut) {
       // Update existing
-      memcpy(friendEmojis[i].pixels, pixels, 512);
-      Serial.println("Updated existing friend emoji in RAM: " + shortcut);
+      memcpy(systemEmojis[i].pixels, pixels, 512);
+      Serial.println("Updated existing emoji in RAM: " + shortcut);
       return;
     }
   }
 
-  // Add new to RAM (up to 12 slots)
-  if (friendEmojiCount < 12) {
-    friendEmojis[friendEmojiCount].shortcut = shortcut;
-    memcpy(friendEmojis[friendEmojiCount].pixels, pixels, 512);
-    friendEmojiCount++;
-    Serial.print("Stored friend emoji in RAM: " + shortcut);
+  // Add new to RAM (up to 20 slots)
+  if (systemEmojiCount < 20) {
+    systemEmojis[systemEmojiCount].shortcut = shortcut;
+    memcpy(systemEmojis[systemEmojiCount].pixels, pixels, 512);
+    systemEmojiCount++;
+    Serial.print("Stored emoji in RAM: " + shortcut);
     Serial.print(" (total: ");
-    Serial.print(friendEmojiCount);
+    Serial.print(systemEmojiCount);
     Serial.println(")");
   } else {
-    Serial.println("WARNING: Friend emoji slots full!");
+    Serial.println("WARNING: Emoji slots full!");
     return;
   }
 
@@ -1255,16 +1272,16 @@ void saveFriendEmoji(const String& shortcut, const uint16_t pixels[16][16]) {
     if (!SD.exists("/labchat")) {
       SD.mkdir("/labchat");
     }
-    if (!SD.exists("/labchat/received_emojis")) {
-      SD.mkdir("/labchat/received_emojis");
+    if (!SD.exists("/labchat/emojis")) {
+      SD.mkdir("/labchat/emojis");
     }
 
-    String filename = "/labchat/received_emojis/" + shortcut + ".emoji";
+    String filename = "/labchat/emojis/" + shortcut + ".emoji";
     File file = SD.open(filename, FILE_WRITE);
     if (file) {
       file.write((uint8_t*)pixels, 512);
       file.close();
-      Serial.println("Also saved to SD: " + filename);
+      Serial.println("Saved to SD: " + filename);
     } else {
       Serial.println("Could not save to SD (no card?)");
     }
@@ -1286,44 +1303,122 @@ void loadSystemEmojis() {
 
   systemEmojiCount = 0;
 
-  // Load berry emoji in slot 0 (system default) from hardcoded BERRY_ICON
-  systemEmojis[0].shortcut = "berry";
-  memcpy(systemEmojis[0].pixels, BERRY_ICON, sizeof(BERRY_ICON));
-  systemEmojiCount = 1;
+  Serial.println("=== loadSystemEmojis() - Loading from /labchat/emojis ===");
 
-  // Load custom system emojis from SD card
-  if (!SD.exists("/labchat/system_emojis")) {
+  // ONE-TIME MIGRATION: Move old received_emojis to new unified folder
+  if (SD.exists("/labchat/received_emojis")) {
+    Serial.println("Found old /labchat/received_emojis - migrating...");
+
+    // Create new folder if needed
+    if (!SD.exists("/labchat/emojis")) {
+      SD.mkdir("/labchat/emojis");
+    }
+
+    File oldDir = SD.open("/labchat/received_emojis");
+    if (oldDir && oldDir.isDirectory()) {
+      File file = oldDir.openNextFile();
+      int moved = 0;
+      while (file) {
+        String filename = String(file.name());
+
+        if (!file.isDirectory() && filename.endsWith(".emoji")) {
+          // Extract filename
+          int lastSlash = filename.lastIndexOf('/');
+          if (lastSlash >= 0) {
+            filename = filename.substring(lastSlash + 1);
+          }
+
+          String oldPath = "/labchat/received_emojis/" + filename;
+          String newPath = "/labchat/emojis/" + filename;
+
+          // Read from old location
+          file.close();
+          File oldFile = SD.open(oldPath, FILE_READ);
+          if (oldFile) {
+            uint8_t buffer[512];
+            size_t bytesRead = oldFile.read(buffer, 512);
+            oldFile.close();
+
+            // Write to new location
+            File newFile = SD.open(newPath, FILE_WRITE);
+            if (newFile) {
+              newFile.write(buffer, bytesRead);
+              newFile.close();
+
+              // Delete old file
+              SD.remove(oldPath.c_str());
+              moved++;
+              Serial.println("  Migrated: " + filename);
+            }
+          }
+        } else {
+          file.close();
+        }
+        file = oldDir.openNextFile();
+      }
+      oldDir.close();
+
+      // Remove old directory if empty
+      SD.rmdir("/labchat/received_emojis");
+      Serial.print("Migration complete! Moved ");
+      Serial.print(moved);
+      Serial.println(" emojis");
+    }
+  }
+
+  // Load all emojis from unified folder
+  if (!SD.exists("/labchat/emojis")) {
+    Serial.println("No /labchat/emojis folder found");
     systemEmojisLoaded = true;
     return;
   }
 
-  File dir = SD.open("/labchat/system_emojis");
+  File dir = SD.open("/labchat/emojis");
   if (!dir || !dir.isDirectory()) {
+    Serial.println("Could not open /labchat/emojis");
     systemEmojisLoaded = true;
     return;
   }
 
-  // Load each .emoji file (up to 19 more, total 20)
+  // Load each .emoji file (up to 20)
   File file = dir.openNextFile();
   while (file && systemEmojiCount < 20) {
-    String filename = file.name();
-    if (!file.isDirectory() && filename.endsWith(".emoji") && filename != "strawberry.emoji") {
+    String filename = String(file.name());
+
+    if (!file.isDirectory() && filename.endsWith(".emoji")) {
+      // Extract just filename without path
+      int lastSlash = filename.lastIndexOf('/');
+      if (lastSlash >= 0) {
+        filename = filename.substring(lastSlash + 1);
+      }
+
       // Extract shortcut name
       String shortcut = filename;
       shortcut.replace(".emoji", "");
 
-      // Load pixel data
-      file.read((uint8_t*)systemEmojis[systemEmojiCount].pixels, 512);
-      systemEmojis[systemEmojiCount].shortcut = shortcut;
-      systemEmojiCount++;
+      // Construct full path and reopen
+      String fullPath = "/labchat/emojis/" + filename;
+      file.close();
 
-      Serial.println("Loaded system emoji: " + shortcut);
+      File emojiFile = SD.open(fullPath, FILE_READ);
+      if (emojiFile) {
+        // Load pixel data
+        emojiFile.read((uint8_t*)systemEmojis[systemEmojiCount].pixels, 512);
+        emojiFile.close();
+
+        systemEmojis[systemEmojiCount].shortcut = shortcut;
+        systemEmojiCount++;
+
+        Serial.println("Loaded emoji: " + shortcut);
+      }
+    } else {
+      file.close();
     }
     file = dir.openNextFile();
   }
   dir.close();
 
-  Serial.print("Total system emojis loaded: ");
+  Serial.print("Total emojis loaded: ");
   Serial.println(systemEmojiCount);
 
   systemEmojisLoaded = true;
@@ -1480,14 +1575,15 @@ void handleLabChatNavigation(char key) {
           if (chatState == CHAT_SETUP_PIN) {
             DevicePIN::create(pinInput);
             loadSystemEmojis(); // Load system emojis once per session
-            chatState = CHAT_NETWORK_MENU;
+            chatState = CHAT_JOIN_NETWORK;
+            networkPasswordInput = "";
             pinInput = "";
           } else {
             if (DevicePIN::verify(pinInput)) {
-              loadSystemEmojis(); // Load system emojis once per session
-              loadFriendEmojis(); // Load friend emojis
-              // Always go to network menu - no auto-connect
-              chatState = CHAT_NETWORK_MENU;
+              loadSystemEmojis(); // Load all emojis once per session
+              // Go straight to Room Key entry
+              chatState = CHAT_JOIN_NETWORK;
+              networkPasswordInput = "";
               pinInput = "";
             } else {
               pinInput = "";
@@ -1824,6 +1920,9 @@ void handleLabChatNavigation(char key) {
             selectedUserIndex = 0;
           }
         } else if (key == '\\') { // Backslash - emoji picker
+          // Reload emojis in case new ones arrived
+          systemEmojisLoaded = false;
+          loadSystemEmojis();
           chatState = CHAT_EMOJI_PICKER;
           selectedEmojiIndex = 0;
         } else if (key == '#') { // Rename current channel
@@ -1995,33 +2094,26 @@ void handleLabChatNavigation(char key) {
     }
 
     case CHAT_EMOJI_PICKER: {
-      // Use appropriate emoji array based on current view (max 12 in a horizontal row)
-      int maxEmojis = showFriendEmojis ? min(friendEmojiCount, 12) : min(systemEmojiCount, 12);
+      // 2-row grid navigation (12 per row)
+      int emojisPerRow = 12;
+      int currentRow = selectedEmojiIndex / emojisPerRow;
+      int currentCol = selectedEmojiIndex % emojisPerRow;
 
-      if (key == 9) { // Tab - toggle between My and Friend emojis
-        showFriendEmojis = !showFriendEmojis;
-        selectedEmojiIndex = 0; // Reset selection when switching
-        Serial.print("Tab pressed! showFriendEmojis now: ");
-        Serial.println(showFriendEmojis);
-      } else if (key == ',') { // Left - move left in horizontal row
-        if (selectedEmojiIndex > 0) selectedEmojiIndex--;
-      } else if (key == '/') { // Right - move right in horizontal row
-        if (selectedEmojiIndex < maxEmojis - 1) selectedEmojiIndex++;
+      if (key == ',') { // Left
+        if (currentCol > 0) selectedEmojiIndex--;
+      } else if (key == '/') { // Right
+        if (currentCol < emojisPerRow - 1 && selectedEmojiIndex < systemEmojiCount - 1) selectedEmojiIndex++;
+      } else if (key == ';') { // Up
+        if (currentRow > 0) selectedEmojiIndex -= emojisPerRow;
+      } else if (key == '.') { // Down
+        if (selectedEmojiIndex + emojisPerRow < systemEmojiCount) selectedEmojiIndex += emojisPerRow;
       } else if (key == '\n') { // Enter - add emoji shortcut to chat input
-        if (showFriendEmojis) {
-          if (selectedEmojiIndex < friendEmojiCount) {
-            chatInput += ":" + friendEmojis[selectedEmojiIndex].shortcut + ":";
-          }
-        } else {
-          if (selectedEmojiIndex < systemEmojiCount) {
-            chatInput += ":" + systemEmojis[selectedEmojiIndex].shortcut + ":";
-          }
+        if (selectedEmojiIndex < systemEmojiCount) {
+          chatInput += ":" + systemEmojis[selectedEmojiIndex].shortcut + ":";
         }
         chatState = CHAT_MAIN;
-        showFriendEmojis = false; // Reset to My Emojis for next time
       } else if (key == '`') { // Back
         chatState = CHAT_MAIN;
-        showFriendEmojis = false; // Reset to My Emojis for next time
       }
       break;
     }
@@ -2036,10 +2128,9 @@ void handleLabChatNavigation(char key) {
       } else if (key == '.') { // Down
         if (selectedEmojiManagerIndex + 4 < 20) selectedEmojiManagerIndex += 4;
       } else if (key == 8 || key == 127) { // Delete - remove emoji
-        if (selectedEmojiManagerIndex < systemEmojiCount &&
-            systemEmojis[selectedEmojiManagerIndex].shortcut != "strawberry") {
+        if (selectedEmojiManagerIndex < systemEmojiCount) {
           // Delete the emoji file
-          String filename = "/labchat/system_emojis/" + systemEmojis[selectedEmojiManagerIndex].shortcut + ".emoji";
+          String filename = "/labchat/emojis/" + systemEmojis[selectedEmojiManagerIndex].shortcut + ".emoji";
           SD.remove(filename.c_str());
 
           // Reload system emojis

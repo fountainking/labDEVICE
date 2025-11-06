@@ -1,49 +1,12 @@
-**PYTHON PROGRAMMING LANGUAGE**
-
-Category: Wikipedia › Programming
----------------------------------------
-
-**PYTHON PROGRAMMING LANGUAGE**
-
-Category: Wikipedia › Programming
----------------------------------------
-
 Python (programming language)
 
 Python is a high-level, general-purpose
 programming language. Its design
 philosophy emphasizes code readability
 with the use of significant
-indentation.
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Sql
-• Haskell
-
-
-=======================================
-Processed: 2025-10-20 06:09
-Words: ~22
-Category: Wikipedia › Programming
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Sql
-• Haskell
-
-
-=======================================
-Processed: 2025-10-20 10:57
-Words: ~54
-Category: Wikipedia › Programming
-
-<!-- FORMATTED: 767d13a4 -->
+indentation. Python is dynamically
+type-checked and garbage-collected. It
+supports multiple programming
+paradigms, including structured,
+object-oriented and functional
+programming.

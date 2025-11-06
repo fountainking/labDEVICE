@@ -1,0 +1,18 @@
+Queue (abstract data type)
+
+In computer science, a queue is an
+abstract data type that serves as an
+ordered collection of entities. By
+convention, the end of the queue where
+elements are added, is called the back,
+tail, or rear of the queue. The end of
+the queue where elements are removed is
+called the head or front of the queue.
+The name queue is an analogy to the
+words used to describe people in line
+to wait for goods or services. It
+supports two main operations.Enqueue,
+which adds one element to the rear of
+the queue
+Dequeue, which removes one element from
+the front of the queue.

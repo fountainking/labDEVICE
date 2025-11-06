@@ -1,53 +1,11 @@
-**TYPESCRIPT**
-
-Category: Wikipedia › Programming
----------------------------------------
-
-**TYPESCRIPT**
-
-Category: Wikipedia › Programming
----------------------------------------
-
 TypeScript
 
 TypeScript (TS) is a high-level
 programming language that adds static
 typing with optional type annotations
 to JavaScript. It is designed for
-developing large applications and
+developing large applications. It
 transpiles to JavaScript. It is
 developed by Microsoft as free and
 open-source software released under an
 Apache License 2.0.
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Python Programming Language
-• Sql
-
-
-=======================================
-Processed: 2025-10-20 06:09
-Words: ~45
-Category: Wikipedia › Programming
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Python Programming Language
-• Sql
-
-
-=======================================
-Processed: 2025-10-20 10:57
-Words: ~77
-Category: Wikipedia › Programming
-
-<!-- FORMATTED: 767d13a4 -->

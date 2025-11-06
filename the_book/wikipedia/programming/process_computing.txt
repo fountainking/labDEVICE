@@ -1,0 +1,17 @@
+Process (computing)
+
+In computing, a process is the instance
+of a computer program that is being
+executed by one or many threads. There
+are many different process models, some
+of which are light weight, but almost
+all processes are rooted in an
+operating system (OS) process which
+comprises the program code, assigned
+system resources, physical and logical
+access permissions, and data structures
+to initiate, control and coordinate
+execution activity. Depending on the
+OS, a process may be made up of
+multiple threads of execution that
+execute instructions concurrently.

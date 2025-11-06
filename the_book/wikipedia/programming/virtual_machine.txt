@@ -1,0 +1,28 @@
+Virtual machine
+
+In computing, a virtual machine (VM) is
+the virtualization or emulation of a
+computer system. Virtual machines are
+based on computer architectures and
+provide the functionality of a physical
+computer. Their implementations may
+involve specialized hardware, software,
+or a combination of the two.
+Virtual machines differ and are
+organized by their function, shown
+here:System virtual machines provide a
+substitute for a real machine. They
+provide the functionality needed to
+execute entire operating systems. A
+hypervisor uses native execution to
+share and manage hardware, allowing for
+multiple environments that are isolated
+from one another yet exist on the same
+physical machine. Modern hypervisors
+use hardware-assisted virtualization,
+with virtualization-specific hardware
+features on the host CPUs providing
+assistance to hypervisors.
+Process virtual machines are designed
+to execute computer programs in a
+platform-independent environment.

@@ -1,13 +1,3 @@
-**SQL**
-
-Category: Wikipedia › Programming
----------------------------------------
-
-**SQL**
-
-Category: Wikipedia › Programming
----------------------------------------
-
 SQL
 
 Structured Query Language (SQL)
@@ -18,35 +8,3 @@ is particularly useful in handling
 structured data, i.e., data
 incorporating relations among entities
 and variables.
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Python Programming Language
-• Haskell
-
-
-=======================================
-Processed: 2025-10-20 06:09
-Words: ~37
-Category: Wikipedia › Programming
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Python Programming Language
-• Haskell
-
-
-=======================================
-Processed: 2025-10-20 10:57
-Words: ~69
-Category: Wikipedia › Programming
-
-<!-- FORMATTED: 767d13a4 -->

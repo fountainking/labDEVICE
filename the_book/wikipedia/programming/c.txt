@@ -1,13 +1,3 @@
-**C**
-
-Category: Wikipedia › Programming
----------------------------------------
-
-**C**
-
-Category: Wikipedia › Programming
----------------------------------------
-
 C++
 
 C++ is a high-level, general-purpose
@@ -31,35 +21,3 @@ vendors provide C++ compilers,
 including the Free Software Foundation,
 LLVM, Microsoft, Intel, Embarcadero,
 Oracle, and IBM.
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Python Programming Language
-• Sql
-
-
-=======================================
-Processed: 2025-10-20 06:09
-Words: ~108
-Category: Wikipedia › Programming
-
-=======================================
-**RELATED ARTICLES:**
-
-• Database
-• Operating System
-• Cryptocurrency
-• Python Programming Language
-• Sql
-
-
-=======================================
-Processed: 2025-10-20 10:57
-Words: ~140
-Category: Wikipedia › Programming
-
-<!-- FORMATTED: 767d13a4 -->

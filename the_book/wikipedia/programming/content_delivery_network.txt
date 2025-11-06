@@ -1,0 +1,20 @@
+Content delivery network
+
+A content delivery network (CDN) or
+content distribution network is a
+geographically distributed network of
+proxy servers and corresponding data
+centers. CDNs provide high availability
+and performance ("speed") through
+geographical distribution relative to
+end users, and arose in the late 1990s
+to alleviate the performance
+bottlenecks of the Internet as it was
+becoming a critical medium. Since then,
+CDNs have grown to serve a large
+portion of Internet content, including
+text, graphics and scripts,
+downloadable objects, applications,
+live streaming media, on-demand
+streaming media, and social media
+services.

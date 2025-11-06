@@ -1,0 +1,18 @@
+DevOps
+
+DevOps is the integration and
+automation of the software development
+and information technology operations.
+DevOps encompasses necessary tasks of
+software development and can lead to
+shortening development time and
+improving the development life cycle.
+According to Neal Ford, DevOps,
+particularly through continuous
+delivery, employs the "Bring the pain
+forward" principle, tackling tough
+tasks early, fostering automation and
+swift issue detection. Software
+programmers and architects should use
+fitness functions to keep their
+software in check.

@@ -1,0 +1,18 @@
+Agile software development
+
+Agile software development is an
+umbrella term for approaches to
+developing software that reflect the
+values and principles agreed upon by
+The Agile Alliance, a group of 17
+software practitioners, in 2001. As
+documented in their Manifesto for Agile
+Software Development, the practitioners
+value:Individuals and interactions over
+processes and tools
+Working software over comprehensive
+documentation
+Customer collaboration over contract
+negotiation
+Responding to change over following a
+plan
