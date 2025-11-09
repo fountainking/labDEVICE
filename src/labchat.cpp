@@ -111,10 +111,6 @@ String channelNames[10] = {
 };
 
 // Room management (temporary, cleared on power off)
-struct RoomInfo {
-  String name;
-  String password;
-};
 #define MAX_ROOMS 10
 RoomInfo activeRooms[MAX_ROOMS];
 int activeRoomCount = 0;

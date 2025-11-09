@@ -25,6 +25,12 @@ enum LabChatState {
   CHAT_LOBBY              // Lobby/waiting room (after knocking)
 };
 
+// Room storage structure
+struct RoomInfo {
+  String name;
+  String password;
+};
+
 // LabCHAT functions
 void enterLabChat();
 void exitLabChat();

@@ -167,6 +167,28 @@ bool MessageHandler::handleReceivedMessage(const uint8_t* mac, const uint8_t* da
             if (securityManager.joinNetwork(roomPassword)) {
               Serial.println("  SUCCESS: Network joined!");
 
+              // Store password in activeRooms so we can allow others later
+              extern int activeRoomCount;
+              extern int currentRoomIndex;
+              extern RoomInfo activeRooms[];
+
+              String newNetwork = String(securityManager.getNetworkName());
+              bool roomExists = false;
+              for (int i = 0; i < activeRoomCount; i++) {
+                if (activeRooms[i].password == roomPassword) {
+                  roomExists = true;
+                  currentRoomIndex = i;
+                  break;
+                }
+              }
+              if (!roomExists && activeRoomCount < 10) { // MAX_ROOMS
+                activeRooms[activeRoomCount].name = newNetwork;
+                activeRooms[activeRoomCount].password = roomPassword;
+                currentRoomIndex = activeRoomCount;
+                activeRoomCount++;
+                Serial.printf("  Stored room in activeRooms[%d]\n", currentRoomIndex);
+              }
+
               // Reinitialize ESP-NOW with proper room key
               espNowManager.init(securityManager.getPMK());
 
