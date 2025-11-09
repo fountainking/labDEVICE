@@ -1231,12 +1231,16 @@ void drawRoomRadar() {
 
     NearbyDevice& device = nearbyDevices[selectedRadarIndex];
 
-    // Show room/device name
+    // Show room/device name with device ID suffix
     M5Cardputer.Display.setTextSize(2);
     M5Cardputer.Display.setTextColor(TFT_BLACK);
-    int textWidth = device.roomName.length() * 12;
+    String displayName = device.roomName;
+    if (device.deviceID.length() >= 2) {
+      displayName += " (" + device.deviceID.substring(device.deviceID.length() - 2) + ")";
+    }
+    int textWidth = displayName.length() * 12;
     int xPos = 120 - (textWidth / 2);
-    M5Cardputer.Display.drawString(device.roomName.c_str(), xPos, 35);
+    M5Cardputer.Display.drawString(displayName.c_str(), xPos, 35);
 
     // Calculate proximity (rssi ranges: -30 = very close, -90 = far)
     int strength = constrain(map(device.rssi, -90, -30, 0, 10), 0, 10);
@@ -1287,8 +1291,13 @@ void drawRoomRadar() {
           M5Cardputer.Display.fillRoundRect(10, yPos - 2, 220, 14, 3, TFT_LIGHTGREY);
         }
 
+        // Show room name with device ID suffix
+        String displayName = device.roomName;
+        if (device.deviceID.length() >= 2) {
+          displayName += " (" + device.deviceID.substring(device.deviceID.length() - 2) + ")";
+        }
         M5Cardputer.Display.setTextColor(TFT_BLACK);
-        M5Cardputer.Display.drawString(device.roomName.c_str(), 15, yPos);
+        M5Cardputer.Display.drawString(displayName.c_str(), 15, yPos);
 
         // Draw signal strength bars
         int bars = constrain(map(device.rssi, -90, -30, 1, 5), 1, 5);
