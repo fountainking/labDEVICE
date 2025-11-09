@@ -14,8 +14,11 @@ struct PeerDevice {
   uint8_t mac[6];
   char deviceID[16];
   char username[16];
+  char roomName[32];  // Room/network name for discovery
   unsigned long lastSeen;
   bool active;
+  int rssi;  // Signal strength (raw)
+  int rssiSmoothed;  // Smoothed RSSI for display
 };
 
 // ESP-NOW Manager
@@ -38,9 +41,9 @@ public:
   bool isInitialized() { return initialized; }
 
   // Peer management
-  bool addPeer(const uint8_t* mac, const char* deviceID, const char* username);
+  bool addPeer(const uint8_t* mac, const char* deviceID, const char* username, const char* roomName = "", bool announce = true);
   bool removePeer(const uint8_t* mac);
-  void updatePeerActivity(const uint8_t* mac);
+  void updatePeerActivity(const uint8_t* mac, int rssi = -100);
   PeerDevice* findPeer(const uint8_t* mac);
   PeerDevice* findPeerByDeviceID(const char* deviceID);
   int getPeerCount() { return peerCount; }

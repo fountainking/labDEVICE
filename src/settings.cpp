@@ -15,7 +15,8 @@ SystemSettings settings = {
   .timezoneString = "PST8PDT,M3.2.0,M11.1.0",  // PST with DST
   .timezoneAuto = true,  // Auto-detect by default
   .theme = 0,
-  .lastKnownTime = 0
+  .lastKnownTime = 0,
+  .findabilityEnabled = true  // Allow finding by default
 };
 
 SettingsMenuState settingsState = SETTINGS_MAIN;
@@ -117,6 +118,7 @@ void loadSettings() {
   settings.timezoneAuto = preferences.getBool("tzAuto", true);
   settings.theme = preferences.getInt("theme", 0);
   settings.lastKnownTime = preferences.getULong("lastTime", 0);
+  settings.findabilityEnabled = preferences.getBool("findable", true);
   preferences.end();
 
   // If we have a saved time and no internet, use saved time
@@ -155,6 +157,7 @@ void saveSettings() {
   preferences.putString("tzString", settings.timezoneString);
   preferences.putBool("tzAuto", settings.timezoneAuto);
   preferences.putInt("theme", settings.theme);
+  preferences.putBool("findable", settings.findabilityEnabled);
   preferences.end();
 }
 
@@ -191,6 +194,15 @@ void toggleDimMode() {
   }
 }
 
+void toggleFindability() {
+  settings.findabilityEnabled = !settings.findabilityEnabled;
+  saveSettings();
+
+  if (settings.soundEnabled) {
+    M5Cardputer.Speaker.tone(settings.findabilityEnabled ? 1200 : 600, 50);
+  }
+}
+
 void enterSettingsApp() {
   settingsState = SETTINGS_MAIN;
   settingsMenuIndex = 0;
@@ -210,15 +222,17 @@ void drawSettingsMenu() {
     "Brightness: ",
     "Device Name: ",
     "Timezone: ",
+    "Friend Compass",
+    "Findability: ",
     "Theme: "
   };
 
   // Draw menu items
-  for (int i = 0; i < 5; i++) {
-    int yPos = 50 + (i * 15);
+  for (int i = 0; i < 7; i++) {
+    int yPos = 50 + (i * 12);
 
     if (i == settingsMenuIndex) {
-      M5Cardputer.Display.fillRoundRect(5, yPos - 2, 230, 14, 5, TFT_LIGHTGREY);
+      M5Cardputer.Display.fillRoundRect(5, yPos - 2, 230, 12, 5, TFT_LIGHTGREY);
     }
 
     M5Cardputer.Display.setTextSize(1);
@@ -247,18 +261,22 @@ void drawSettingsMenu() {
         if (value.length() > 20) value = value.substring(0, 20);
         valueX = 90;
         break;
-      case 4: // Theme
+      case 4: // Friend Compass
+        value = ""; // No value, just launches
+        break;
+      case 5: // Findability
+        value = settings.findabilityEnabled ? "ON" : "OFF";
+        break;
+      case 6: // Theme
         value = "Coming Soon";
         valueX = 80;
         break;
     }
 
-    M5Cardputer.Display.drawString(value.c_str(), valueX, yPos);
+    if (!value.isEmpty()) {
+      M5Cardputer.Display.drawString(value.c_str(), valueX, yPos);
+    }
   }
-
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString(",/=Nav Enter=Select `=Back", 20, 120);
 }
 
 void drawTimezoneSelector() {
@@ -294,10 +312,6 @@ void drawTimezoneSelector() {
     }
     M5Cardputer.Display.drawString(tzName.c_str(), 10, yPos);
   }
-
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString(",/=Nav Enter=Select `=Back", 20, 120);
 }
 
 void drawThemePlaceholder() {
@@ -325,7 +339,7 @@ void handleSettingsNavigation(char key) {
         drawSettingsMenu();
       }
     } else if (key == '/' || key == '.') {
-      if (settingsMenuIndex < 4) {
+      if (settingsMenuIndex < 6) {
         settingsMenuIndex++;
         if (settings.soundEnabled) M5Cardputer.Speaker.tone(800, 30);
         drawSettingsMenu();

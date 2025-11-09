@@ -747,6 +747,7 @@ void loop() {
       millis() - lastActivityTime > SCREENSAVER_TIMEOUT) {
     // Start screensaver with star rain dissolve effect
     screensaverActive = true;
+    lastActivityTime = millis();  // Reset timer to prevent retriggering
     initStarRain(STARRAIN_SCREENSAVER);
     delay(10);
     return;
@@ -1937,6 +1938,17 @@ void loop() {
               settingsState = SETTINGS_TIMEZONE;
               drawTimezoneSelector();
             } else if (settingsMenuIndex == 4) {
+              // Friend Compass - launch Room Radar
+              currentState = SCREEN_VIEW;
+              currentScreenNumber = 16; // LabCHAT
+              chatState = CHAT_ROOM_RADAR;
+              enterRoomRadar();
+              drawLabChat();
+            } else if (settingsMenuIndex == 5) {
+              // Findability toggle
+              toggleFindability();
+              drawSettingsMenu();
+            } else if (settingsMenuIndex == 6) {
               // Theme placeholder
               settingsState = SETTINGS_THEME;
               drawThemePlaceholder();

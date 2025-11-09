@@ -20,7 +20,9 @@ enum LabChatState {
   CHAT_CHANGE_USERNAME,   // Change username input
   CHAT_RENAME_CHANNEL,    // Rename current channel
   CHAT_EMOJI_PICKER,      // Emoji picker overlay
-  CHAT_EMOJI_MANAGER      // Emoji manager (view/delete slots)
+  CHAT_EMOJI_MANAGER,     // Emoji manager (view/delete slots)
+  CHAT_ROOM_RADAR,        // Room Radar (find nearby rooms/devices)
+  CHAT_LOBBY              // Lobby/waiting room (after knocking)
 };
 
 // LabCHAT functions
@@ -46,6 +48,8 @@ void drawChangeUsername();
 void drawRenameChannel();
 void drawEmojiPicker();
 void drawEmojiManager();
+void drawRoomRadar();
+void drawLobby();
 
 // Helper functions
 void drawLabChatHeader(const char* subtitle = nullptr);
@@ -69,8 +73,16 @@ extern bool chatActive;
 extern unsigned long lastPresenceBroadcast;
 extern String dmTargetID;  // Device ID for DM mode (empty = broadcast)
 extern String dmTargetUsername;  // Username for DM display
+extern String lobbyRoomName;  // Room name for lobby (after knocking)
+extern String knockerDeviceID;  // Device ID of last person who knocked
+extern String knockerUsername;  // Username of last person who knocked
 
 // Global notification flag
 extern bool hasUnreadMessages;
+
+// Room Radar functions
+void enterRoomRadar();
+void exitRoomRadar();
+void updateRadarDeviceList();
 
 #endif

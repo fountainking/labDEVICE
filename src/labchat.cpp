@@ -92,6 +92,10 @@ bool chatActive = false;
 unsigned long lastPresenceBroadcast = 0;
 String dmTargetID = "";
 String dmTargetUsername = "";
+String lobbyRoomName = "";  // Room name for lobby (after knocking)
+unsigned long lobbyKnockTime = 0;  // Timestamp when knock was sent
+String knockerDeviceID = "";  // Device ID of last person who knocked
+String knockerUsername = "";  // Username of last person who knocked
 bool hasUnreadMessages = false;
 String lastNetworkName = "";  // Track previous network for message persistence
 
@@ -119,6 +123,20 @@ int currentRoomIndex = -1;
 // Menu indices
 int networkMenuIndex = 0;
 int chatSettingsMenuIndex = 0;
+
+// Room Radar globals
+struct NearbyDevice {
+  String deviceID;
+  String roomName;
+  int rssi;
+  unsigned long lastSeen;
+};
+#define MAX_NEARBY_DEVICES 10
+NearbyDevice nearbyDevices[MAX_NEARBY_DEVICES];
+int nearbyDeviceCount = 0;
+int selectedRadarIndex = 0;
+bool radarTrackingMode = false;
+unsigned long lastRadarScan = 0;
 
 // Cursor blink
 bool cursorVisible = true;
@@ -512,9 +530,47 @@ void drawCreateNetwork() {
 
 void drawJoinNetwork() {
   M5Cardputer.Display.fillScreen(TFT_WHITE);
-  drawLabChatHeader("Join");
 
-  drawTextInputBox("Room Key:", networkPasswordInput, true);
+  // If coming from Room Radar, show room name
+  if (lobbyRoomName.length() > 0) {
+    String header = "Join: " + lobbyRoomName;
+    drawLabChatHeader(header.c_str());
+  } else {
+    drawLabChatHeader("Join");
+  }
+
+  // Draw input box
+  M5Cardputer.Display.fillRoundRect(20, 50, 200, 60, 12, TFT_WHITE);
+  M5Cardputer.Display.drawRoundRect(20, 50, 200, 60, 12, TFT_BLACK);
+  M5Cardputer.Display.drawRoundRect(21, 51, 198, 58, 11, TFT_BLACK);
+
+  M5Cardputer.Display.setTextSize(1);
+  M5Cardputer.Display.setTextColor(TFT_BLACK);
+  M5Cardputer.Display.drawString("Room Key:", 30, 60);
+
+  // Input field with password masking
+  String displayText = networkPasswordInput;
+  if (networkPasswordInput.length() > 0) {
+    displayText = "";
+    for (int i = 0; i < networkPasswordInput.length(); i++) {
+      displayText += "*";
+    }
+  }
+
+  if (displayText.length() > 28) {
+    displayText = displayText.substring(displayText.length() - 28);
+  }
+
+  M5Cardputer.Display.drawString(displayText.c_str(), 30, 75);
+
+  // Blinking cursor
+  if (cursorVisible) {
+    int cursorX = 30 + (displayText.length() * 6);
+    M5Cardputer.Display.drawLine(cursorX, 75, cursorX, 83, TFT_BLACK);
+  }
+
+  // Simple hint - just Esc to Settings
+  drawNavHint("Esc=Settings", 85, 95);
 }
 
 void drawMainChat() {
@@ -757,12 +813,12 @@ void drawMainChat() {
     M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setTextColor(TFT_DARKGREY);
 
-    // Draw berry emoji and text on same line
+    // Draw text first, then berry emoji at end
     const char* berry = "\xF0\x9F\x8D\x93";  // 🍓 Strawberry
     int y = 70;
-    int berryX = 90;
-    drawEmojiIcon(berryX, y, berry, TFT_RED, 1);
-    M5Cardputer.Display.drawString("\\ = emojis", berryX + 12, y + 2);
+    int textX = 80;
+    M5Cardputer.Display.drawString("\\ = emojis", textX, y + 2);
+    drawEmojiIcon(textX + 54, y, berry, TFT_RED, 1);
   }
 
   // Input area (black background with yellow outline, terminal style, with margins)
@@ -827,6 +883,13 @@ void drawMainChat() {
       M5Cardputer.Display.fillRect(cursorX, inputY, 12, 16, getInputGradientColor(fullInput.length()));  // Doubled cursor size
     }
   }
+
+  // Emoji hint at bottom - text first, berry at end
+  M5Cardputer.Display.setTextSize(1);
+  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+  const char* berry = "\xF0\x9F\x8D\x93";  // 🍓 Strawberry
+  M5Cardputer.Display.drawString("\\ = emojis", 75, 133);
+  drawEmojiIcon(129, 131, berry, TFT_RED, 1);
 }
 
 void drawUserList() {
@@ -873,14 +936,14 @@ void drawChatSettings() {
   M5Cardputer.Display.fillScreen(TFT_WHITE);
   drawLabChatHeader("Settings");
 
-  // Settings box (taller for 4 items)
-  M5Cardputer.Display.fillRoundRect(20, 35, 200, 85, 12, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(20, 35, 200, 85, 12, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(21, 36, 198, 83, 11, TFT_BLACK);
+  // Settings box (taller for 5 items)
+  M5Cardputer.Display.fillRoundRect(20, 35, 200, 100, 12, TFT_WHITE);
+  M5Cardputer.Display.drawRoundRect(20, 35, 200, 100, 12, TFT_BLACK);
+  M5Cardputer.Display.drawRoundRect(21, 36, 198, 98, 11, TFT_BLACK);
 
-  const char* options[] = {"Change Username", "Room: ", "Manage Emojis", "Leave Network"};
+  const char* options[] = {"Change Username", "Room: ", "Room Radar", "Manage Emojis", "Leave Network"};
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 5; i++) {
     M5Cardputer.Display.setTextSize(1);
     if (i == chatSettingsMenuIndex) {
       M5Cardputer.Display.setTextColor(TFT_WHITE);
@@ -894,7 +957,7 @@ void drawChatSettings() {
           roomText += "New Room";
         }
         M5Cardputer.Display.drawString(roomText.c_str(), 40, 43 + (i * 18));
-      } else if (i == 2) {
+      } else if (i == 3) {
         // Manage Emojis - show count
         String emojiText = String(options[i]) + " (" + String(systemEmojiCount) + "/20)";
         M5Cardputer.Display.drawString(emojiText.c_str(), 40, 43 + (i * 18));
@@ -912,7 +975,7 @@ void drawChatSettings() {
           roomText += "New Room";
         }
         M5Cardputer.Display.drawString(roomText.c_str(), 40, 43 + (i * 18));
-      } else if (i == 2) {
+      } else if (i == 3) {
         // Manage Emojis - show count
         String emojiText = String(options[i]) + " (" + String(systemEmojiCount) + "/20)";
         M5Cardputer.Display.drawString(emojiText.c_str(), 40, 43 + (i * 18));
@@ -921,8 +984,6 @@ void drawChatSettings() {
       }
     }
   }
-
-  drawNavHint("Up/Down  Enter  `=Home", 20, 118);
 }
 
 void drawChannelSwitch() {
@@ -1137,6 +1198,180 @@ void drawEmojiManager() {
   } else {
     drawNavHint("Arrows=Nav  `=Back", 70, 118);
   }
+}
+
+void drawLobby() {
+  M5Cardputer.Display.fillScreen(TFT_WHITE);
+
+  String header = "Lobby: " + lobbyRoomName;
+  drawLabChatHeader(header.c_str());
+
+  M5Cardputer.Display.setTextSize(2);
+  M5Cardputer.Display.setTextColor(TFT_BLACK);
+  M5Cardputer.Display.drawString("Knocking...", 70, 50);
+
+  M5Cardputer.Display.setTextSize(1);
+  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+  M5Cardputer.Display.drawString("Waiting for room access", 60, 75);
+
+  // Show animated dots for waiting
+  unsigned long now = millis();
+  int dotCount = ((now / 500) % 4);
+  String dots = "";
+  for (int i = 0; i < dotCount; i++) {
+    dots += ".";
+  }
+  M5Cardputer.Display.drawString(dots.c_str(), 175, 75);
+
+  drawNavHint("Esc=Cancel", 90, 118);
+}
+
+void drawRoomRadar() {
+  M5Cardputer.Display.fillScreen(TFT_WHITE);
+
+  if (radarTrackingMode && selectedRadarIndex < nearbyDeviceCount) {
+    // TRACKING MODE - Hot/Cold display
+    drawLabChatHeader("Tracking");
+
+    NearbyDevice& device = nearbyDevices[selectedRadarIndex];
+
+    // Show room/device name
+    M5Cardputer.Display.setTextSize(2);
+    M5Cardputer.Display.setTextColor(TFT_BLACK);
+    int textWidth = device.roomName.length() * 12;
+    int xPos = 120 - (textWidth / 2);
+    M5Cardputer.Display.drawString(device.roomName.c_str(), xPos, 35);
+
+    // Calculate proximity (rssi ranges: -30 = very close, -90 = far)
+    int strength = constrain(map(device.rssi, -90, -30, 0, 10), 0, 10);
+
+    // Draw strength indicator with color
+    M5Cardputer.Display.setTextSize(3);
+    uint16_t heatColor;
+    String heatText;
+    if (strength >= 8) {
+      heatColor = TFT_RED;
+      heatText = "HOT";
+    } else if (strength >= 5) {
+      heatColor = TFT_ORANGE;
+      heatText = "WARM";
+    } else {
+      heatColor = TFT_BLUE;
+      heatText = "COLD";
+    }
+    M5Cardputer.Display.setTextColor(heatColor);
+    int heatX = 120 - (heatText.length() * 18 / 2);
+    M5Cardputer.Display.drawString(heatText.c_str(), heatX, 60);
+
+    // Draw signal bar
+    M5Cardputer.Display.fillRect(30, 95, 180, 10, TFT_LIGHTGREY);
+    M5Cardputer.Display.fillRect(30, 95, strength * 18, 10, heatColor);
+
+    drawNavHint("`=Back  T=List", 70, 118);
+  } else {
+    // LIST MODE - Show nearby rooms/devices
+    drawLabChatHeader("Room Radar");
+
+    M5Cardputer.Display.setTextSize(1);
+
+    if (nearbyDeviceCount == 0) {
+      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+      M5Cardputer.Display.drawString("No nearby rooms found", 55, 55);
+      M5Cardputer.Display.setTextColor(TFT_BLUE);
+      M5Cardputer.Display.drawString("Scanning for beacons...", 50, 70);
+      M5Cardputer.Display.drawString("Devices broadcast every 10s", 35, 80);
+    } else {
+      // Draw list of nearby devices/rooms
+      int yPos = 40;
+      for (int i = 0; i < nearbyDeviceCount && i < 5; i++) {
+        bool isSelected = (i == selectedRadarIndex);
+        NearbyDevice& device = nearbyDevices[i];
+
+        if (isSelected) {
+          M5Cardputer.Display.fillRoundRect(10, yPos - 2, 220, 14, 3, TFT_LIGHTGREY);
+        }
+
+        M5Cardputer.Display.setTextColor(TFT_BLACK);
+        M5Cardputer.Display.drawString(device.roomName.c_str(), 15, yPos);
+
+        // Draw signal strength bars
+        int bars = constrain(map(device.rssi, -90, -30, 1, 5), 1, 5);
+        int barX = 190;
+        for (int b = 0; b < 5; b++) {
+          if (b < bars) {
+            M5Cardputer.Display.fillRect(barX + (b * 6), yPos + 10 - (b * 2), 4, 2 + (b * 2), TFT_GREEN);
+          } else {
+            M5Cardputer.Display.drawRect(barX + (b * 6), yPos + 10 - (b * 2), 4, 2 + (b * 2), TFT_LIGHTGREY);
+          }
+        }
+
+        yPos += 16;
+      }
+    }
+
+    drawNavHint("Up/Down  Enter=Knock  T=Track  `=Back", 15, 118);
+  }
+}
+
+void enterRoomRadar() {
+  chatActive = true;  // Enable navigation
+  selectedRadarIndex = 0;
+  radarTrackingMode = false;
+  nearbyDeviceCount = 0;
+  lastRadarScan = 0;
+
+  // Populate nearby devices from ESP-NOW peer list
+  updateRadarDeviceList();
+}
+
+void exitRoomRadar() {
+  radarTrackingMode = false;
+  nearbyDeviceCount = 0;
+}
+
+void updateRadarDeviceList() {
+  // Clear current list
+  nearbyDeviceCount = 0;
+
+  // Get room name from security manager (if in a network)
+  const char* currentRoomName = securityManager.isConnected() ?
+    securityManager.getNetworkName() : "Unknown Room";
+
+  // Scan ESP-NOW peers
+  int peerCount = espNowManager.getPeerCount();
+  for (int i = 0; i < peerCount && nearbyDeviceCount < MAX_NEARBY_DEVICES; i++) {
+    PeerDevice* peer = espNowManager.getPeer(i);
+    if (peer && peer->active) {
+      // Calculate time since last seen
+      unsigned long timeSince = millis() - peer->lastSeen;
+
+      // Only show peers seen in last 60 seconds
+      if (timeSince < 60000) {
+        nearbyDevices[nearbyDeviceCount].deviceID = String(peer->deviceID);
+
+        // Show room name if available (from beacon), otherwise username, otherwise device ID
+        if (strlen(peer->roomName) > 0 && strcmp(peer->roomName, "No Room") != 0) {
+          nearbyDevices[nearbyDeviceCount].roomName = String(peer->roomName);
+        } else if (strlen(peer->username) > 0) {
+          nearbyDevices[nearbyDeviceCount].roomName = String(peer->username) + " (no room)";
+        } else {
+          nearbyDevices[nearbyDeviceCount].roomName = String(peer->deviceID);
+        }
+
+        // Use smoothed RSSI with gentle degradation
+        // Fresh (0s) = use smoothed value, degrade slowly over time
+        int timeSeconds = timeSince / 1000;
+        int degradedRSSI = peer->rssiSmoothed - (timeSeconds / 2);  // -0.5 dB per second (gentler)
+        degradedRSSI = constrain(degradedRSSI, -90, -30);
+
+        nearbyDevices[nearbyDeviceCount].rssi = degradedRSSI;
+        nearbyDevices[nearbyDeviceCount].lastSeen = peer->lastSeen;
+        nearbyDeviceCount++;
+      }
+    }
+  }
+
+  lastRadarScan = millis();
 }
 
 // ============================================================================
@@ -1479,6 +1714,15 @@ void enterLabChat() {
   // Register callback for emoji chunk processing
   messageHandler.setEmojiChunkCallback(processEmojiChunk);
 
+  // Initialize ESP-NOW early to receive discovery beacons
+  // This allows Room Radar to work before joining any network
+  if (!espNowManager.isInitialized()) {
+    // Use temporary PMK for initialization (will be replaced when joining network)
+    uint8_t tempPMK[16] = {0};
+    espNowManager.init(tempPMK);
+    Serial.println("ESP-NOW initialized for discovery (temp PMK)");
+  }
+
   // Check if device PIN is set
   if (!DevicePIN::isSet()) {
     chatState = CHAT_SETUP_PIN;
@@ -1529,10 +1773,19 @@ void updateLabChat() {
     // The cursor is drawn as part of the normal draw cycle when input changes
   }
 
-  // Broadcast presence every 30 seconds
-  if (chatState == CHAT_MAIN && millis() - lastPresenceBroadcast > 30000) {
-    messageHandler.sendPresence();
-    lastPresenceBroadcast = millis();
+  // Broadcast discovery beacon every 10 seconds (unencrypted for Room Radar)
+  // AND presence every 30 seconds (encrypted for room members)
+  if (chatState == CHAT_MAIN) {
+    static unsigned long lastBeacon = 0;
+    if (millis() - lastBeacon > 10000) {
+      messageHandler.sendBeacon();
+      lastBeacon = millis();
+    }
+
+    if (millis() - lastPresenceBroadcast > 30000) {
+      messageHandler.sendPresence();
+      lastPresenceBroadcast = millis();
+    }
   }
 
   // Clean up inactive peers every minute
@@ -1540,6 +1793,30 @@ void updateLabChat() {
   if (chatState == CHAT_MAIN && millis() - lastCleanup > 60000) {
     espNowManager.cleanupInactivePeers();
     lastCleanup = millis();
+  }
+
+  // LOBBY timeout - show "no answer" after 20 seconds
+  if (chatState == CHAT_LOBBY && lobbyKnockTime > 0 && millis() - lobbyKnockTime > 20000) {
+    // Timeout - show rejection screen
+    M5Cardputer.Display.fillScreen(TFT_WHITE);
+    M5Cardputer.Display.setTextSize(3);
+    M5Cardputer.Display.setTextColor(TFT_RED);
+    M5Cardputer.Display.drawString("No Answer", 50, 55);
+    delay(2000);
+
+    // Return to settings
+    lobbyRoomName = "";
+    lobbyKnockTime = 0;
+    chatState = CHAT_SETTINGS;
+    needsRedraw = true;
+  }
+
+  // Update Room Radar device list
+  // Faster updates in tracking mode for better responsiveness
+  unsigned long radarUpdateInterval = radarTrackingMode ? 500 : 3000;  // 0.5s tracking, 3s list
+  if (chatState == CHAT_ROOM_RADAR && millis() - lastRadarScan > radarUpdateInterval) {
+    updateRadarDeviceList();
+    needsRedraw = true;
   }
 }
 
@@ -1590,6 +1867,12 @@ void drawLabChat() {
     case CHAT_EMOJI_MANAGER:
       drawEmojiManager();
       break;
+    case CHAT_ROOM_RADAR:
+      drawRoomRadar();
+      break;
+    case CHAT_LOBBY:
+      drawLobby();
+      break;
   }
 }
 
@@ -1603,15 +1886,80 @@ void handleLabChatNavigation(char key) {
           if (chatState == CHAT_SETUP_PIN) {
             DevicePIN::create(pinInput);
             loadSystemEmojis(); // Load system emojis once per session
-            chatState = CHAT_JOIN_NETWORK;
-            networkPasswordInput = "";
+
+            // Auto-create starter room with random password
+            String randomPassword = "";
+            const char* chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            for (int i = 0; i < 12; i++) {
+              randomPassword += chars[random(0, 62)];
+            }
+
+            // Join network (auto-generates color-based room name)
+            if (securityManager.joinNetwork(randomPassword)) {
+              String newNetwork = String(securityManager.getNetworkName());
+
+              // Store in activeRooms
+              if (activeRoomCount < MAX_ROOMS) {
+                activeRooms[activeRoomCount].name = newNetwork;
+                activeRooms[activeRoomCount].password = randomPassword;
+                currentRoomIndex = activeRoomCount;
+                activeRoomCount++;
+              }
+
+              // Initialize ESP-NOW with proper PMK
+              espNowManager.deinit();
+              espNowManager.init(securityManager.getPMK());
+
+              // Go to chat
+              chatState = CHAT_MAIN;
+              messageHandler.sendPresence();
+              lastPresenceBroadcast = millis();
+              lastNetworkName = newNetwork;
+
+              // Show welcome message
+              String welcomeMsg = "Welcome to " + newNetwork + "!";
+              messageHandler.addSystemMessage(welcomeMsg.c_str());
+            }
+
             pinInput = "";
           } else {
             if (DevicePIN::verify(pinInput)) {
               loadSystemEmojis(); // Load all emojis once per session
-              // Go straight to Room Key entry
-              chatState = CHAT_JOIN_NETWORK;
-              networkPasswordInput = "";
+
+              // Auto-create starter room with random password
+              String randomPassword = "";
+              const char* chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+              for (int i = 0; i < 12; i++) {
+                randomPassword += chars[random(0, 62)];
+              }
+
+              // Join network (auto-generates color-based room name)
+              if (securityManager.joinNetwork(randomPassword)) {
+                String newNetwork = String(securityManager.getNetworkName());
+
+                // Store in activeRooms
+                if (activeRoomCount < MAX_ROOMS) {
+                  activeRooms[activeRoomCount].name = newNetwork;
+                  activeRooms[activeRoomCount].password = randomPassword;
+                  currentRoomIndex = activeRoomCount;
+                  activeRoomCount++;
+                }
+
+                // Initialize ESP-NOW with proper PMK
+                espNowManager.deinit();
+                espNowManager.init(securityManager.getPMK());
+
+                // Go to chat
+                chatState = CHAT_MAIN;
+                messageHandler.sendPresence();
+                lastPresenceBroadcast = millis();
+                lastNetworkName = newNetwork;
+
+                // Show welcome message
+                String welcomeMsg = "Welcome to " + newNetwork + "!";
+                messageHandler.addSystemMessage(welcomeMsg.c_str());
+              }
+
               pinInput = "";
             } else {
               pinInput = "";
@@ -1687,6 +2035,22 @@ void handleLabChatNavigation(char key) {
                 messageHandler.clearQueue();
               }
 
+              // Store this room in activeRooms
+              bool roomExists = false;
+              for (int i = 0; i < activeRoomCount; i++) {
+                if (activeRooms[i].password == networkPasswordInput) {
+                  roomExists = true;
+                  currentRoomIndex = i;
+                  break;
+                }
+              }
+              if (!roomExists && activeRoomCount < MAX_ROOMS) {
+                activeRooms[activeRoomCount].name = newNetwork;
+                activeRooms[activeRoomCount].password = networkPasswordInput;
+                currentRoomIndex = activeRoomCount;
+                activeRoomCount++;
+              }
+
               espNowManager.deinit();
               espNowManager.init(securityManager.getPMK());
               chatState = CHAT_MAIN;
@@ -1736,7 +2100,12 @@ void handleLabChatNavigation(char key) {
           networkPasswordInput.remove(networkPasswordInput.length() - 1);
         }
       } else if (key == '`') {
-        chatState = CHAT_NETWORK_MENU;
+        // Esc from room key entry - go to settings
+        if (chatState == CHAT_JOIN_NETWORK) {
+          chatState = CHAT_SETTINGS;
+        } else {
+          chatState = CHAT_NETWORK_MENU;
+        }
         networkPasswordInput = "";
         networkNameInput = "";
       } else if (networkPasswordInput.length() < 50) {
@@ -1894,18 +2263,41 @@ void handleLabChatNavigation(char key) {
             }
           }
 
-          // NOW send the text message AFTER emoji chunks are complete
-          // Receiver will have all emojis ready and can display message immediately!
-          if (dmTargetID.length() > 0) {
-            // Send DM
-            messageHandler.sendDirect(dmTargetID.c_str(), chatInput.c_str());
-          } else {
-            // Send broadcast
-            messageHandler.sendBroadcast(chatInput.c_str(), chatCurrentChannel);
-          }
+          // Check if user is allowing someone in
+          if (chatInput == "allow" && knockerDeviceID.length() > 0) {
+            // Get current room password to send to knocker
+            String roomPassword = "";
+            if (currentRoomIndex >= 0 && currentRoomIndex < activeRoomCount) {
+              roomPassword = activeRooms[currentRoomIndex].password;
+            }
 
-          chatInput = "";
-          scrollPosition = 0;
+            // Send allow response with password to knocker
+            messageHandler.sendKnockResponse(knockerDeviceID.c_str(), true, roomPassword.c_str());
+
+            // Send system message
+            String allowMsg = String(knockerUsername) + " has been allowed in";
+            messageHandler.addSystemMessage(allowMsg.c_str());
+
+            // Clear knocker info
+            knockerDeviceID = "";
+            knockerUsername = "";
+
+            chatInput = "";
+            scrollPosition = 0;
+          } else {
+            // NOW send the text message AFTER emoji chunks are complete
+            // Receiver will have all emojis ready and can display message immediately!
+            if (dmTargetID.length() > 0) {
+              // Send DM
+              messageHandler.sendDirect(dmTargetID.c_str(), chatInput.c_str());
+            } else {
+              // Send broadcast
+              messageHandler.sendBroadcast(chatInput.c_str(), chatCurrentChannel);
+            }
+
+            chatInput = "";
+            scrollPosition = 0;
+          }
         }
       } else if (key == 8 || key == 127) { // Backspace
         if (chatInput.length() > 0) {
@@ -2003,9 +2395,9 @@ void handleLabChatNavigation(char key) {
 
     case CHAT_SETTINGS: {
       if (key == ';') {
-        chatSettingsMenuIndex = (chatSettingsMenuIndex - 1 + 4) % 4;
+        chatSettingsMenuIndex = (chatSettingsMenuIndex - 1 + 5) % 5;
       } else if (key == '.') {
-        chatSettingsMenuIndex = (chatSettingsMenuIndex + 1) % 4;
+        chatSettingsMenuIndex = (chatSettingsMenuIndex + 1) % 5;
       } else if (key == ',' && chatSettingsMenuIndex == 1) {
         // Left arrow - cycle through rooms
         int totalOptions = activeRoomCount + 1;
@@ -2055,10 +2447,14 @@ void handleLabChatNavigation(char key) {
             networkPasswordInput = "";
           }
         } else if (chatSettingsMenuIndex == 2) {
+          // Room Radar
+          chatState = CHAT_ROOM_RADAR;
+          enterRoomRadar();
+        } else if (chatSettingsMenuIndex == 3) {
           // Manage emojis
           selectedEmojiManagerIndex = 0;
           chatState = CHAT_EMOJI_MANAGER;
-        } else if (chatSettingsMenuIndex == 3) {
+        } else if (chatSettingsMenuIndex == 4) {
           // Leave network - go to home menu
           exitLabChat();
           currentScreenNumber = 0;
@@ -2235,6 +2631,43 @@ void handleLabChatNavigation(char key) {
       } else if (key == '`') { // Back
         chatState = CHAT_SETTINGS;
       }
+      break;
+    }
+
+    case CHAT_ROOM_RADAR: {
+      if (key == 't' || key == 'T') {
+        // Toggle tracking mode
+        radarTrackingMode = !radarTrackingMode;
+      } else if (key == ';' && !radarTrackingMode) { // Up
+        if (selectedRadarIndex > 0) selectedRadarIndex--;
+      } else if (key == '.' && !radarTrackingMode) { // Down
+        if (selectedRadarIndex < nearbyDeviceCount - 1) selectedRadarIndex++;
+      } else if (key == '\n' && !radarTrackingMode && nearbyDeviceCount > 0) { // Enter - go to lobby
+        if (selectedRadarIndex < nearbyDeviceCount) {
+          lobbyRoomName = nearbyDevices[selectedRadarIndex].roomName;
+          exitRoomRadar();
+          networkPasswordInput = "";
+
+          // Auto-knock on entry
+          messageHandler.sendPublicKnock(lobbyRoomName.c_str());
+          lobbyKnockTime = millis();
+
+          chatState = CHAT_LOBBY;
+        }
+      } else if (key == '`') { // Back
+        exitRoomRadar();
+        chatState = CHAT_SETTINGS;
+      }
+      break;
+    }
+
+    case CHAT_LOBBY: {
+      if (key == '`') { // Esc - Cancel and go back to settings
+        lobbyRoomName = "";
+        lobbyKnockTime = 0;
+        chatState = CHAT_SETTINGS;
+      }
+      // Just wait for response - no input needed
       break;
     }
   }

@@ -21,6 +21,7 @@ struct SystemSettings {
   bool timezoneAuto;      // Auto-detect timezone from IP
   int theme;              // 0 = default, 1-n = future themes
   time_t lastKnownTime;   // Last synced time for offline use
+  bool findabilityEnabled; // Allow others to find you via Friend Compass
 };
 
 // Global settings
@@ -49,6 +50,7 @@ void drawThemePlaceholder();
 void handleSettingsNavigation(char key);
 void toggleSound();
 void toggleDimMode();
+void toggleFindability();
 void applyBrightness();
 void autoDetectTimezone();
 void applyTimezone();

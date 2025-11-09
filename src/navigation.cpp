@@ -197,8 +197,10 @@ void navigateLeft() {
       // At first app, go back to screensaver with star rain
       if (settings.soundEnabled) M5Cardputer.Speaker.tone(800, 50);
       extern bool screensaverActive;
+      extern unsigned long lastActivityTime;
       initStarRain(STARRAIN_SCREENSAVER);
       screensaverActive = true;
+      lastActivityTime = millis();  // Reset timer to prevent retriggering
     }
   } else if (currentState == MAIN_MENU) {
     if (currentMainIndex > 0) {

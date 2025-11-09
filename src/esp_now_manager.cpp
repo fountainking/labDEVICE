@@ -19,8 +19,13 @@ void ESPNowManager::onDataRecv(const uint8_t* mac, const uint8_t* data, int len)
   espNowManager.bytesReceived += len;
   espNowManager.messagesReceived++;
 
-  // Update peer activity
-  espNowManager.updatePeerActivity(mac);
+  // Estimate RSSI based on successful reception
+  // Fresh reception = strong signal (-30 to -40 dBm)
+  // This will degrade based on time in updateRadarDeviceList()
+  int estimatedRSSI = -30;
+
+  // Update peer activity with estimated RSSI
+  espNowManager.updatePeerActivity(mac, estimatedRSSI);
 
   Serial.println("  Forwarding to message handler...");
   // Forward to message handler
@@ -103,8 +108,8 @@ void ESPNowManager::deinit() {
   memset(peers, 0, sizeof(peers));
 }
 
-bool ESPNowManager::addPeer(const uint8_t* mac, const char* deviceID, const char* username) {
-  Serial.printf("ESPNowManager::addPeer() called - DeviceID: %s, Username: %s\n", deviceID, username);
+bool ESPNowManager::addPeer(const uint8_t* mac, const char* deviceID, const char* username, const char* roomName, bool announce) {
+  Serial.printf("ESPNowManager::addPeer() called - DeviceID: %s, Username: %s, Room: %s, Announce: %d\n", deviceID, username, roomName, announce);
   Serial.printf("  MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   Serial.printf("  Current peer count: %d/%d\n", peerCount, MAX_PEERS);
 
@@ -122,8 +127,13 @@ bool ESPNowManager::addPeer(const uint8_t* mac, const char* deviceID, const char
     existing->deviceID[15] = '\0';
     strncpy(existing->username, username, 15);
     existing->username[15] = '\0';
+    if (roomName && strlen(roomName) > 0) {
+      strncpy(existing->roomName, roomName, 31);
+      existing->roomName[31] = '\0';
+    }
     existing->lastSeen = millis();
     existing->active = true;
+    // rssi will be updated by updatePeerActivity when messages arrive
     return true;
   }
 
@@ -147,13 +157,23 @@ bool ESPNowManager::addPeer(const uint8_t* mac, const char* deviceID, const char
   peers[peerCount].deviceID[15] = '\0';
   strncpy(peers[peerCount].username, username, 15);
   peers[peerCount].username[15] = '\0';
+  if (roomName && strlen(roomName) > 0) {
+    strncpy(peers[peerCount].roomName, roomName, 31);
+    peers[peerCount].roomName[31] = '\0';
+  } else {
+    peers[peerCount].roomName[0] = '\0';
+  }
   peers[peerCount].lastSeen = millis();
   peers[peerCount].active = true;
+  peers[peerCount].rssi = -100;  // Default RSSI
+  peers[peerCount].rssiSmoothed = -100;  // Initialize smoothed value
   peerCount++;
 
-  // Announce user arrival (system message)
-  String joinMsg = String(username) + " joined";
-  messageHandler.addSystemMessage(joinMsg.c_str());
+  // Announce user arrival (system message) - only if requested
+  if (announce) {
+    String joinMsg = String(username) + " joined";
+    messageHandler.addSystemMessage(joinMsg.c_str());
+  }
 
   return true;
 }
@@ -176,11 +196,20 @@ bool ESPNowManager::removePeer(const uint8_t* mac) {
   return false;
 }
 
-void ESPNowManager::updatePeerActivity(const uint8_t* mac) {
+void ESPNowManager::updatePeerActivity(const uint8_t* mac, int rssi) {
   PeerDevice* peer = findPeer(mac);
   if (peer) {
     peer->lastSeen = millis();
     peer->active = true;
+    peer->rssi = rssi;  // Store raw signal strength
+
+    // Exponential smoothing: smoothed = 0.7 * old + 0.3 * new
+    // This reduces jitter while still responding to changes
+    if (peer->rssiSmoothed == 0) {
+      peer->rssiSmoothed = rssi;  // Initialize on first update
+    } else {
+      peer->rssiSmoothed = (peer->rssiSmoothed * 7 + rssi * 3) / 10;
+    }
   }
 }
 

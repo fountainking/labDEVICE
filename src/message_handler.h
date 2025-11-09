@@ -12,11 +12,45 @@ enum MessageType : uint8_t {
   MSG_PRESENCE = 0x05,
   MSG_FILE_START = 0x06,    // Start of file transfer (contains filename + total size)
   MSG_FILE_CHUNK = 0x07,    // File data chunk
-  MSG_FILE_END = 0x08       // End of file transfer
+  MSG_FILE_END = 0x08,      // End of file transfer
+  MSG_KNOCK = 0x09,         // Knock request to join room
+  MSG_KNOCK_RESPONSE = 0x0A,// Response to knock (allow/deny)
+  MSG_BEACON = 0x0B         // Discovery beacon (unencrypted, public)
 };
 
 // Protocol version
 #define PROTOCOL_VERSION 1
+
+// Discovery beacon (unencrypted, for Room Radar)
+struct DiscoveryBeacon {
+  uint8_t type;           // 1 byte: MSG_BEACON
+  uint8_t version;        // 1 byte: protocol version
+  char deviceID[16];      // 16 bytes: device ID
+  char username[16];      // 16 bytes: username
+  char roomName[32];      // 32 bytes: room/network name
+  // Total: 66 bytes (much smaller than encrypted messages)
+} __attribute__((packed));
+
+// Public knock (unencrypted, anyone can knock)
+struct PublicKnock {
+  uint8_t type;           // 1 byte: MSG_KNOCK (same as encrypted, but detected by size)
+  uint8_t version;        // 1 byte: protocol version
+  char fromDeviceID[16];  // 16 bytes: sender device ID
+  char fromUsername[16];  // 16 bytes: sender username
+  char toRoomName[32];    // 32 bytes: target room name
+  // Total: 66 bytes
+} __attribute__((packed));
+
+// Public knock response (unencrypted, sends room password)
+struct PublicKnockResponse {
+  uint8_t type;           // 1 byte: MSG_KNOCK_RESPONSE
+  uint8_t version;        // 1 byte: protocol version
+  char fromDeviceID[16];  // 16 bytes: sender device ID
+  char toDeviceID[16];    // 16 bytes: target device ID (knocker)
+  uint8_t allowed;        // 1 byte: 1=allowed, 0=denied
+  char roomPassword[64];  // 64 bytes: room password (if allowed)
+  // Total: 99 bytes
+} __attribute__((packed));
 
 // Message structure (exactly 250 bytes - ESP-NOW limit)
 struct SecureMessage {
@@ -86,6 +120,10 @@ public:
   bool sendBroadcast(const char* content, uint8_t channel = 0);
   bool sendDirect(const char* targetID, const char* content);
   bool sendPresence(); // Announce presence to network
+  bool sendBeacon(); // Send discovery beacon (unencrypted, public)
+  bool sendPublicKnock(const char* targetRoomName); // Send public knock (unencrypted, no room key needed)
+  bool sendKnock(const char* targetID); // Send knock request (encrypted, deprecated)
+  bool sendKnockResponse(const char* targetID, bool allowed, const char* roomPassword = nullptr); // Respond to knock
 
   // File transfer
   bool sendEmojiFile(const char* targetID, const char* filename); // Send .emoji file to specific user

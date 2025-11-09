@@ -1,6 +1,7 @@
 #include "message_handler.h"
 #include "security_manager.h"
 #include "esp_now_manager.h"
+#include "labchat.h"
 #include <time.h>
 #include <SD.h>
 
@@ -94,10 +95,117 @@ bool MessageHandler::verifyMessage(const SecureMessage* msg) {
 }
 
 bool MessageHandler::handleReceivedMessage(const uint8_t* mac, const uint8_t* data, int len) {
-  Serial.printf("MessageHandler::handleReceivedMessage() - len=%d, expected=%d\n", len, sizeof(SecureMessage));
+  Serial.printf("MessageHandler::handleReceivedMessage() - len=%d\n", len);
 
+  // Check if it's a discovery beacon (unencrypted)
+  if (len == sizeof(DiscoveryBeacon)) {
+    const DiscoveryBeacon* beacon = (const DiscoveryBeacon*)data;
+    if (beacon->type == MSG_BEACON && beacon->version == PROTOCOL_VERSION) {
+      Serial.printf("  BEACON from %s - Room: %s, User: %s\n",
+                    beacon->deviceID, beacon->roomName, beacon->username);
+
+      // Add to ESP-NOW peer list for radar tracking (NO announcement - beacons are for discovery only)
+      espNowManager.addPeer(mac, beacon->deviceID, beacon->username, beacon->roomName, false);
+
+      return true;
+    }
+  }
+
+  // Check if it's a public knock (unencrypted)
+  if (len == sizeof(PublicKnock)) {
+    const PublicKnock* knock = (const PublicKnock*)data;
+    if (knock->type == MSG_KNOCK && knock->version == PROTOCOL_VERSION) {
+      Serial.printf("  PUBLIC KNOCK from %s to room: %s\n",
+                    knock->fromUsername, knock->toRoomName);
+
+      // Only show if knock is for OUR room
+      const char* ourRoom = securityManager.isConnected() ?
+        securityManager.getNetworkName() : "";
+
+      if (strcmp(knock->toRoomName, ourRoom) == 0) {
+        // Store knocker info
+        extern String knockerDeviceID;
+        extern String knockerUsername;
+        knockerDeviceID = String(knock->fromDeviceID);
+        knockerUsername = String(knock->fromUsername);
+
+        String knockMsg = String(knock->fromUsername) + " is knocking, type allow";
+        addSystemMessage(knockMsg.c_str());
+      }
+
+      return true;
+    }
+  }
+
+  // Check for public knock response (unencrypted)
+  if (len == sizeof(PublicKnockResponse)) {
+    const PublicKnockResponse* response = (const PublicKnockResponse*)data;
+    if (response->type == MSG_KNOCK_RESPONSE && response->version == PROTOCOL_VERSION) {
+      Serial.printf("  PUBLIC KNOCK RESPONSE from %s to %s: %s\n",
+                    response->fromDeviceID, response->toDeviceID,
+                    response->allowed ? "ALLOWED" : "DENIED");
+
+      // Only process if it's for US
+      if (strcmp(response->toDeviceID, securityManager.getDeviceID()) == 0) {
+        extern LabChatState chatState;
+        extern String lobbyRoomName;
+        extern unsigned long lastPresenceBroadcast;
+        extern unsigned long lobbyKnockTime;
+
+        if (response->allowed && strlen(response->roomPassword) > 0) {
+          Serial.printf("  Allowed with password (len=%d)\n", strlen(response->roomPassword));
+
+          if (chatState == CHAT_LOBBY && lobbyRoomName.length() > 0) {
+            // Deinit ESP-NOW first (clear temp PMK)
+            Serial.println("  Deinitializing ESP-NOW...");
+            espNowManager.deinit();
+
+            // Join the network with provided password
+            String roomPassword = String(response->roomPassword);
+            Serial.printf("  Attempting to join network...\n");
+
+            if (securityManager.joinNetwork(roomPassword)) {
+              Serial.println("  SUCCESS: Network joined!");
+
+              // Reinitialize ESP-NOW with proper room key
+              espNowManager.init(securityManager.getPMK());
+
+              // Transition to chat
+              chatState = CHAT_MAIN;
+              sendPresence();
+              lastPresenceBroadcast = millis();
+              lobbyRoomName = "";
+              lobbyKnockTime = 0;
+
+              // Show welcome message
+              String welcomeMsg = "You have been allowed into the room!";
+              addSystemMessage(welcomeMsg.c_str(), 0);
+            } else {
+              Serial.println("  ERROR: Failed to join network!");
+
+              // Reinit ESP-NOW with temp PMK to continue receiving
+              uint8_t tempPMK[16] = {0};
+              espNowManager.init(tempPMK);
+
+              String errorMsg = "Failed to join room";
+              addSystemMessage(errorMsg.c_str(), 0);
+            }
+          }
+        } else if (!response->allowed) {
+          // Denied
+          String denyMsg = "Access denied";
+          addSystemMessage(denyMsg.c_str(), 0);
+        }
+      }
+
+      return true;
+    }
+  }
+
+  // Otherwise, expect encrypted message
   if (len != sizeof(SecureMessage)) {
-    Serial.println("  ERROR: Length mismatch!");
+    Serial.printf("  ERROR: Length mismatch! Got %d, expected %d or %d\n",
+                  len, sizeof(SecureMessage), sizeof(DiscoveryBeacon));
     return false;
   }
 
@@ -124,6 +232,20 @@ bool MessageHandler::handleReceivedMessage(const uint8_t* mac, const uint8_t* da
     espNowManager.addPeer(mac, msg->deviceID, msg->username);
     return true;
   }
+
+  // Handle knock requests
+  if (msg->type == MSG_KNOCK) {
+    Serial.printf("  KNOCK message from %s (%s)\n", msg->username, msg->deviceID);
+    espNowManager.addPeer(mac, msg->deviceID, msg->username);
+
+    // Add knock notification to chat
+    String knockMsg = String(msg->username) + " is knocking. Type 'allow' to admit.";
+    addSystemMessage(knockMsg.c_str(), 0);
+    return true;
+  }
+
+  // Note: Knock responses are now handled as unencrypted PublicKnockResponse above
+  // This encrypted handler is no longer used but kept for potential future use
 
   // Filter by message type
   if (msg->type == MSG_DIRECT) {
@@ -275,6 +397,128 @@ bool MessageHandler::sendPresence() {
   }
 
   return espNowManager.sendBroadcast((uint8_t*)&msg, sizeof(msg));
+}
+
+bool MessageHandler::sendBeacon() {
+  DiscoveryBeacon beacon;
+  memset(&beacon, 0, sizeof(beacon));
+
+  beacon.type = MSG_BEACON;
+  beacon.version = PROTOCOL_VERSION;
+
+  // Device ID
+  strncpy(beacon.deviceID, securityManager.getDeviceID(), 15);
+  beacon.deviceID[15] = '\0';
+
+  // Username (load from preferences)
+  Preferences prefs;
+  prefs.begin("labchat", true);
+  String defaultUsername = "User";
+  const char* devID = securityManager.getDeviceID();
+  int userNum = 0;
+  int len = strlen(devID);
+  if (len >= 4) {
+    for (int i = len - 4; i < len; i++) {
+      userNum = userNum * 10 + (devID[i] % 10);
+    }
+  }
+  defaultUsername += String(userNum % 10000);
+  String username = prefs.getString("username", defaultUsername);
+  prefs.end();
+  strncpy(beacon.username, username.c_str(), 15);
+  beacon.username[15] = '\0';
+
+  // Room name (from security manager)
+  const char* roomName = securityManager.isConnected() ?
+    securityManager.getNetworkName() : "No Room";
+  strncpy(beacon.roomName, roomName, 31);
+  beacon.roomName[31] = '\0';
+
+  Serial.printf("Broadcasting beacon: Room='%s', User='%s'\n",
+                beacon.roomName, beacon.username);
+
+  // Broadcast unencrypted
+  return espNowManager.sendBroadcast((uint8_t*)&beacon, sizeof(beacon));
+}
+
+bool MessageHandler::sendPublicKnock(const char* targetRoomName) {
+  PublicKnock knock;
+  memset(&knock, 0, sizeof(knock));
+
+  knock.type = MSG_KNOCK;
+  knock.version = PROTOCOL_VERSION;
+
+  // Sender info
+  strncpy(knock.fromDeviceID, securityManager.getDeviceID(), 15);
+  knock.fromDeviceID[15] = '\0';
+
+  // Username
+  Preferences prefs;
+  prefs.begin("labchat", true);
+  String defaultUsername = "User";
+  const char* devID = securityManager.getDeviceID();
+  int userNum = 0;
+  int len = strlen(devID);
+  if (len >= 4) {
+    for (int i = len - 4; i < len; i++) {
+      userNum = userNum * 10 + (devID[i] % 10);
+    }
+  }
+  defaultUsername += String(userNum % 10000);
+  String username = prefs.getString("username", defaultUsername);
+  prefs.end();
+  strncpy(knock.fromUsername, username.c_str(), 15);
+  knock.fromUsername[15] = '\0';
+
+  // Target room
+  strncpy(knock.toRoomName, targetRoomName, 31);
+  knock.toRoomName[31] = '\0';
+
+  Serial.printf("Sending public knock to room: %s from %s\n", targetRoomName, username.c_str());
+
+  // Broadcast unencrypted
+  return espNowManager.sendBroadcast((uint8_t*)&knock, sizeof(knock));
+}
+
+bool MessageHandler::sendKnock(const char* targetID) {
+  SecureMessage msg;
+  if (!createMessage(MSG_KNOCK, "knock", 0, targetID, &msg)) {
+    return false;
+  }
+
+  return espNowManager.sendToDeviceID(targetID, (uint8_t*)&msg, sizeof(msg));
+}
+
+bool MessageHandler::sendKnockResponse(const char* targetID, bool allowed, const char* roomPassword) {
+  // Send unencrypted response (knocker doesn't have room key yet)
+  PublicKnockResponse response;
+  memset(&response, 0, sizeof(response));
+
+  response.type = MSG_KNOCK_RESPONSE;
+  response.version = PROTOCOL_VERSION;
+
+  // Sender info
+  strncpy(response.fromDeviceID, securityManager.getDeviceID(), 15);
+  response.fromDeviceID[15] = '\0';
+
+  // Target info
+  strncpy(response.toDeviceID, targetID, 15);
+  response.toDeviceID[15] = '\0';
+
+  // Allow/deny
+  response.allowed = allowed ? 1 : 0;
+
+  // Room password (if allowed)
+  if (allowed && roomPassword != nullptr && strlen(roomPassword) > 0) {
+    strncpy(response.roomPassword, roomPassword, 63);
+    response.roomPassword[63] = '\0';
+    Serial.printf("Sending knock response: ALLOWED with password (len=%d)\n", strlen(roomPassword));
+  } else {
+    Serial.printf("Sending knock response: %s\n", allowed ? "ALLOWED (no pass)" : "DENIED");
+  }
+
+  // Broadcast unencrypted (knocker will filter by toDeviceID)
+  return espNowManager.sendBroadcast((uint8_t*)&response, sizeof(response));
 }
 
 void MessageHandler::addSystemMessage(const char* message, uint8_t channel) {
