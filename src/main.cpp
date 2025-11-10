@@ -23,6 +23,7 @@
 #include "music_tools.h"
 #include "chip8.h"
 #include "emoji_maker.h"
+#include "slot_machine.h"
 #include "labchat.h"
 #include "lbm.h"
 #include "tap_tempo.h"
@@ -92,10 +93,11 @@ int musicMenuIndex = 0;
 // Games submenu (struct defined in config.h)
 GamesMenuItem gamesMenuItems[] = {
   {"CHIP-8", TFT_GREEN, 14},
-  {"Emoji Maker", TFT_PINK, 18}
+  {"Emoji Maker", TFT_PINK, 18},
+  {"Slot Machine", TFT_YELLOW, 19}
 };
 
-int totalGamesItems = 2;
+int totalGamesItems = 3;
 int gamesMenuIndex = 0;
 
 // Global state for background WiFi connection
@@ -742,8 +744,16 @@ void loop() {
     return;
   }
 
-  // Check for inactivity timeout (works on all screens)
-  if (!screensaverActive &&
+  // Check for inactivity timeout (works on all screens, except during games)
+  extern bool chip8Running;
+  extern bool emojiMakerActive;
+  extern bool slotMachineActive;
+
+  bool inGame = (currentScreenNumber == 14 && chip8Running) ||  // CHIP-8
+                (currentScreenNumber == 18 && emojiMakerActive) ||  // Emoji Maker
+                (currentScreenNumber == 19 && slotMachineActive);  // Slot Machine
+
+  if (!screensaverActive && !inGame &&
       millis() - lastActivityTime > SCREENSAVER_TIMEOUT) {
     // Start screensaver with star rain dissolve effect
     screensaverActive = true;
@@ -876,11 +886,11 @@ void loop() {
           if (status.enter) {
             if (fileCount > 0) {
               if (fileInfoList[selectedFileIndex].type == TYPE_FOLDER) {
-                // Navigate into folder - build full path
+                // Navigate into folder - build full path with trailing slash
                 if (currentPath.endsWith("/")) {
-                  currentPath = currentPath + fileInfoList[selectedFileIndex].name;
+                  currentPath = currentPath + fileInfoList[selectedFileIndex].name + "/";
                 } else {
-                  currentPath = currentPath + "/" + fileInfoList[selectedFileIndex].name;
+                  currentPath = currentPath + "/" + fileInfoList[selectedFileIndex].name + "/";
                 }
                 selectedFileIndex = 0;
                 safeBeep(1200, 100);
@@ -1021,10 +1031,22 @@ void loop() {
               } else {
                 // Go to parent directory
                 int lastSlash = currentPath.lastIndexOf('/', currentPath.length() - 2);
-                currentPath = currentPath.substring(0, lastSlash + 1);
-                selectedFileIndex = 0;
-                safeBeep(600, 100);
-                loadFolder(currentPath);
+                if (lastSlash >= 0) {
+                  currentPath = currentPath.substring(0, lastSlash + 1);
+                  // Ensure path is never empty
+                  if (currentPath.length() == 0) {
+                    currentPath = "/";
+                  }
+                  selectedFileIndex = 0;
+                  safeBeep(600, 100);
+                  loadFolder(currentPath);
+                } else {
+                  // Edge case: go to root
+                  currentPath = "/";
+                  selectedFileIndex = 0;
+                  safeBeep(600, 100);
+                  loadFolder(currentPath);
+                }
               }
               return;
             }
@@ -1887,6 +1909,8 @@ void loop() {
             enterChip8();
           } else if (currentScreenNumber == 18) {
             enterEmojiMaker();
+          } else if (currentScreenNumber == 19) {
+            enterSlotMachine();
           }
           return;
         }
@@ -2201,6 +2225,12 @@ void loop() {
         return;
       }
 
+      // Handle Slot Machine input
+      if (currentState == SCREEN_VIEW && currentScreenNumber == 19 && slotMachineActive) {
+        handleSlotMachineInput();
+        return;
+      }
+
       // Handle password input mode
       if (currentState == WIFI_PASSWORD) {
         for (auto key : status.word) {
@@ -2471,6 +2501,11 @@ void loop() {
   // Update Emoji Maker
   if (currentState == SCREEN_VIEW && currentScreenNumber == 18 && emojiMakerActive) {
     updateEmojiMaker();
+  }
+
+  // Update Slot Machine
+  if (currentState == SCREEN_VIEW && currentScreenNumber == 19 && slotMachineActive) {
+    updateSlotMachine();
   }
 
   // Screen dimming for battery saving
