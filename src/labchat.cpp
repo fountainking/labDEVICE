@@ -3,6 +3,7 @@
 #include "esp_now_manager.h"
 #include "message_handler.h"
 #include "ui.h"
+#include "audio_manager.h"
 #include <M5Cardputer.h>
 #include <SD.h>
 
@@ -923,14 +924,17 @@ void drawMainChat() {
     M5Cardputer.Display.setTextColor(TFT_DARKGREY);
     int hintY = 90;  // Inside message area (ends at y=102)
 
-    // Berry centered on screen (240px / 2 - 8 = 112)
-    int berryX = 112;
+    // Calculate total width to center the entire hint as a group:
+    // "\=emojis" (48px) + gap (12px) + berry (16px) + gap (12px) + "`=settings" (60px) = 148px
+    int totalWidth = 148;
+    int startX = (240 - totalWidth) / 2;  // Center on 240px screen = 46px
+
+    // Draw "\=emojis" (8 chars * 6px = 48px)
+    M5Cardputer.Display.drawString("\\=emojis", startX, hintY);
+
+    // Draw berry (16px wide, with 12px gap from text)
+    int berryX = startX + 48 + 12;  // = 106
     int berryY = hintY - 4;  // Vertically center 16px berry with 8px text
-
-    // Draw "\=emojis" left of berry (8 chars * 6px = 48px, 12px spacing)
-    M5Cardputer.Display.drawString("\\=emojis", berryX - 12 - 48, hintY);
-
-    // Draw berry centered
     for (int y = 0; y < 16; y++) {
       for (int x = 0; x < 16; x++) {
         uint16_t color = BERRY_ICON[y][x];
@@ -940,8 +944,8 @@ void drawMainChat() {
       }
     }
 
-    // Draw "  `=settings" right of berry (16px berry + 12px spacing)
-    M5Cardputer.Display.drawString("  `=settings", berryX + 16 + 12, hintY);
+    // Draw "`=settings" (10 chars * 6px = 60px, with 12px gap from berry)
+    M5Cardputer.Display.drawString("`=settings", berryX + 16 + 12, hintY);
   }
 }
 
@@ -1833,7 +1837,8 @@ void exitLabChat() {
 
 void updateLabChat() {
   // Handle beep notification FIRST (works even when chat inactive)
-  if (needsBeep) {
+  // SKIP beeps during audio playback to prevent I2S conflicts and buffer skipping
+  if (needsBeep && !isMusicPlaying() && !isRadioStreaming()) {
     needsBeep = false;
     // Descending then ascending chirp - more interesting
     M5Cardputer.Speaker.tone(1400, 50);
@@ -1841,6 +1846,9 @@ void updateLabChat() {
     M5Cardputer.Speaker.tone(1000, 50);
     delay(60);
     M5Cardputer.Speaker.tone(1600, 90);
+  } else if (needsBeep && (isMusicPlaying() || isRadioStreaming())) {
+    // Clear beep flag if audio is playing (don't queue it up)
+    needsBeep = false;
   }
 
   if (!chatActive) return;
