@@ -21,11 +21,17 @@ bool OTAManager::checkForUpdate() {
     M5Cardputer.Display.printf("Current: %s\n", FIRMWARE_VERSION);
     M5Cardputer.Display.println("Checking for updates...");
 
-    WiFiClientSecure client;
-    client.setInsecure(); // Skip certificate validation
+    WiFiClientSecure *client = new WiFiClientSecure;
+    if (!client) {
+        M5Cardputer.Display.println("Failed to create client");
+        M5Cardputer.Display.println("Press any key...");
+        return false;
+    }
+
+    client->setInsecure(); // Skip certificate validation
 
     HTTPClient http;
-    http.begin(client, GITHUB_API_URL);
+    http.begin(*client, GITHUB_API_URL);
     http.addHeader("User-Agent", "M5Cardputer-Laboratory");
     http.setTimeout(15000); // 15 second timeout
 
@@ -35,11 +41,13 @@ bool OTAManager::checkForUpdate() {
         M5Cardputer.Display.printf("Error: HTTP %d\n", httpCode);
         M5Cardputer.Display.println("Press any key...");
         http.end();
+        delete client;
         return false;
     }
 
     String payload = http.getString();
     http.end();
+    delete client;
 
     // Parse version tag
     String latestVersion = parseJsonField(payload, "tag_name");
@@ -115,11 +123,17 @@ bool OTAManager::performUpdate(String firmwareURL) {
     M5Cardputer.Display.println("Downloading firmware...");
     M5Cardputer.Display.println(firmwareURL);
 
-    WiFiClientSecure client;
-    client.setInsecure(); // Skip certificate validation
+    WiFiClientSecure *client = new WiFiClientSecure;
+    if (!client) {
+        M5Cardputer.Display.println("\nFailed to create client");
+        M5Cardputer.Display.println("Press any key...");
+        return false;
+    }
+
+    client->setInsecure(); // Skip certificate validation
 
     HTTPClient http;
-    http.begin(client, firmwareURL);
+    http.begin(*client, firmwareURL);
     http.setTimeout(30000); // 30 second timeout for download
 
     int httpCode = http.GET();
@@ -127,6 +141,7 @@ bool OTAManager::performUpdate(String firmwareURL) {
         M5Cardputer.Display.printf("\nDownload failed: %d\n", httpCode);
         M5Cardputer.Display.println("Press any key...");
         http.end();
+        delete client;
         return false;
     }
 
@@ -137,6 +152,7 @@ bool OTAManager::performUpdate(String firmwareURL) {
         M5Cardputer.Display.println("Invalid content length");
         M5Cardputer.Display.println("Press any key...");
         http.end();
+        delete client;
         return false;
     }
 
@@ -146,6 +162,7 @@ bool OTAManager::performUpdate(String firmwareURL) {
         M5Cardputer.Display.printf("Needed: %d bytes\n", contentLength);
         M5Cardputer.Display.println("Press any key...");
         http.end();
+        delete client;
         return false;
     }
 
@@ -173,6 +190,7 @@ bool OTAManager::performUpdate(String firmwareURL) {
     }
 
     http.end();
+    delete client;
 
     if (written != contentLength) {
         M5Cardputer.Display.printf("\nWrite incomplete!\n");
