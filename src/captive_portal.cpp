@@ -134,18 +134,22 @@ void startCaptivePortal(const String& ssid) {
         portalWebServer->send(200, "text/html", PORTAL_HTML);
     });
 
-    // Captive portal detection endpoints - redirect to trigger portal popup
-    // Android
+    // Captive portal detection endpoints
+    // Android - return 200 with HTML to trigger portal popup
     portalWebServer->on("/generate_204", []() {
         portalVisitorCount++;
-        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
-        portalWebServer->send(302, "text/plain", "");
+        portalWebServer->send(200, "text/html", PORTAL_HTML);
     });
 
     portalWebServer->on("/gen_204", []() {
         portalVisitorCount++;
-        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
-        portalWebServer->send(302, "text/plain", "");
+        portalWebServer->send(200, "text/html", PORTAL_HTML);
+    });
+
+    // Additional Android connectivity checks
+    portalWebServer->on("/connectivitycheck.gstatic.com/generate_204", []() {
+        portalVisitorCount++;
+        portalWebServer->send(200, "text/html", PORTAL_HTML);
     });
 
     // iOS/Apple
@@ -248,18 +252,22 @@ void startCaptivePortalFromProfile(const PortalProfile& profile) {
         portalWebServer->send(200, "text/html", customPortalHTML);
     });
 
-    // Captive portal detection endpoints - redirect to trigger portal popup
-    // Android
+    // Captive portal detection endpoints
+    // Android - return 200 with HTML to trigger portal popup
     portalWebServer->on("/generate_204", []() {
         portalVisitorCount++;
-        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
-        portalWebServer->send(302, "text/plain", "");
+        portalWebServer->send(200, "text/html", customPortalHTML);
     });
 
     portalWebServer->on("/gen_204", []() {
         portalVisitorCount++;
-        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
-        portalWebServer->send(302, "text/plain", "");
+        portalWebServer->send(200, "text/html", customPortalHTML);
+    });
+
+    // Additional Android connectivity checks
+    portalWebServer->on("/connectivitycheck.gstatic.com/generate_204", []() {
+        portalVisitorCount++;
+        portalWebServer->send(200, "text/html", customPortalHTML);
     });
 
     // iOS/Apple
