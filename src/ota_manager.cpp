@@ -122,13 +122,23 @@ bool OTAManager::checkForUpdate() {
         waitForKeyPressAndRelease();
         return false;
     }
+
+    // Wake up WiFi from power saving
     M5Cardputer.Display.printf("WiFi: %s", WiFi.SSID().c_str());
     lineY += lineSpacing;
-
-    // Debug: Show RSSI
     M5Cardputer.Display.setCursor(15, lineY);
     M5Cardputer.Display.setTextColor(gradientColor(3, 5));
     M5Cardputer.Display.printf("Signal: %d dBm", WiFi.RSSI());
+    lineY += lineSpacing;
+
+    // Force WiFi reconnect to wake from sleep
+    M5Cardputer.Display.setCursor(15, lineY);
+    M5Cardputer.Display.setTextColor(gradientColor(3, 5));
+    M5Cardputer.Display.println("Waking WiFi...");
+    WiFi.disconnect(false);
+    delay(100);
+    WiFi.reconnect();
+    delay(1000); // Give WiFi time to fully wake up
     lineY += lineSpacing;
 
     secureClient.setInsecure(); // Skip certificate validation
@@ -337,6 +347,16 @@ bool OTAManager::performUpdate(String firmwareURL) {
         return false;
     }
     M5Cardputer.Display.printf("WiFi OK (%d dBm)", WiFi.RSSI());
+    lineY += lineSpacing;
+
+    // Wake WiFi from power saving before download
+    M5Cardputer.Display.setCursor(15, lineY);
+    M5Cardputer.Display.setTextColor(gradientColor(2, 5));
+    M5Cardputer.Display.println("Waking WiFi...");
+    WiFi.disconnect(false);
+    delay(100);
+    WiFi.reconnect();
+    delay(1000);
     lineY += lineSpacing;
 
     secureClient.setInsecure(); // Skip certificate validation
