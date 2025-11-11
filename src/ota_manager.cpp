@@ -131,14 +131,24 @@ bool OTAManager::performUpdate(String firmwareURL) {
     }
 
     client->setInsecure(); // Skip certificate validation
+    client->setHandshakeTimeout(30); // 30 second TLS timeout
+
+    M5Cardputer.Display.println("\nConnecting...");
 
     HTTPClient http;
     http.begin(*client, firmwareURL);
-    http.setTimeout(30000); // 30 second timeout for download
+    http.setTimeout(60000); // 60 second timeout for download
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
+    M5Cardputer.Display.println("Requesting firmware...");
     int httpCode = http.GET();
+
     if (httpCode != 200) {
         M5Cardputer.Display.printf("\nDownload failed: %d\n", httpCode);
+        if (httpCode == -1) {
+            M5Cardputer.Display.println("Connection error");
+            M5Cardputer.Display.println("Check WiFi signal");
+        }
         M5Cardputer.Display.println("Press any key...");
         http.end();
         delete client;
