@@ -222,11 +222,11 @@ void drawSettingsMenu() {
     "Sound: ",
     "Brightness: ",
     "Device Name: ",
+    "OTA Update",
     "Timezone: ",
     "Friend Compass",
     "Findability: ",
-    "Theme: ",
-    "OTA Update"
+    "Theme: "
   };
 
   // Draw menu items
@@ -258,24 +258,24 @@ void drawSettingsMenu() {
         if (value.length() > 15) value = value.substring(0, 15);
         valueX = 90;
         break;
-      case 3: // Timezone
+      case 3: // OTA Update
+        value = FIRMWARE_VERSION;
+        valueX = 90;
+        break;
+      case 4: // Timezone
         value = String(timezones[timezoneSelectIndex].name);
         if (value.length() > 20) value = value.substring(0, 20);
         valueX = 90;
         break;
-      case 4: // Friend Compass
+      case 5: // Friend Compass
         value = ""; // No value, just launches
         break;
-      case 5: // Findability
+      case 6: // Findability
         value = settings.findabilityEnabled ? "ON" : "OFF";
         break;
-      case 6: // Theme
+      case 7: // Theme
         value = "Coming Soon";
         valueX = 80;
-        break;
-      case 7: // OTA Update
-        value = FIRMWARE_VERSION;
-        valueX = 90;
         break;
     }
 

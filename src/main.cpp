@@ -1959,25 +1959,6 @@ void loop() {
               settingsState = SETTINGS_DEVICE_NAME;
               drawDeviceNameInput();
             } else if (settingsMenuIndex == 3) {
-              // Timezone selector
-              settingsState = SETTINGS_TIMEZONE;
-              drawTimezoneSelector();
-            } else if (settingsMenuIndex == 4) {
-              // Friend Compass - launch Room Radar
-              currentState = SCREEN_VIEW;
-              currentScreenNumber = 16; // LabCHAT
-              chatState = CHAT_ROOM_RADAR;
-              enterRoomRadar();
-              drawLabChat();
-            } else if (settingsMenuIndex == 5) {
-              // Findability toggle
-              toggleFindability();
-              drawSettingsMenu();
-            } else if (settingsMenuIndex == 6) {
-              // Theme placeholder
-              settingsState = SETTINGS_THEME;
-              drawThemePlaceholder();
-            } else if (settingsMenuIndex == 7) {
               // OTA Update
               if (WiFi.status() != WL_CONNECTED) {
                 M5Cardputer.Display.clear();
@@ -1990,6 +1971,25 @@ void loop() {
                 OTAManager::checkForUpdate();
               }
               drawSettingsMenu();
+            } else if (settingsMenuIndex == 4) {
+              // Timezone selector
+              settingsState = SETTINGS_TIMEZONE;
+              drawTimezoneSelector();
+            } else if (settingsMenuIndex == 5) {
+              // Friend Compass - launch Room Radar
+              currentState = SCREEN_VIEW;
+              currentScreenNumber = 16; // LabCHAT
+              chatState = CHAT_ROOM_RADAR;
+              enterRoomRadar();
+              drawLabChat();
+            } else if (settingsMenuIndex == 6) {
+              // Findability toggle
+              toggleFindability();
+              drawSettingsMenu();
+            } else if (settingsMenuIndex == 7) {
+              // Theme placeholder
+              settingsState = SETTINGS_THEME;
+              drawThemePlaceholder();
             }
           } else if (settingsState == SETTINGS_DEVICE_NAME) {
             // Save device name
