@@ -31,6 +31,15 @@ bool OTAManager::checkForUpdate() {
         M5Cardputer.Display.printf("Error: HTTP %d\n", httpCode);
         M5Cardputer.Display.println("Press any key...");
         http.end();
+        // Wait for key press and consume it
+        while (true) {
+            M5Cardputer.update();
+            if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+                break;
+            }
+            yield(); // Feed watchdog
+            delay(10);
+        }
         return false;
     }
 
@@ -42,6 +51,15 @@ bool OTAManager::checkForUpdate() {
     if (latestVersion.length() == 0) {
         M5Cardputer.Display.println("Parse error: No tag found");
         M5Cardputer.Display.println("Press any key...");
+        // Wait for key press and consume it
+        while (true) {
+            M5Cardputer.update();
+            if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+                break;
+            }
+            yield(); // Feed watchdog
+            delay(10);
+        }
         return false;
     }
 
@@ -51,6 +69,15 @@ bool OTAManager::checkForUpdate() {
     if (latestVersion == String(FIRMWARE_VERSION)) {
         M5Cardputer.Display.println("\nAlready up to date!");
         M5Cardputer.Display.println("Press any key...");
+        // Wait for key press and consume it
+        while (true) {
+            M5Cardputer.update();
+            if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+                break;
+            }
+            yield(); // Feed watchdog
+            delay(10);
+        }
         return false;
     }
 
@@ -60,6 +87,13 @@ bool OTAManager::checkForUpdate() {
     if (urlStart < 0) {
         M5Cardputer.Display.println("No firmware.bin found");
         M5Cardputer.Display.println("Press any key...");
+        while (true) {
+            M5Cardputer.update();
+            if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+                break;
+            }
+            delay(10);
+        }
         return false;
     }
 
@@ -71,6 +105,13 @@ bool OTAManager::checkForUpdate() {
     if (firmwareUrl.indexOf("firmware.bin") < 0) {
         M5Cardputer.Display.println("Invalid firmware URL");
         M5Cardputer.Display.println("Press any key...");
+        while (true) {
+            M5Cardputer.update();
+            if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+                break;
+            }
+            delay(10);
+        }
         return false;
     }
 
@@ -99,6 +140,7 @@ bool OTAManager::checkForUpdate() {
                 }
             }
         }
+        yield(); // Feed watchdog
         delay(10);
     }
 
@@ -120,6 +162,13 @@ bool OTAManager::performUpdate(String firmwareURL) {
         M5Cardputer.Display.printf("\nDownload failed: %d\n", httpCode);
         M5Cardputer.Display.println("Press any key...");
         http.end();
+        while (true) {
+            M5Cardputer.update();
+            if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+                break;
+            }
+            delay(10);
+        }
         return false;
     }
 
@@ -130,6 +179,13 @@ bool OTAManager::performUpdate(String firmwareURL) {
         M5Cardputer.Display.println("Invalid content length");
         M5Cardputer.Display.println("Press any key...");
         http.end();
+        while (true) {
+            M5Cardputer.update();
+            if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+                break;
+            }
+            delay(10);
+        }
         return false;
     }
 
@@ -139,6 +195,13 @@ bool OTAManager::performUpdate(String firmwareURL) {
         M5Cardputer.Display.printf("Needed: %d bytes\n", contentLength);
         M5Cardputer.Display.println("Press any key...");
         http.end();
+        while (true) {
+            M5Cardputer.update();
+            if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+                break;
+            }
+            delay(10);
+        }
         return false;
     }
 
@@ -172,6 +235,13 @@ bool OTAManager::performUpdate(String firmwareURL) {
         M5Cardputer.Display.printf("Written: %d / %d\n", written, contentLength);
         M5Cardputer.Display.println("Press any key...");
         Update.abort();
+        while (true) {
+            M5Cardputer.update();
+            if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+                break;
+            }
+            delay(10);
+        }
         return false;
     }
 
@@ -188,6 +258,13 @@ bool OTAManager::performUpdate(String firmwareURL) {
     M5Cardputer.Display.println("\nUpdate failed!");
     M5Cardputer.Display.printf("Error: %s\n", Update.errorString());
     M5Cardputer.Display.println("Press any key...");
+    while (true) {
+        M5Cardputer.update();
+        if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+            break;
+        }
+        delay(10);
+    }
     return false;
 }
 

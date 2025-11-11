@@ -6,7 +6,27 @@
 #include <M5Cardputer.h>
 #include <SD.h>
 
-// Berry emoji - hardcoded from cberry.emoji (centered for title bar/WiFi icons)
+// Star emoji - hardcoded from star.emoji (centered for title bar/WiFi icons)
+static const uint16_t STAR_ICON[16][16] = {
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0xFFE0, 0xFFE0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x0000, 0x0000, 0x07E0, 0x07E0},
+    {0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0},
+    {0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0},
+    {0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+};
+
+// Berry emoji - hardcoded from berry.emoji
 static const uint16_t BERRY_ICON[16][16] = {
     {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
     {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
@@ -132,6 +152,15 @@ NearbyDevice nearbyDevices[MAX_NEARBY_DEVICES];
 int nearbyDeviceCount = 0;
 int selectedRadarIndex = 0;
 bool radarTrackingMode = false;
+
+// Helper function to extract color from network name (strips " Room" suffix)
+String getColorFromNetworkName(const String& networkName) {
+  String color = networkName;
+  if (color.endsWith(" Room")) {
+    color = color.substring(0, color.length() - 5);
+  }
+  return color;
+}
 unsigned long lastRadarScan = 0;
 
 // Cursor blink
@@ -413,8 +442,15 @@ void drawLabChatHeader(const char* subtitle) {
   M5Cardputer.Display.fillRoundRect(5, 8, totalWidth, 20, 10, TFT_WHITE);
   M5Cardputer.Display.drawRoundRect(5, 8, totalWidth, 20, 10, TFT_BLACK);
 
-  // Strawberry emoji 🍓
-  drawEmojiIcon(11, 11, "\xF0\x9F\x8D\x93", TFT_RED, 1);
+  // Star emoji ⭐
+  for (int y = 0; y < 16; y++) {
+    for (int x = 0; x < 16; x++) {
+      uint16_t color = STAR_ICON[y][x];
+      if (color != 0x07E0) { // Skip transparent pixels
+        M5Cardputer.Display.drawPixel(11 + x, 10 + y, color);
+      }
+    }
+  }
 
   // "LabCHAT" text
   M5Cardputer.Display.setTextSize(1);
@@ -577,8 +613,8 @@ void drawMainChat() {
   if (dmTargetID.length() > 0) {
     snprintf(subtitle, 64, "DM:%s [%d]", dmTargetUsername.c_str(), espNowManager.getPeerCount());
   } else {
-    String channelName = channelNames[chatCurrentChannel];
-    snprintf(subtitle, 64, "#%s [%d]", channelName.c_str(), espNowManager.getPeerCount());
+    String roomColor = activeRooms[currentRoomIndex].color;
+    snprintf(subtitle, 64, "%s [%d]", roomColor.c_str(), espNowManager.getPeerCount());
   }
   drawLabChatHeader(subtitle);
 
@@ -804,22 +840,23 @@ void drawMainChat() {
     displayedCount++;
   }
 
-  // Show emoji hint and berry on same line if no messages
+  // Show emoji hint with berry centered below if no messages
   if (filteredCount == 0) {
     M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setTextColor(TFT_DARKGREY);
 
-    // Draw text first, then berry emoji at end
+    // Draw text centered
+    int y = 65;
+    M5Cardputer.Display.drawString("\\ = emojis", 86, y);
+
+    // Draw berry emoji centered on next line
     const char* berry = "\xF0\x9F\x8D\x93";  // 🍓 Strawberry
-    int y = 70;
-    int textX = 80;
-    M5Cardputer.Display.drawString("\\ = emojis", textX, y + 2);
-    drawEmojiIcon(textX + 54, y, berry, TFT_RED, 1);
+    drawEmojiIcon(112, y + 10, berry, TFT_RED, 1);
   }
 
   // Input area (black background with yellow outline, terminal style, with margins)
-  M5Cardputer.Display.fillRoundRect(5, 107, 230, 23, 8, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(5, 107, 230, 23, 8, TFT_YELLOW);
+  M5Cardputer.Display.fillRoundRect(5, 110, 230, 21, 8, TFT_BLACK);
+  M5Cardputer.Display.drawRoundRect(5, 110, 230, 21, 8, TFT_YELLOW);
 
   // Terminal gradient colors (smooth ping-pong)
   uint16_t gradientColors[] = {
@@ -863,7 +900,7 @@ void drawMainChat() {
   }
 
   int xPos = 10;
-  int inputY = 112;  // Text Y position (5px from top of input box at y=107)
+  int inputY = 115;  // Text Y position (5px from top of input box at y=110)
   for (int i = 0; i < displayInput.length(); i++) {
     int actualIndex = (fullInput.length() > maxChars) ? (fullInput.length() - maxChars + i) : i;
     M5Cardputer.Display.setTextSize(2);  // Changed from 1 to 2
@@ -880,12 +917,30 @@ void drawMainChat() {
     }
   }
 
-  // Emoji hint at bottom - text first, berry at end
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  const char* berry = "\xF0\x9F\x8D\x93";  // 🍓 Strawberry
-  M5Cardputer.Display.drawString("\\ = emojis", 75, 133);
-  drawEmojiIcon(129, 131, berry, TFT_RED, 1);
+  // Emoji hint inside message area bottom (only when input is empty)
+  if (chatInput.length() == 0) {
+    M5Cardputer.Display.setTextSize(1);
+    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+    int hintY = 90;  // Inside message area (ends at y=102)
+
+    // Draw "\=emojis" first
+    M5Cardputer.Display.drawString("\\=emojis", 45, hintY);
+
+    // Draw berry centered with text - 45 + 8*8 + 12 = 121
+    int berryX = 121;
+    int berryY = hintY - 4;  // Vertically center 16px berry with 8px text
+    for (int y = 0; y < 16; y++) {
+      for (int x = 0; x < 16; x++) {
+        uint16_t color = BERRY_ICON[y][x];
+        if (color != 0x07E0) { // Skip transparent pixels
+          M5Cardputer.Display.drawPixel(berryX + x, berryY + y, color);
+        }
+      }
+    }
+
+    // Draw "  `=settings" after berry - 121 + 16 + 12 = 149
+    M5Cardputer.Display.drawString("  `=settings", 149, hintY);
+  }
 }
 
 void drawUserList() {
@@ -1225,48 +1280,56 @@ void drawLobby() {
 void drawRoomRadar() {
   M5Cardputer.Display.fillScreen(TFT_WHITE);
 
-  if (radarTrackingMode && selectedRadarIndex < nearbyDeviceCount) {
+  if (radarTrackingMode) {
     // TRACKING MODE - Hot/Cold display
     drawLabChatHeader("Tracking");
 
-    NearbyDevice& device = nearbyDevices[selectedRadarIndex];
+    if (selectedRadarIndex < nearbyDeviceCount) {
+      NearbyDevice& device = nearbyDevices[selectedRadarIndex];
 
-    // Show room/device name with device ID suffix
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    String displayName = device.roomName;
-    if (device.deviceID.length() >= 2) {
-      displayName += " (" + device.deviceID.substring(device.deviceID.length() - 2) + ")";
-    }
-    int textWidth = displayName.length() * 12;
-    int xPos = 120 - (textWidth / 2);
-    M5Cardputer.Display.drawString(displayName.c_str(), xPos, 35);
+      // Show room/device name with device ID suffix
+      M5Cardputer.Display.setTextSize(2);
+      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      String displayName = device.roomName;
+      if (device.deviceID.length() >= 2) {
+        displayName += " (" + device.deviceID.substring(device.deviceID.length() - 2) + ")";
+      }
+      int textWidth = displayName.length() * 12;
+      int xPos = 120 - (textWidth / 2);
+      M5Cardputer.Display.drawString(displayName.c_str(), xPos, 35);
 
-    // Calculate proximity (rssi ranges: -30 = very close, -90 = far)
-    int strength = constrain(map(device.rssi, -90, -30, 0, 10), 0, 10);
+      // Calculate proximity (rssi ranges: -30 = very close, -90 = far)
+      int strength = constrain(map(device.rssi, -90, -30, 0, 10), 0, 10);
 
-    // Draw strength indicator with color
-    M5Cardputer.Display.setTextSize(3);
-    uint16_t heatColor;
-    String heatText;
-    if (strength >= 8) {
-      heatColor = TFT_RED;
-      heatText = "HOT";
-    } else if (strength >= 5) {
-      heatColor = TFT_ORANGE;
-      heatText = "WARM";
+      // Draw strength indicator with color
+      M5Cardputer.Display.setTextSize(3);
+      uint16_t heatColor;
+      String heatText;
+      if (strength >= 8) {
+        heatColor = TFT_RED;
+        heatText = "HOT";
+      } else if (strength >= 5) {
+        heatColor = TFT_ORANGE;
+        heatText = "WARM";
+      } else {
+        heatColor = TFT_BLUE;
+        heatText = "COLD";
+      }
+      M5Cardputer.Display.setTextColor(heatColor);
+      int heatX = 120 - (heatText.length() * 18 / 2);
+      M5Cardputer.Display.drawString(heatText.c_str(), heatX, 60);
+
+      // Draw signal bar
+      M5Cardputer.Display.fillRect(30, 95, 180, 10, TFT_LIGHTGREY);
+      M5Cardputer.Display.fillRect(30, 95, strength * 18, 10, heatColor);
     } else {
-      heatColor = TFT_BLUE;
-      heatText = "COLD";
+      // No device to track yet
+      M5Cardputer.Display.setTextSize(2);
+      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+      M5Cardputer.Display.drawString("Searching...", 65, 60);
     }
-    M5Cardputer.Display.setTextColor(heatColor);
-    int heatX = 120 - (heatText.length() * 18 / 2);
-    M5Cardputer.Display.drawString(heatText.c_str(), heatX, 60);
 
-    // Draw signal bar
-    M5Cardputer.Display.fillRect(30, 95, 180, 10, TFT_LIGHTGREY);
-    M5Cardputer.Display.fillRect(30, 95, strength * 18, 10, heatColor);
-
+    M5Cardputer.Display.setTextSize(1);
     drawNavHint("`=Back  T=List", 70, 118);
   } else {
     // LIST MODE - Show nearby rooms/devices
@@ -1275,11 +1338,14 @@ void drawRoomRadar() {
     M5Cardputer.Display.setTextSize(1);
 
     if (nearbyDeviceCount == 0) {
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("No nearby rooms found", 55, 55);
+      M5Cardputer.Display.setTextColor(TFT_RED);
+      M5Cardputer.Display.drawString("No nearby rooms found", 55, 45);
       M5Cardputer.Display.setTextColor(TFT_BLUE);
-      M5Cardputer.Display.drawString("Scanning for beacons...", 50, 70);
-      M5Cardputer.Display.drawString("Devices broadcast every 10s", 35, 80);
+      M5Cardputer.Display.drawString("Scanning for beacons...", 50, 60);
+      M5Cardputer.Display.drawString("Devices broadcast every 10s", 35, 70);
+      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+      M5Cardputer.Display.drawString("Press esc and then come back,", 25, 85);
+      M5Cardputer.Display.drawString("needs to reload sometimes.", 35, 95);
     } else {
       // Draw list of nearby devices/rooms
       int yPos = 40;
@@ -1571,6 +1637,15 @@ void loadSystemEmojis() {
 
   systemEmojiCount = 0;
 
+  // Always add hardcoded star and berry emojis first (work without SD card)
+  systemEmojis[systemEmojiCount].shortcut = "star";
+  memcpy(systemEmojis[systemEmojiCount].pixels, STAR_ICON, sizeof(STAR_ICON));
+  systemEmojiCount++;
+
+  systemEmojis[systemEmojiCount].shortcut = "berry";
+  memcpy(systemEmojis[systemEmojiCount].pixels, BERRY_ICON, sizeof(BERRY_ICON));
+  systemEmojiCount++;
+
   Serial.println("=== loadSystemEmojis() - Loading from /labchat/emojis ===");
 
   // ONE-TIME MIGRATION: Move old received_emojis to new unified folder
@@ -1745,6 +1820,10 @@ void exitLabChat() {
   // Keep ESP-NOW running in background to receive messages
   // Only deinit when explicitly leaving network in settings
 
+  // Reset activity timer to prevent immediate screensaver trigger
+  extern unsigned long lastActivityTime;
+  lastActivityTime = millis();
+
   // Clear screen with color matching UI inversion state
   extern bool uiInverted;
   M5Cardputer.Display.fillScreen(uiInverted ? TFT_BLACK : TFT_WHITE);
@@ -1907,6 +1986,7 @@ void handleLabChatNavigation(char key) {
               if (activeRoomCount < MAX_ROOMS) {
                 activeRooms[activeRoomCount].name = newNetwork;
                 activeRooms[activeRoomCount].password = randomPassword;
+                activeRooms[activeRoomCount].color = getColorFromNetworkName(newNetwork);
                 currentRoomIndex = activeRoomCount;
                 activeRoomCount++;
               }
@@ -1946,6 +2026,7 @@ void handleLabChatNavigation(char key) {
                 if (activeRoomCount < MAX_ROOMS) {
                   activeRooms[activeRoomCount].name = newNetwork;
                   activeRooms[activeRoomCount].password = randomPassword;
+                  activeRooms[activeRoomCount].color = getColorFromNetworkName(newNetwork);
                   currentRoomIndex = activeRoomCount;
                   activeRoomCount++;
                 }
@@ -2052,6 +2133,7 @@ void handleLabChatNavigation(char key) {
               if (!roomExists && activeRoomCount < MAX_ROOMS) {
                 activeRooms[activeRoomCount].name = newNetwork;
                 activeRooms[activeRoomCount].password = networkPasswordInput;
+                activeRooms[activeRoomCount].color = getColorFromNetworkName(newNetwork);
                 currentRoomIndex = activeRoomCount;
                 activeRoomCount++;
               }
@@ -2087,6 +2169,7 @@ void handleLabChatNavigation(char key) {
               if (!roomExists && activeRoomCount < MAX_ROOMS) {
                 activeRooms[activeRoomCount].name = newNetwork;
                 activeRooms[activeRoomCount].password = networkPasswordInput;
+                activeRooms[activeRoomCount].color = getColorFromNetworkName(newNetwork);
                 currentRoomIndex = activeRoomCount;
                 activeRoomCount++;
               }

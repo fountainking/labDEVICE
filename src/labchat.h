@@ -29,6 +29,7 @@ enum LabChatState {
 struct RoomInfo {
   String name;
   String password;
+  String color;
 };
 
 // LabCHAT functions

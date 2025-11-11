@@ -317,6 +317,27 @@ void loadFolder(String path) {
   }
   selectedCount = 0;
 
+  // Check SD card is still mounted before trying to open
+  if (SD.cardType() == CARD_NONE) {
+    sdCardMounted = false;
+    M5Cardputer.Display.fillScreen(TFT_WHITE);
+    drawFileManagerHeader();
+    M5Cardputer.Display.setTextSize(2);
+    M5Cardputer.Display.setTextColor(TFT_RED);
+    M5Cardputer.Display.drawString("SD Error!", 70, 60);
+    M5Cardputer.Display.setTextSize(1);
+    M5Cardputer.Display.setTextColor(TFT_BLACK);
+    M5Cardputer.Display.drawString("SD card not found", 70, 85);
+    delay(1500);
+    return;
+  }
+
+  // Normalize path: remove trailing slash (except for root "/")
+  String normalizedPath = path;
+  if (normalizedPath.length() > 1 && normalizedPath.endsWith("/")) {
+    normalizedPath = normalizedPath.substring(0, normalizedPath.length() - 1);
+  }
+
   // Loading message with WiFi Transfer style
   M5Cardputer.Display.fillScreen(TFT_WHITE);
   drawFileManagerHeader();
@@ -329,13 +350,18 @@ void loadFolder(String path) {
   M5Cardputer.Display.drawString(loadMsg.c_str(), 20, 65);
   delay(300);
 
-  File root = SD.open(path);
+  File root = SD.open(normalizedPath);
 
   if (!root) {
     M5Cardputer.Display.setTextColor(TFT_RED);
     M5Cardputer.Display.drawString("Failed to open!", 75, 85);
     delay(1500);
-    drawFolderView();
+    // Try to recover by going to root
+    if (path != "/") {
+      currentPath = "/";
+      selectedFileIndex = 0;
+      loadFolder("/");
+    }
     return;
   }
 
@@ -344,7 +370,12 @@ void loadFolder(String path) {
     M5Cardputer.Display.drawString("Not a directory!", 70, 85);
     delay(1500);
     root.close();
-    drawFolderView();
+    // Try to recover by going to root
+    if (path != "/") {
+      currentPath = "/";
+      selectedFileIndex = 0;
+      loadFolder("/");
+    }
     return;
   }
   
