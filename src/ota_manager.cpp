@@ -233,7 +233,27 @@ bool OTAManager::checkForUpdate() {
         return false;
     }
 
+    // Check if update is mandatory
+    String releaseName = parseJsonField(payload, "name");
+    bool isMandatory = (releaseName.indexOf("[MANDATORY]") >= 0) ||
+                       (releaseName.indexOf("[CRITICAL]") >= 0);
+
     lineY += lineSpacing; // Extra space
+
+    if (isMandatory) {
+        // MANDATORY UPDATE - auto-install, no ESC
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.setTextColor(TFT_RED);
+        M5Cardputer.Display.println("CRITICAL UPDATE REQUIRED");
+        lineY += lineSpacing;
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.setTextColor(TFT_YELLOW);
+        M5Cardputer.Display.println("Installing automatically...");
+        delay(2000); // Give user time to read
+        return performUpdate(firmwareUrl);
+    }
+
+    // Optional update - show ENTER/ESC options
     M5Cardputer.Display.setCursor(15, lineY);
     M5Cardputer.Display.setTextColor(gradientColor(3, 5));
     M5Cardputer.Display.println("Update available!");
