@@ -125,20 +125,29 @@ bool OTAManager::checkForUpdate() {
     lineY += lineSpacing;
     M5Cardputer.Display.setCursor(15, lineY);
     M5Cardputer.Display.setTextColor(gradientColor(3, 5));
-    M5Cardputer.Display.printf("Signal: %d dBm", WiFi.RSSI());
+    int rssi = WiFi.RSSI();
+    M5Cardputer.Display.printf("Signal: %d dBm", rssi);
     lineY += lineSpacing;
+
+    // Warn if signal is weak
+    if (rssi < -80) {
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.setTextColor(TFT_YELLOW);
+        M5Cardputer.Display.println("Warning: Weak signal!");
+        lineY += lineSpacing;
+    }
 
     // Force WiFi reconnect to wake from sleep
     M5Cardputer.Display.setCursor(15, lineY);
     M5Cardputer.Display.setTextColor(gradientColor(3, 5));
     M5Cardputer.Display.println("Waking WiFi...");
     WiFi.disconnect(false);
-    delay(200);
+    delay(500); // Increased delay for better stability
     WiFi.reconnect();
 
-    // Wait for full reconnection (up to 5 seconds)
+    // Wait for full reconnection (up to 10 seconds, increased)
     int waitCount = 0;
-    while (WiFi.status() != WL_CONNECTED && waitCount < 50) {
+    while (WiFi.status() != WL_CONNECTED && waitCount < 100) {
         delay(100);
         waitCount++;
         yield(); // Feed watchdog
@@ -155,6 +164,19 @@ bool OTAManager::checkForUpdate() {
         return false;
     }
 
+    // Verify stable connection
+    delay(1000);
+    if (WiFi.status() != WL_CONNECTED) {
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.setTextColor(TFT_RED);
+        M5Cardputer.Display.println("WiFi unstable!");
+        lineY += lineSpacing;
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.println("Press any key...");
+        waitForKeyPressAndRelease();
+        return false;
+    }
+
     M5Cardputer.Display.print("OK!");
     delay(300);
     lineY += lineSpacing;
@@ -162,7 +184,7 @@ bool OTAManager::checkForUpdate() {
     // Create FRESH secure client (don't reuse stale TLS state)
     WiFiClientSecure freshClient;
     freshClient.setInsecure(); // Skip certificate validation
-    freshClient.setHandshakeTimeout(60); // 60 second TLS timeout
+    freshClient.setHandshakeTimeout(90); // 90 second TLS timeout (increased)
 
     // Debug: Connecting
     M5Cardputer.Display.setCursor(15, lineY);
@@ -173,20 +195,46 @@ bool OTAManager::checkForUpdate() {
     HTTPClient http;
     http.begin(freshClient, GITHUB_API_URL);
     http.addHeader("User-Agent", "M5Cardputer-Laboratory");
-    http.setTimeout(60000); // 60 second timeout
+    http.setTimeout(30000); // 30 second timeout (max safe value)
 
     M5Cardputer.Display.setCursor(15, lineY);
     M5Cardputer.Display.setTextColor(WHITE);
     M5Cardputer.Display.println("Sending GET request...");
     lineY += lineSpacing;
 
-    int httpCode = http.GET();
+    // Retry logic: Try up to 3 times
+    int httpCode = -1;
+    int retryCount = 0;
+    const int maxRetries = 3;
+
+    while (httpCode != 200 && retryCount < maxRetries) {
+        if (retryCount > 0) {
+            M5Cardputer.Display.setCursor(15, lineY);
+            M5Cardputer.Display.setTextColor(TFT_YELLOW);
+            M5Cardputer.Display.printf("Retry %d/%d...", retryCount, maxRetries - 1);
+            lineY += lineSpacing;
+            delay(2000); // Wait before retry
+        }
+
+        httpCode = http.GET();
+        retryCount++;
+        yield(); // Feed watchdog
+    }
 
     if (httpCode != 200) {
         M5Cardputer.Display.setCursor(15, lineY);
         M5Cardputer.Display.setTextColor(gradientColor(2, 5));
         M5Cardputer.Display.printf("Error: HTTP %d", httpCode);
         lineY += lineSpacing;
+        if (httpCode == -1) {
+            M5Cardputer.Display.setCursor(15, lineY);
+            M5Cardputer.Display.setTextColor(TFT_YELLOW);
+            M5Cardputer.Display.println("Connection failed");
+            lineY += lineSpacing;
+            M5Cardputer.Display.setCursor(15, lineY);
+            M5Cardputer.Display.println("Try: Closer to router");
+            lineY += lineSpacing;
+        }
         M5Cardputer.Display.setCursor(15, lineY);
         M5Cardputer.Display.setTextColor(gradientColor(3, 5));
         M5Cardputer.Display.println("Press any key...");
@@ -374,12 +422,12 @@ bool OTAManager::performUpdate(String firmwareURL) {
     M5Cardputer.Display.setTextColor(gradientColor(2, 5));
     M5Cardputer.Display.println("Waking WiFi...");
     WiFi.disconnect(false);
-    delay(200);
+    delay(500); // Increased delay for better stability
     WiFi.reconnect();
 
-    // Wait for full reconnection (up to 5 seconds)
+    // Wait for full reconnection (up to 10 seconds, increased)
     int waitCount = 0;
-    while (WiFi.status() != WL_CONNECTED && waitCount < 50) {
+    while (WiFi.status() != WL_CONNECTED && waitCount < 100) {
         delay(100);
         waitCount++;
         yield(); // Feed watchdog
@@ -396,6 +444,19 @@ bool OTAManager::performUpdate(String firmwareURL) {
         return false;
     }
 
+    // Verify stable connection
+    delay(1000);
+    if (WiFi.status() != WL_CONNECTED) {
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.setTextColor(TFT_RED);
+        M5Cardputer.Display.println("WiFi unstable!");
+        lineY += lineSpacing;
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.println("Press any key...");
+        waitForKeyPressAndRelease();
+        return false;
+    }
+
     M5Cardputer.Display.print("OK!");
     delay(300);
     lineY += lineSpacing;
@@ -403,7 +464,7 @@ bool OTAManager::performUpdate(String firmwareURL) {
     // Create FRESH secure client (don't reuse stale TLS state)
     WiFiClientSecure freshClient;
     freshClient.setInsecure(); // Skip certificate validation
-    freshClient.setHandshakeTimeout(60); // 60 second TLS timeout
+    freshClient.setHandshakeTimeout(90); // 90 second TLS timeout (increased)
 
     lineY += lineSpacing; // Extra space
     M5Cardputer.Display.setCursor(15, lineY);
@@ -413,7 +474,7 @@ bool OTAManager::performUpdate(String firmwareURL) {
 
     HTTPClient http;
     http.begin(freshClient, firmwareURL);
-    http.setTimeout(60000); // 60 second timeout for download
+    http.setTimeout(30000); // 30 second timeout (max safe value)
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
     M5Cardputer.Display.setCursor(15, lineY);
@@ -421,7 +482,24 @@ bool OTAManager::performUpdate(String firmwareURL) {
     M5Cardputer.Display.println("Requesting firmware...");
     lineY += lineSpacing;
 
-    int httpCode = http.GET();
+    // Retry logic: Try up to 3 times
+    int httpCode = -1;
+    int retryCount = 0;
+    const int maxRetries = 3;
+
+    while (httpCode != 200 && retryCount < maxRetries) {
+        if (retryCount > 0) {
+            M5Cardputer.Display.setCursor(15, lineY);
+            M5Cardputer.Display.setTextColor(TFT_YELLOW);
+            M5Cardputer.Display.printf("Retry %d/%d...", retryCount, maxRetries - 1);
+            lineY += lineSpacing;
+            delay(2000); // Wait before retry
+        }
+
+        httpCode = http.GET();
+        retryCount++;
+        yield(); // Feed watchdog
+    }
 
     M5Cardputer.Display.setCursor(15, lineY);
     M5Cardputer.Display.setTextColor(WHITE);
@@ -436,11 +514,11 @@ bool OTAManager::performUpdate(String firmwareURL) {
         lineY += lineSpacing;
         if (httpCode == -1) {
             M5Cardputer.Display.setCursor(15, lineY);
-            M5Cardputer.Display.setTextColor(WHITE);
+            M5Cardputer.Display.setTextColor(TFT_YELLOW);
             M5Cardputer.Display.println("Connection error");
             lineY += lineSpacing;
             M5Cardputer.Display.setCursor(15, lineY);
-            M5Cardputer.Display.println("Check WiFi signal");
+            M5Cardputer.Display.println("Try: Closer to router");
             lineY += lineSpacing;
         }
         M5Cardputer.Display.setCursor(15, lineY);
@@ -490,7 +568,7 @@ bool OTAManager::performUpdate(String firmwareURL) {
 
     WiFiClient* stream = http.getStreamPtr();
     size_t written = 0;
-    uint8_t buff[128];
+    uint8_t buff[512]; // Increased buffer size from 128 to 512 bytes
     int lastProgress = -1;
 
     while (http.connected() && (written < contentLength)) {
