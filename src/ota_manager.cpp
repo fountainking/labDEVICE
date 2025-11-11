@@ -1,5 +1,6 @@
 #include "ota_manager.h"
 #include <M5Cardputer.h>
+#include <WiFiClientSecure.h>
 
 String OTAManager::parseJsonField(String json, String field) {
     String searchStr = "\"" + field + "\":\"";
@@ -20,8 +21,11 @@ bool OTAManager::checkForUpdate() {
     M5Cardputer.Display.printf("Current: %s\n", FIRMWARE_VERSION);
     M5Cardputer.Display.println("Checking for updates...");
 
+    WiFiClientSecure client;
+    client.setInsecure(); // Skip certificate validation
+
     HTTPClient http;
-    http.begin(GITHUB_API_URL);
+    http.begin(client, GITHUB_API_URL);
     http.addHeader("User-Agent", "M5Cardputer-Laboratory");
     http.setTimeout(15000); // 15 second timeout
 
@@ -153,8 +157,11 @@ bool OTAManager::performUpdate(String firmwareURL) {
     M5Cardputer.Display.println("Downloading firmware...");
     M5Cardputer.Display.println(firmwareURL);
 
+    WiFiClientSecure client;
+    client.setInsecure(); // Skip certificate validation
+
     HTTPClient http;
-    http.begin(firmwareURL);
+    http.begin(client, firmwareURL);
     http.setTimeout(30000); // 30 second timeout for download
 
     int httpCode = http.GET();
