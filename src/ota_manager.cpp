@@ -111,12 +111,44 @@ bool OTAManager::checkForUpdate() {
     M5Cardputer.Display.println("Checking for updates...");
     lineY += lineSpacing;
 
+    // Debug: Check WiFi status
+    M5Cardputer.Display.setCursor(15, lineY);
+    M5Cardputer.Display.setTextColor(gradientColor(2, 5));
+    if (WiFi.status() != WL_CONNECTED) {
+        M5Cardputer.Display.println("WiFi not connected!");
+        lineY += lineSpacing;
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.println("Press any key...");
+        waitForKeyPressAndRelease();
+        return false;
+    }
+    M5Cardputer.Display.printf("WiFi: %s", WiFi.SSID().c_str());
+    lineY += lineSpacing;
+
+    // Debug: Show RSSI
+    M5Cardputer.Display.setCursor(15, lineY);
+    M5Cardputer.Display.setTextColor(gradientColor(3, 5));
+    M5Cardputer.Display.printf("Signal: %d dBm", WiFi.RSSI());
+    lineY += lineSpacing;
+
     secureClient.setInsecure(); // Skip certificate validation
+    secureClient.setHandshakeTimeout(60); // 60 second TLS timeout
+
+    // Debug: Connecting
+    M5Cardputer.Display.setCursor(15, lineY);
+    M5Cardputer.Display.setTextColor(gradientColor(4, 5));
+    M5Cardputer.Display.println("Connecting to GitHub...");
+    lineY += lineSpacing;
 
     HTTPClient http;
     http.begin(secureClient, GITHUB_API_URL);
     http.addHeader("User-Agent", "M5Cardputer-Laboratory");
-    http.setTimeout(15000); // 15 second timeout
+    http.setTimeout(60000); // 60 second timeout
+
+    M5Cardputer.Display.setCursor(15, lineY);
+    M5Cardputer.Display.setTextColor(WHITE);
+    M5Cardputer.Display.println("Sending GET request...");
+    lineY += lineSpacing;
 
     int httpCode = http.GET();
 
@@ -273,13 +305,27 @@ bool OTAManager::performUpdate(String firmwareURL) {
     M5Cardputer.Display.println(displayURL);
     lineY += lineSpacing;
 
+    // Debug: WiFi check
+    M5Cardputer.Display.setCursor(15, lineY);
+    M5Cardputer.Display.setTextColor(gradientColor(2, 5));
+    if (WiFi.status() != WL_CONNECTED) {
+        M5Cardputer.Display.println("WiFi disconnected!");
+        lineY += lineSpacing;
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.println("Press any key...");
+        waitForKeyPressAndRelease();
+        return false;
+    }
+    M5Cardputer.Display.printf("WiFi OK (%d dBm)", WiFi.RSSI());
+    lineY += lineSpacing;
+
     secureClient.setInsecure(); // Skip certificate validation
-    secureClient.setHandshakeTimeout(30); // 30 second TLS timeout
+    secureClient.setHandshakeTimeout(60); // 60 second TLS timeout
 
     lineY += lineSpacing; // Extra space
     M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(2, 5));
-    M5Cardputer.Display.println("Connecting...");
+    M5Cardputer.Display.setTextColor(gradientColor(3, 5));
+    M5Cardputer.Display.println("TLS handshake...");
     lineY += lineSpacing;
 
     HTTPClient http;
@@ -288,11 +334,16 @@ bool OTAManager::performUpdate(String firmwareURL) {
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
     M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(3, 5));
+    M5Cardputer.Display.setTextColor(gradientColor(4, 5));
     M5Cardputer.Display.println("Requesting firmware...");
     lineY += lineSpacing;
 
     int httpCode = http.GET();
+
+    M5Cardputer.Display.setCursor(15, lineY);
+    M5Cardputer.Display.setTextColor(WHITE);
+    M5Cardputer.Display.printf("Response: %d", httpCode);
+    lineY += lineSpacing;
 
     if (httpCode != 200) {
         lineY += lineSpacing;
@@ -352,10 +403,7 @@ bool OTAManager::performUpdate(String firmwareURL) {
         return false;
     }
 
-    lineY += lineSpacing;
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(WHITE);
-    M5Cardputer.Display.println("Flashing firmware...");
+    // Remove "Flashing firmware..." text - progress bar will be at bottom
 
     WiFiClient* stream = http.getStreamPtr();
     size_t written = 0;
@@ -422,7 +470,7 @@ void OTAManager::displayProgress(int current, int total) {
     int barWidth = 200;
     int barHeight = 20;
     int barX = 20;
-    int barY = 81; // Moved down 1px from 80
+    int barY = 115; // Bottom of screen (135 - 20)
 
     // Draw progress bar background
     M5Cardputer.Display.drawRect(barX, barY, barWidth, barHeight, WHITE);
@@ -431,8 +479,9 @@ void OTAManager::displayProgress(int current, int total) {
     int fillWidth = (barWidth * current) / total;
     M5Cardputer.Display.fillRect(barX + 2, barY + 2, fillWidth - 4, barHeight - 4, 0xFFE0);
 
-    // Draw percentage text
-    M5Cardputer.Display.setCursor(barX + barWidth / 2 - 20, barY + barHeight + 10);
-    M5Cardputer.Display.setTextColor(WHITE, BLACK);
+    // Draw percentage text centered inside the bar
+    M5Cardputer.Display.setTextSize(1);
+    M5Cardputer.Display.setCursor(barX + barWidth / 2 - 12, barY + 6);
+    M5Cardputer.Display.setTextColor(BLACK, 0xFFE0); // Black text on yellow background
     M5Cardputer.Display.printf("%d%%", percent);
 }
