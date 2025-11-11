@@ -1,6 +1,7 @@
 #include "settings.h"
 #include "ui.h"
 #include "config.h"
+#include "ota_manager.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -224,11 +225,12 @@ void drawSettingsMenu() {
     "Timezone: ",
     "Friend Compass",
     "Findability: ",
-    "Theme: "
+    "Theme: ",
+    "OTA Update"
   };
 
   // Draw menu items
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < 8; i++) {
     int yPos = 50 + (i * 12);
 
     if (i == settingsMenuIndex) {
@@ -270,6 +272,10 @@ void drawSettingsMenu() {
       case 6: // Theme
         value = "Coming Soon";
         valueX = 80;
+        break;
+      case 7: // OTA Update
+        value = FIRMWARE_VERSION;
+        valueX = 90;
         break;
     }
 
@@ -339,7 +345,7 @@ void handleSettingsNavigation(char key) {
         drawSettingsMenu();
       }
     } else if (key == '/' || key == '.') {
-      if (settingsMenuIndex < 6) {
+      if (settingsMenuIndex < 7) {
         settingsMenuIndex++;
         if (settings.soundEnabled) M5Cardputer.Speaker.tone(800, 30);
         drawSettingsMenu();

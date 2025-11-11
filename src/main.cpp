@@ -12,6 +12,7 @@
 #include "file_manager.h"
 #include "boot_animation.h"
 #include "settings.h"
+#include "ota_manager.h"
 #include "background_services.h"
 #include "terminal.h"
 #include "star_rain.h"
@@ -1976,6 +1977,19 @@ void loop() {
               // Theme placeholder
               settingsState = SETTINGS_THEME;
               drawThemePlaceholder();
+            } else if (settingsMenuIndex == 7) {
+              // OTA Update
+              if (WiFi.status() != WL_CONNECTED) {
+                M5Cardputer.Display.clear();
+                M5Cardputer.Display.setCursor(10, 10);
+                M5Cardputer.Display.println("WiFi not connected!");
+                M5Cardputer.Display.println("\nConnect WiFi first.");
+                M5Cardputer.Display.println("\nPress any key...");
+                delay(2000);
+              } else {
+                OTAManager::checkForUpdate();
+              }
+              drawSettingsMenu();
             }
           } else if (settingsState == SETTINGS_DEVICE_NAME) {
             // Save device name
