@@ -1967,10 +1967,12 @@ void loop() {
                 M5Cardputer.Display.println("\nConnect WiFi first.");
                 M5Cardputer.Display.println("\nPress any key...");
                 delay(2000);
+                drawSettingsMenu();
               } else {
+                // OTA manager handles its own display and return to menu
                 OTAManager::checkForUpdate();
+                drawSettingsMenu();
               }
-              drawSettingsMenu();
             } else if (settingsMenuIndex == 4) {
               // Timezone selector
               settingsState = SETTINGS_TIMEZONE;
