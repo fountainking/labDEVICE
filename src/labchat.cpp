@@ -923,12 +923,14 @@ void drawMainChat() {
     M5Cardputer.Display.setTextColor(TFT_DARKGREY);
     int hintY = 90;  // Inside message area (ends at y=102)
 
-    // Draw "\=emojis" first
-    M5Cardputer.Display.drawString("\\=emojis", 45, hintY);
-
-    // Draw berry centered with text - 45 + 8*8 + 12 = 121
-    int berryX = 121;
+    // Berry centered on screen (240px / 2 - 8 = 112)
+    int berryX = 112;
     int berryY = hintY - 4;  // Vertically center 16px berry with 8px text
+
+    // Draw "\=emojis" left of berry (8 chars * 6px = 48px, 12px spacing)
+    M5Cardputer.Display.drawString("\\=emojis", berryX - 12 - 48, hintY);
+
+    // Draw berry centered
     for (int y = 0; y < 16; y++) {
       for (int x = 0; x < 16; x++) {
         uint16_t color = BERRY_ICON[y][x];
@@ -938,8 +940,8 @@ void drawMainChat() {
       }
     }
 
-    // Draw "  `=settings" after berry - 121 + 16 + 12 = 149
-    M5Cardputer.Display.drawString("  `=settings", 149, hintY);
+    // Draw "  `=settings" right of berry (16px berry + 12px spacing)
+    M5Cardputer.Display.drawString("  `=settings", berryX + 16 + 12, hintY);
   }
 }
 
