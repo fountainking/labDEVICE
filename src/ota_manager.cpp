@@ -2,9 +2,6 @@
 #include <M5Cardputer.h>
 #include <WiFiClientSecure.h>
 
-// Global static client to avoid heap fragmentation
-static WiFiClientSecure secureClient;
-
 // Star emoji - hardcoded for OTA UI
 static const uint16_t STAR_ICON[16][16] = {
     {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
@@ -136,13 +133,36 @@ bool OTAManager::checkForUpdate() {
     M5Cardputer.Display.setTextColor(gradientColor(3, 5));
     M5Cardputer.Display.println("Waking WiFi...");
     WiFi.disconnect(false);
-    delay(100);
+    delay(200);
     WiFi.reconnect();
-    delay(1000); // Give WiFi time to fully wake up
+
+    // Wait for full reconnection (up to 5 seconds)
+    int waitCount = 0;
+    while (WiFi.status() != WL_CONNECTED && waitCount < 50) {
+        delay(100);
+        waitCount++;
+        yield(); // Feed watchdog
+    }
+
+    if (WiFi.status() != WL_CONNECTED) {
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.setTextColor(TFT_RED);
+        M5Cardputer.Display.println("WiFi reconnect failed!");
+        lineY += lineSpacing;
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.println("Press any key...");
+        waitForKeyPressAndRelease();
+        return false;
+    }
+
+    M5Cardputer.Display.print("OK!");
+    delay(300);
     lineY += lineSpacing;
 
-    secureClient.setInsecure(); // Skip certificate validation
-    secureClient.setHandshakeTimeout(60); // 60 second TLS timeout
+    // Create FRESH secure client (don't reuse stale TLS state)
+    WiFiClientSecure freshClient;
+    freshClient.setInsecure(); // Skip certificate validation
+    freshClient.setHandshakeTimeout(60); // 60 second TLS timeout
 
     // Debug: Connecting
     M5Cardputer.Display.setCursor(15, lineY);
@@ -151,7 +171,7 @@ bool OTAManager::checkForUpdate() {
     lineY += lineSpacing;
 
     HTTPClient http;
-    http.begin(secureClient, GITHUB_API_URL);
+    http.begin(freshClient, GITHUB_API_URL);
     http.addHeader("User-Agent", "M5Cardputer-Laboratory");
     http.setTimeout(60000); // 60 second timeout
 
@@ -354,13 +374,36 @@ bool OTAManager::performUpdate(String firmwareURL) {
     M5Cardputer.Display.setTextColor(gradientColor(2, 5));
     M5Cardputer.Display.println("Waking WiFi...");
     WiFi.disconnect(false);
-    delay(100);
+    delay(200);
     WiFi.reconnect();
-    delay(1000);
+
+    // Wait for full reconnection (up to 5 seconds)
+    int waitCount = 0;
+    while (WiFi.status() != WL_CONNECTED && waitCount < 50) {
+        delay(100);
+        waitCount++;
+        yield(); // Feed watchdog
+    }
+
+    if (WiFi.status() != WL_CONNECTED) {
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.setTextColor(TFT_RED);
+        M5Cardputer.Display.println("WiFi reconnect failed!");
+        lineY += lineSpacing;
+        M5Cardputer.Display.setCursor(15, lineY);
+        M5Cardputer.Display.println("Press any key...");
+        waitForKeyPressAndRelease();
+        return false;
+    }
+
+    M5Cardputer.Display.print("OK!");
+    delay(300);
     lineY += lineSpacing;
 
-    secureClient.setInsecure(); // Skip certificate validation
-    secureClient.setHandshakeTimeout(60); // 60 second TLS timeout
+    // Create FRESH secure client (don't reuse stale TLS state)
+    WiFiClientSecure freshClient;
+    freshClient.setInsecure(); // Skip certificate validation
+    freshClient.setHandshakeTimeout(60); // 60 second TLS timeout
 
     lineY += lineSpacing; // Extra space
     M5Cardputer.Display.setCursor(15, lineY);
@@ -369,7 +412,7 @@ bool OTAManager::performUpdate(String firmwareURL) {
     lineY += lineSpacing;
 
     HTTPClient http;
-    http.begin(secureClient, firmwareURL);
+    http.begin(freshClient, firmwareURL);
     http.setTimeout(60000); // 60 second timeout for download
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
