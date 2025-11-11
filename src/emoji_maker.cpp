@@ -67,7 +67,7 @@ static bool toolWaitingForInput = false;  // For multi-click tools (circle, line
 static int toolStartX = 0, toolStartY = 0;  // First click position for multi-click tools
 static bool useGhostCenter = false;  // True if circle is centered on ghost point (7.5, 7.5)
 static bool moveMode = false;  // True when in move canvas mode (M key)
-static bool resizeMode = false;  // True when in resize mode (R key)
+// resizeMode removed - feature disabled
 
 // Custom tool icons - loaded from SD card
 static const uint16_t PAINT_BUCKET_ICON[16][16] = {
@@ -217,7 +217,6 @@ void enterEmojiMaker() {
     galleryIndex = 0;
     activeTool = TOOL_PENCIL;  // Reset tool to pencil on entry
     moveMode = false;  // Clear move mode
-    resizeMode = false;  // Clear resize mode
 
     // Clear canvas (white background)
     clearCanvas();
@@ -528,10 +527,8 @@ static void drawHints() {
 
     if (moveMode) {
         M5Cardputer.Display.drawString("MOVE MODE: Arrows=Move M=Exit", hintX, hintY);
-    } else if (resizeMode) {
-        M5Cardputer.Display.drawString("RESIZE MODE: +=Grow -=Shrink R=Exit", hintX, hintY);
     } else {
-        M5Cardputer.Display.drawString("Spc=Erase Del=Undo M=Move R=Resize S=Save", hintX, hintY);
+        M5Cardputer.Display.drawString("Spc=Erase Del=Undo M=Move S=Save", hintX, hintY);
     }
 }
 
@@ -1087,80 +1084,7 @@ void handleEmojiMakerInput() {
             drawEmojiMaker();
         }
 
-        // R to toggle resize mode
-        if (key == 'r') {
-            resizeMode = !resizeMode;
-            drawEmojiMaker();
-        }
-
-        // + to grow (2x upscale - each pixel becomes 2x2)
-        if (key == '+' || key == '=') {
-            if (resizeMode) {
-                saveUndo();
-                uint16_t newCanvas[GRID_SIZE][GRID_SIZE];
-                // Fill with transparency first
-                for (int y = 0; y < GRID_SIZE; y++) {
-                    for (int x = 0; x < GRID_SIZE; x++) {
-                        newCanvas[y][x] = TRANSPARENCY_COLOR;
-                    }
-                }
-                // Scale up 2x (each pixel becomes 2x2), centered
-                for (int y = 0; y < GRID_SIZE / 2; y++) {
-                    for (int x = 0; x < GRID_SIZE / 2; x++) {
-                        uint16_t color = canvas[y][x];
-                        // Place 2x2 block in center of grid
-                        int newX = x * 2 + GRID_SIZE / 4;
-                        int newY = y * 2 + GRID_SIZE / 4;
-                        if (newX < GRID_SIZE - 1 && newY < GRID_SIZE - 1) {
-                            newCanvas[newY][newX] = color;
-                            newCanvas[newY][newX + 1] = color;
-                            newCanvas[newY + 1][newX] = color;
-                            newCanvas[newY + 1][newX + 1] = color;
-                        }
-                    }
-                }
-                // Copy back to canvas
-                for (int y = 0; y < GRID_SIZE; y++) {
-                    for (int x = 0; x < GRID_SIZE; x++) {
-                        canvas[y][x] = newCanvas[y][x];
-                    }
-                }
-                drawEmojiMaker();
-            }
-        }
-
-        // - to shrink (2x downscale - each 2x2 becomes 1 pixel)
-        if (key == '-' || key == '_') {
-            if (resizeMode) {
-                saveUndo();
-                uint16_t newCanvas[GRID_SIZE][GRID_SIZE];
-                // Fill with transparency first
-                for (int y = 0; y < GRID_SIZE; y++) {
-                    for (int x = 0; x < GRID_SIZE; x++) {
-                        newCanvas[y][x] = TRANSPARENCY_COLOR;
-                    }
-                }
-                // Scale down 2x (sample every other pixel), centered
-                for (int y = 0; y < GRID_SIZE; y += 2) {
-                    for (int x = 0; x < GRID_SIZE; x += 2) {
-                        // Sample the pixel (could average 2x2 block but let's just take top-left)
-                        uint16_t color = canvas[y][x];
-                        int newX = x / 2 + GRID_SIZE / 4;
-                        int newY = y / 2 + GRID_SIZE / 4;
-                        if (newX < GRID_SIZE && newY < GRID_SIZE) {
-                            newCanvas[newY][newX] = color;
-                        }
-                    }
-                }
-                // Copy back to canvas
-                for (int y = 0; y < GRID_SIZE; y++) {
-                    for (int x = 0; x < GRID_SIZE; x++) {
-                        canvas[y][x] = newCanvas[y][x];
-                    }
-                }
-                drawEmojiMaker();
-            }
-        }
+        // Resize feature removed
     }
 
     // Delete key for undo

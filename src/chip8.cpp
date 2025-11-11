@@ -67,6 +67,16 @@ bool chip8Running = false;
 static unsigned long lastCycleTime = 0;
 static unsigned long lastTimerUpdate = 0;
 
+// Default key configuration (fallback if no config file)
+Chip8KeyConfig currentKeyConfig = {
+  .up = 0x5,      // Default: key 5
+  .down = 0x2,    // Default: key 2
+  .left = 0x4,    // Default: key 4
+  .right = 0x6,   // Default: key 6
+  .action = 0x0,  // Default: key 0
+  .loaded = false
+};
+
 // ROM browser state
 static String romFiles[50];
 static int numRoms = 0;
@@ -165,6 +175,73 @@ bool Chip8::loadROM(const char* filename) {
 
   running = true;
   drawFlag = true;
+
+  // Load key config for this ROM
+  loadKeyConfig(filename);
+
+  return true;
+}
+
+// Load key configuration for a ROM
+bool loadKeyConfig(const char* romPath) {
+  // Reset to defaults
+  currentKeyConfig.up = 0x5;
+  currentKeyConfig.down = 0x2;
+  currentKeyConfig.left = 0x4;
+  currentKeyConfig.right = 0x6;
+  currentKeyConfig.action = 0x0;
+  currentKeyConfig.loaded = false;
+
+  // Build config file path (rom path + ".cfg")
+  String configPath = String(romPath) + ".cfg";
+
+  File configFile = SD.open(configPath.c_str(), FILE_READ);
+  if (!configFile) {
+    Serial.printf("No config file for ROM: %s\n", romPath);
+    return false;
+  }
+
+  Serial.printf("Loading config: %s\n", configPath.c_str());
+
+  // Parse config file (simple key=value format)
+  while (configFile.available()) {
+    String line = configFile.readStringUntil('\n');
+    line.trim();
+
+    // Skip empty lines and comments
+    if (line.length() == 0 || line.startsWith("#")) {
+      continue;
+    }
+
+    // Parse key=value
+    int eqIndex = line.indexOf('=');
+    if (eqIndex > 0) {
+      String key = line.substring(0, eqIndex);
+      String value = line.substring(eqIndex + 1);
+      key.trim();
+      value.trim();
+
+      // Convert hex value (supports 0x prefix or raw hex)
+      uint8_t hexValue = 0;
+      if (value.startsWith("0x") || value.startsWith("0X")) {
+        hexValue = strtol(value.c_str() + 2, NULL, 16);
+      } else {
+        hexValue = strtol(value.c_str(), NULL, 16);
+      }
+
+      // Update config
+      if (key == "up") currentKeyConfig.up = hexValue;
+      else if (key == "down") currentKeyConfig.down = hexValue;
+      else if (key == "left") currentKeyConfig.left = hexValue;
+      else if (key == "right") currentKeyConfig.right = hexValue;
+      else if (key == "action") currentKeyConfig.action = hexValue;
+
+      Serial.printf("  %s = 0x%X\n", key.c_str(), hexValue);
+    }
+  }
+
+  configFile.close();
+  currentKeyConfig.loaded = true;
 
   return true;
 }
@@ -857,16 +934,16 @@ void handleChip8Input() {
   static bool keyStates[16] = {false};
   bool currentKeys[16] = {false};
 
-  // Map pressed keys - TETRIS uses: 4=left, 5=rotate, 6=right
+  // Map pressed keys - use dynamic config
   for (auto key : status.word) {
     switch (key) {
-      // Arrow keys to CHIP-8 keys
-      case ';': currentKeys[0x5] = true; break;  // up -> 5 (rotate)
-      case ',': currentKeys[0x4] = true; break;  // left -> 4
-      case '.': currentKeys[0x2] = true; break;  // down -> 2
-      case '/': currentKeys[0x6] = true; break;  // right -> 6
+      // Standard directional keys (mapped via config)
+      case ';': currentKeys[currentKeyConfig.up] = true; break;
+      case ',': currentKeys[currentKeyConfig.left] = true; break;
+      case '.': currentKeys[currentKeyConfig.down] = true; break;
+      case '/': currentKeys[currentKeyConfig.right] = true; break;
 
-      // Number keys also work
+      // Number keys (direct mapping - always available)
       case '0': currentKeys[0x0] = true; break;
       case '1': currentKeys[0x1] = true; break;
       case '2': currentKeys[0x2] = true; break;
@@ -882,12 +959,15 @@ void handleChip8Input() {
       case 'd': currentKeys[0xD] = true; break;
       case 'e': currentKeys[0xE] = true; break;
       case 'f': currentKeys[0xF] = true; break;
+
+      // Space bar also maps to action key
+      case ' ': currentKeys[currentKeyConfig.action] = true; break;
     }
   }
 
-  // Map Enter key to key 0 (common alt action)
+  // Map Enter key to action (configurable)
   if (status.enter) {
-    currentKeys[0x0] = true;
+    currentKeys[currentKeyConfig.action] = true;
   }
 
   // Update chip8 key states (continuous state, games handle their own timing)

@@ -63,9 +63,20 @@ private:
   void opcode_F(uint16_t opcode);
 };
 
+// Per-game key configuration
+struct Chip8KeyConfig {
+  uint8_t up;      // CHIP-8 hex key for up
+  uint8_t down;    // CHIP-8 hex key for down
+  uint8_t left;    // CHIP-8 hex key for left
+  uint8_t right;   // CHIP-8 hex key for right
+  uint8_t action;  // CHIP-8 hex key for action (enter/space)
+  bool loaded;     // True if config was loaded from file
+};
+
 // Global instances (defined in chip8.cpp)
 extern Chip8 chip8;
 extern bool chip8Running;
+extern Chip8KeyConfig currentKeyConfig;
 
 // UI functions
 void enterChip8();
@@ -73,6 +84,7 @@ void drawChip8ROMBrowser();
 void drawChip8Screen();
 void handleChip8Input();
 void handleChip8BrowserInput(Keyboard_Class::KeysState status);
+bool loadKeyConfig(const char* romPath);  // Load config for ROM
 
 #endif
 
