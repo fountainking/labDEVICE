@@ -93,8 +93,8 @@ int musicMenuIndex = 0;
 
 // Games submenu (struct defined in config.h)
 GamesMenuItem gamesMenuItems[] = {
-  {"CHIP-8", TFT_GREEN, 14},
-  {"Emoji Maker", TFT_PINK, 18},
+  {"CHIP-8", TFT_YELLOW, 14},
+  {"Emoji Maker", TFT_YELLOW, 18},
   {"Slot Machine", TFT_YELLOW, 19}
 };
 
