@@ -471,9 +471,14 @@ void drawReels() {
   for (int r = 0; r < NUM_REELS; r++) {
     int reelX = startX + r * (reelWidth + reelSpacing);
 
-    // Draw reel background
-    M5Cardputer.Display.fillRect(reelX, startY, reelWidth, 70, TFT_DARKGREY);
-    M5Cardputer.Display.drawRect(reelX, startY, reelWidth, 70, TFT_WHITE);
+    // Only draw reel background if not spinning (selective redrawing!)
+    if (!slotState.spinning) {
+      M5Cardputer.Display.fillRect(reelX, startY, reelWidth, 70, TFT_DARKGREY);
+      M5Cardputer.Display.drawRect(reelX, startY, reelWidth, 70, TFT_WHITE);
+    } else {
+      // During spin, just clear the emoji area (faster!)
+      M5Cardputer.Display.fillRect(reelX + 2, startY + 19, 32, 32, TFT_DARKGREY);
+    }
 
     // Draw emoji on this reel
     int currentEmojiIndex = (int)slotState.reelPositions[r];
@@ -488,8 +493,11 @@ void drawReels() {
       for (int py = 0; py < EMOJI_SIZE; py++) {
         for (int px = 0; px < EMOJI_SIZE; px++) {
           uint16_t color = slotState.loadedEmojis[currentEmojiIndex][py][px];
-          // Draw 2x2 block for each original pixel
-          M5Cardputer.Display.fillRect(emojiX + (px * 2), emojiY + (py * 2), 2, 2, color);
+          // Key out green (0x07E0) - skip transparent pixels
+          if (color != 0x07E0) {
+            // Draw 2x2 block for each original pixel
+            M5Cardputer.Display.fillRect(emojiX + (px * 2), emojiY + (py * 2), 2, 2, color);
+          }
         }
       }
     }
