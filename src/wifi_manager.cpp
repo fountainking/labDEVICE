@@ -68,13 +68,16 @@ void connectToWiFi() {
   }
   
   if (WiFi.status() == WL_CONNECTED) {
+    // Disable WiFi power saving for maximum reliability
+    WiFi.setSleep(false);
+
     M5Cardputer.Display.fillScreen(TFT_WHITE);
     drawStatusBar(false);
     M5Cardputer.Display.setTextSize(2);
     M5Cardputer.Display.setTextColor(TFT_GREEN);
     M5Cardputer.Display.drawString("Connected!", 60, 60);
     // M5Cardputer.Speaker.tone(1200, 100);
-    
+
     // Sync time with NTP using timezone with DST support
     applyTimezone();
 
@@ -204,13 +207,16 @@ void connectToSavedNetwork(int index) {
   }
   
   if (WiFi.status() == WL_CONNECTED) {
+    // Disable WiFi power saving for maximum reliability
+    WiFi.setSleep(false);
+
     M5Cardputer.Display.fillScreen(TFT_WHITE);
     drawStatusBar(false);
     M5Cardputer.Display.setTextSize(2);
     M5Cardputer.Display.setTextColor(TFT_GREEN);
     M5Cardputer.Display.drawString("Connected!", 60, 60);
     // M5Cardputer.Speaker.tone(1200, 100);
-    
+
     // Sync time with NTP using timezone with DST support
     applyTimezone();
 

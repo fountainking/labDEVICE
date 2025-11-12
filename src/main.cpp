@@ -108,7 +108,9 @@ bool wifiConnecting = false;
 // Screensaver state
 unsigned long lastActivityTime = 0;
 const unsigned long SCREENSAVER_TIMEOUT = 120000; // 2 minutes
+const unsigned long SLEEP_MODE_TIMEOUT = 240000; // 4 minutes total
 bool screensaverActive = false;
+bool sleepModeActive = false;
 
 // Screen dimming (battery saver)
 const unsigned long SCREEN_DIM_TIMEOUT = 30000; // 30 seconds
@@ -761,6 +763,48 @@ void loop() {
     lastActivityTime = millis();  // Reset timer to prevent retriggering
     initStarRain(STARRAIN_SCREENSAVER);
     delay(10);
+    return;
+  }
+
+  // Check for sleep mode timeout (4 minutes total idle)
+  if (!sleepModeActive && !inGame &&
+      millis() - lastActivityTime > SLEEP_MODE_TIMEOUT) {
+    // Enter sleep mode
+    sleepModeActive = true;
+    screensaverActive = false;  // Exit screensaver if active
+    stopStarRain();
+
+    // Show sleep indicator
+    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    M5Cardputer.Display.setTextSize(1);
+    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+    M5Cardputer.Display.setCursor(100, 64);
+    M5Cardputer.Display.println("Sleeping...");
+
+    // Dim screen to minimum
+    M5Cardputer.Display.setBrightness(10);
+    delay(1000);
+
+    Serial.println("Entering light sleep mode");
+
+    // Configure wake on any key press (GPIO 0 for keyboard matrix)
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_0, 0);  // Wake on LOW
+
+    // Enter light sleep (CPU off, WiFi off, peripherals on)
+    esp_light_sleep_start();
+
+    // Wake up - restore state
+    Serial.println("Woke from light sleep");
+    sleepModeActive = false;
+    lastActivityTime = millis();
+    M5Cardputer.Display.setBrightness(255);
+
+    // Redraw current screen
+    if (currentState == MAIN_MENU) {
+      drawScreen(uiInverted);
+    } else if (currentState == APPS_MENU) {
+      drawScreen(uiInverted);
+    }
     return;
   }
 
