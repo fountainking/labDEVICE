@@ -152,8 +152,8 @@ void drawMusicToolsMenu() {
   // No title - removed
 
   // Menu items
-  const char* menuItems[] = {"Guitar Tuner", "Equalizer", "Lab Beat Machine", "Tap Tempo"};
-  const int menuCount = 4;
+  const char* menuItems[] = {"Guitar Tuner", "Lab Beat Machine", "Tap Tempo"};
+  const int menuCount = 3;
 
   M5Cardputer.Display.setTextSize(1);
   int yPos = 35;  // Lifted up

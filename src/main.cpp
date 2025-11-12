@@ -457,6 +457,7 @@ void setup() {
 
       // Show connecting message on starfield with network name
       WiFi.begin(bestNetwork.c_str(), bestPassword.c_str());
+      Serial.println(">>> WiFi.begin() called, waiting for connection...");
 
       // Wait for connection with animation (max 5 seconds)
       String connectMsg = "Connecting to " + bestNetwork;
@@ -465,8 +466,15 @@ void setup() {
         drawStarfield(connectMsg);
         delay(100);
         attempts++;
+
+        // Debug output every second
+        if (attempts % 10 == 0) {
+          Serial.println(">>> Still waiting... attempt " + String(attempts) + "/50");
+        }
         yield();
       }
+
+      Serial.println(">>> Loop exited. WiFi.status() = " + String(WiFi.status()));
 
       // Check if connected
       if (WiFi.status() == WL_CONNECTED) {
@@ -2230,15 +2238,11 @@ void loop() {
             safeBeep(1200, 100);
             startGuitarTuner();
           } else if (musicToolsMenuIndex == 1) {
-            // Audio Test
-            safeBeep(1200, 100);
-            startAudioVisualizer();
-          } else if (musicToolsMenuIndex == 2) {
             // Lab Beat Machine
             safeBeep(1200, 100);
             musicToolsState = LAB_BEAT_MACHINE;
             enterLBM();
-          } else if (musicToolsMenuIndex == 3) {
+          } else if (musicToolsMenuIndex == 2) {
             // Tap Tempo
             safeBeep(1200, 100);
             musicToolsState = TAP_TEMPO;
