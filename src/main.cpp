@@ -458,11 +458,30 @@ void setup() {
       // Show connecting message on starfield with network name
       WiFi.begin(bestNetwork.c_str(), bestPassword.c_str());
 
-      // Shorter connection animation - show network name
+      // Wait for connection with animation (max 5 seconds)
       String connectMsg = "Connecting to " + bestNetwork;
-      for (int i = 0; i < 20; i++) {
+      int attempts = 0;
+      while (WiFi.status() != WL_CONNECTED && attempts < 50) {
         drawStarfield(connectMsg);
-        delay(30);
+        delay(100);
+        attempts++;
+        yield();
+      }
+
+      // Check if connected
+      if (WiFi.status() == WL_CONNECTED) {
+        // CRITICAL: Disable WiFi power saving to prevent drops
+        WiFi.setSleep(false);
+        Serial.println(">>> Connected! WiFi power saving disabled");
+
+        // Show success briefly
+        drawStarfield("Connected!");
+        delay(500);
+      } else {
+        Serial.println(">>> Auto-connect failed (timeout)");
+        drawStarfield("Connection timeout");
+        delay(500);
+        WiFi.mode(WIFI_OFF); // Save battery if failed
       }
     } else {
       Serial.println(">>> No saved networks found in range");
