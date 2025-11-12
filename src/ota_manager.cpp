@@ -120,7 +120,7 @@ bool OTAManager::checkForUpdate() {
         return false;
     }
 
-    // Wake up WiFi from power saving
+    // Show WiFi info (no reconnect needed - setSleep(false) keeps it awake!)
     M5Cardputer.Display.printf("WiFi: %s", WiFi.SSID().c_str());
     lineY += lineSpacing;
     M5Cardputer.Display.setCursor(15, lineY);
@@ -136,50 +136,6 @@ bool OTAManager::checkForUpdate() {
         M5Cardputer.Display.println("Warning: Weak signal!");
         lineY += lineSpacing;
     }
-
-    // Force WiFi reconnect to wake from sleep
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(3, 5));
-    M5Cardputer.Display.println("Waking WiFi...");
-    WiFi.disconnect(false);
-    delay(500); // Increased delay for better stability
-    WiFi.reconnect();
-
-    // Wait for full reconnection (up to 10 seconds, increased)
-    int waitCount = 0;
-    while (WiFi.status() != WL_CONNECTED && waitCount < 100) {
-        delay(100);
-        waitCount++;
-        yield(); // Feed watchdog
-    }
-
-    if (WiFi.status() != WL_CONNECTED) {
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(TFT_RED);
-        M5Cardputer.Display.println("WiFi reconnect failed!");
-        lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.println("Press any key...");
-        waitForKeyPressAndRelease();
-        return false;
-    }
-
-    // Verify stable connection
-    delay(1000);
-    if (WiFi.status() != WL_CONNECTED) {
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(TFT_RED);
-        M5Cardputer.Display.println("WiFi unstable!");
-        lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.println("Press any key...");
-        waitForKeyPressAndRelease();
-        return false;
-    }
-
-    M5Cardputer.Display.print("OK!");
-    delay(300);
-    lineY += lineSpacing;
 
     // Create FRESH secure client (don't reuse stale TLS state)
     WiFiClientSecure freshClient;
@@ -415,50 +371,6 @@ bool OTAManager::performUpdate(String firmwareURL) {
         return false;
     }
     M5Cardputer.Display.printf("WiFi OK (%d dBm)", WiFi.RSSI());
-    lineY += lineSpacing;
-
-    // Wake WiFi from power saving before download
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(2, 5));
-    M5Cardputer.Display.println("Waking WiFi...");
-    WiFi.disconnect(false);
-    delay(500); // Increased delay for better stability
-    WiFi.reconnect();
-
-    // Wait for full reconnection (up to 10 seconds, increased)
-    int waitCount = 0;
-    while (WiFi.status() != WL_CONNECTED && waitCount < 100) {
-        delay(100);
-        waitCount++;
-        yield(); // Feed watchdog
-    }
-
-    if (WiFi.status() != WL_CONNECTED) {
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(TFT_RED);
-        M5Cardputer.Display.println("WiFi reconnect failed!");
-        lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.println("Press any key...");
-        waitForKeyPressAndRelease();
-        return false;
-    }
-
-    // Verify stable connection
-    delay(1000);
-    if (WiFi.status() != WL_CONNECTED) {
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(TFT_RED);
-        M5Cardputer.Display.println("WiFi unstable!");
-        lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.println("Press any key...");
-        waitForKeyPressAndRelease();
-        return false;
-    }
-
-    M5Cardputer.Display.print("OK!");
-    delay(300);
     lineY += lineSpacing;
 
     // Create FRESH secure client (don't reuse stale TLS state)
