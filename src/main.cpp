@@ -105,6 +105,10 @@ int gamesMenuIndex = 0;
 unsigned long wifiConnectStartTime = 0;
 bool wifiConnecting = false;
 
+// WiFi drop detection and notification
+bool wifiWasConnected = false;
+bool showWifiLostBanner = false;
+
 // Screensaver state
 unsigned long lastActivityTime = 0;
 const unsigned long SCREENSAVER_TIMEOUT = 120000; // 2 minutes
@@ -619,6 +623,44 @@ void loop() {
   // Handle background WiFi connection (non-blocking)
 #if DEBUG_ENABLE_WIFI
   handleBackgroundWiFi();
+#endif
+
+  // Detect WiFi drops and show notification banner
+#if DEBUG_ENABLE_WIFI
+  bool currentlyConnected = (WiFi.status() == WL_CONNECTED);
+
+  // Detect drop: was connected, now not
+  if (wifiWasConnected && !currentlyConnected && !showWifiLostBanner) {
+    showWifiLostBanner = true;
+    Serial.println("WiFi dropped! Showing reconnect banner");
+  }
+
+  // Clear banner if reconnected
+  if (currentlyConnected && showWifiLostBanner) {
+    showWifiLostBanner = false;
+    wifiConnected = true;
+    wifiSSID = WiFi.SSID();
+    // Redraw to clear banner
+    if (currentState == MAIN_MENU) {
+      drawScreen(uiInverted);
+    } else if (currentState == APPS_MENU) {
+      drawScreen(uiInverted);
+    }
+  }
+
+  // Update connection tracking
+  wifiWasConnected = currentlyConnected;
+
+  // Draw WiFi lost banner if needed (on main/apps menu only)
+  if (showWifiLostBanner && !screensaverActive &&
+      (currentState == MAIN_MENU || currentState == APPS_MENU)) {
+    uint16_t bgColor = uiInverted ? TFT_BLACK : TFT_WHITE;
+    M5Cardputer.Display.fillRect(0, 0, 240, 12, TFT_ORANGE);
+    M5Cardputer.Display.setTextSize(1);
+    M5Cardputer.Display.setTextColor(TFT_BLACK);
+    M5Cardputer.Display.setCursor(5, 2);
+    M5Cardputer.Display.print("WiFi Lost! Press [W] to reconnect");
+  }
 #endif
 
   // Handle screensaver (skip during audio to prevent I2S conflicts)
@@ -2373,6 +2415,61 @@ void loop() {
         }
         else if (key == '/' || key == '.') {
           navigateRight();
+          break;
+        }
+        else if (key == 'w' || key == 'W') {
+          // WiFi reconnect shortcut (when banner showing)
+          if (showWifiLostBanner && numSavedNetworks > 0) {
+            safeBeep(1200, 100, false);
+            showWifiLostBanner = false; // Hide banner during reconnect
+
+            // Show reconnecting message
+            M5Cardputer.Display.fillRect(0, 0, 240, 12, TFT_BLUE);
+            M5Cardputer.Display.setTextSize(1);
+            M5Cardputer.Display.setTextColor(TFT_WHITE);
+            M5Cardputer.Display.setCursor(5, 2);
+            M5Cardputer.Display.print("Reconnecting...");
+
+            // Quick scan for saved networks
+            WiFi.mode(WIFI_STA);
+            delay(100);
+            WiFi.disconnect();
+            delay(100);
+            int n = WiFi.scanNetworks();
+
+            // Find best saved network
+            String bestNetwork = "";
+            String bestPassword = "";
+            int bestRSSI = -1000;
+
+            for (int i = 0; i < numSavedNetworks; i++) {
+              if (savedSSIDs[i].length() > 0) {
+                for (int j = 0; j < n; j++) {
+                  if (WiFi.SSID(j) == savedSSIDs[i]) {
+                    int rssi = WiFi.RSSI(j);
+                    if (rssi > bestRSSI) {
+                      bestRSSI = rssi;
+                      bestNetwork = savedSSIDs[i];
+                      bestPassword = savedPasswords[i];
+                    }
+                  }
+                }
+              }
+            }
+
+            // Connect to best network
+            if (bestNetwork.length() > 0) {
+              WiFi.begin(bestNetwork.c_str(), bestPassword.c_str());
+              delay(1000); // Give it a second to start
+            }
+
+            // Redraw menu to clear reconnect message
+            if (currentState == MAIN_MENU) {
+              drawScreen(uiInverted);
+            } else if (currentState == APPS_MENU) {
+              drawScreen(uiInverted);
+            }
+          }
           break;
         }
         else if (key == 'g') {
