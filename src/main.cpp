@@ -457,24 +457,18 @@ void setup() {
 
       // Show connecting message on starfield with network name
       WiFi.begin(bestNetwork.c_str(), bestPassword.c_str());
-      Serial.println(">>> WiFi.begin() called, waiting for connection...");
 
-      // Wait for connection with animation (max 5 seconds)
-      String connectMsg = "Connecting to " + bestNetwork;
+      // Wait for connection - FAST check without heavy animation
       int attempts = 0;
       while (WiFi.status() != WL_CONNECTED && attempts < 50) {
-        drawStarfield(connectMsg);
+        // Only draw every 3rd frame to keep it fast
+        if (attempts % 3 == 0) {
+          drawStarfield("Connecting...");
+        }
         delay(100);
         attempts++;
-
-        // Debug output every second
-        if (attempts % 10 == 0) {
-          Serial.println(">>> Still waiting... attempt " + String(attempts) + "/50");
-        }
         yield();
       }
-
-      Serial.println(">>> Loop exited. WiFi.status() = " + String(WiFi.status()));
 
       // Check if connected
       if (WiFi.status() == WL_CONNECTED) {
@@ -482,13 +476,11 @@ void setup() {
         WiFi.setSleep(false);
         Serial.println(">>> Connected! WiFi power saving disabled");
 
-        // Show success briefly
+        // Show success briefly - single frame
         drawStarfield("Connected!");
-        delay(500);
+        delay(300);
       } else {
         Serial.println(">>> Auto-connect failed (timeout)");
-        drawStarfield("Connection timeout");
-        delay(500);
         WiFi.mode(WIFI_OFF); // Save battery if failed
       }
     } else {
