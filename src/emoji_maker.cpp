@@ -56,6 +56,13 @@ static int paletteIndex = 0;  // Which palette color is selected when in palette
 static int toolIndex = 0;      // Which tool button is selected when in tools mode
 static int galleryIndex = 0;   // Which gallery slot is selected when in gallery mode
 
+// Key repeat tracking for smooth navigation
+static char lastKey = 0;
+static unsigned long keyPressStartTime = 0;
+static unsigned long lastRepeatTime = 0;
+static const unsigned long REPEAT_INITIAL_DELAY = 500;  // 500ms before repeat starts
+static const unsigned long REPEAT_RATE = 150;           // 150ms between repeats
+
 // Canvas data
 static uint16_t canvas[GRID_SIZE][GRID_SIZE];
 static uint16_t undoBuffer[GRID_SIZE][GRID_SIZE];  // For undo functionality
@@ -752,6 +759,155 @@ static void rotateCanvas90() {
     memcpy(canvas, temp, sizeof(canvas));
 }
 
+// Helper function to process arrow key navigation
+static void processArrowKey(char key) {
+    if (key == ';') {  // UP
+        if (moveMode && navMode == NAV_GRID) {
+            // Move canvas up (shift all pixels up)
+            saveUndo();
+            uint16_t temp[GRID_SIZE];
+            for (int x = 0; x < GRID_SIZE; x++) {
+                temp[x] = canvas[0][x];
+            }
+            for (int y = 0; y < GRID_SIZE - 1; y++) {
+                for (int x = 0; x < GRID_SIZE; x++) {
+                    canvas[y][x] = canvas[y + 1][x];
+                }
+            }
+            for (int x = 0; x < GRID_SIZE; x++) {
+                canvas[GRID_SIZE - 1][x] = temp[x];
+            }
+        } else if (navMode == NAV_GRID) {
+            cursorY = (cursorY - 1 + GRID_SIZE) % GRID_SIZE;
+        } else if (navMode == NAV_PALETTE) {
+            if (paletteIndex >= 2) paletteIndex -= 2;
+        } else if (navMode == NAV_TOOLS) {
+            if (toolIndex >= 2) toolIndex -= 2;
+        } else if (navMode == NAV_GALLERY) {
+            if (galleryIndex >= GALLERY_COLS) galleryIndex -= GALLERY_COLS;
+        }
+        drawEmojiMaker();
+    }
+    else if (key == '.') {  // DOWN
+        if (moveMode && navMode == NAV_GRID) {
+            // Move canvas down (shift all pixels down)
+            saveUndo();
+            uint16_t temp[GRID_SIZE];
+            for (int x = 0; x < GRID_SIZE; x++) {
+                temp[x] = canvas[GRID_SIZE - 1][x];
+            }
+            for (int y = GRID_SIZE - 1; y > 0; y--) {
+                for (int x = 0; x < GRID_SIZE; x++) {
+                    canvas[y][x] = canvas[y - 1][x];
+                }
+            }
+            for (int x = 0; x < GRID_SIZE; x++) {
+                canvas[0][x] = temp[x];
+            }
+        } else if (navMode == NAV_GRID) {
+            cursorY = (cursorY + 1) % GRID_SIZE;
+        } else if (navMode == NAV_PALETTE) {
+            if (paletteIndex < PALETTE_SIZE - 2) paletteIndex += 2;
+        } else if (navMode == NAV_TOOLS) {
+            if (toolIndex < 4) toolIndex += 2;
+        } else if (navMode == NAV_GALLERY) {
+            if (galleryIndex + GALLERY_COLS < GALLERY_ROWS * GALLERY_COLS) galleryIndex += GALLERY_COLS;
+        }
+        drawEmojiMaker();
+    }
+    else if (key == ',') {  // LEFT
+        if (moveMode && navMode == NAV_GRID) {
+            // Move canvas left (shift all pixels left)
+            saveUndo();
+            uint16_t temp[GRID_SIZE];
+            for (int y = 0; y < GRID_SIZE; y++) {
+                temp[y] = canvas[y][0];
+            }
+            for (int y = 0; y < GRID_SIZE; y++) {
+                for (int x = 0; x < GRID_SIZE - 1; x++) {
+                    canvas[y][x] = canvas[y][x + 1];
+                }
+            }
+            for (int y = 0; y < GRID_SIZE; y++) {
+                canvas[y][GRID_SIZE - 1] = temp[y];
+            }
+        } else if (navMode == NAV_GRID) {
+            if (cursorX == 0) {
+                // Move to palette RIGHT column (closest to grid)
+                navMode = NAV_PALETTE;
+                int paletteRow = (cursorY * 8) / GRID_SIZE;
+                paletteRow = min(paletteRow, 7);
+                paletteIndex = paletteRow * 2 + 1;
+            } else {
+                cursorX--;
+            }
+        } else if (navMode == NAV_PALETTE) {
+            if (paletteIndex % 2 == 1) {
+                paletteIndex--;
+            }
+        } else if (navMode == NAV_TOOLS) {
+            if (toolIndex % 2 == 1) {
+                toolIndex--;
+            } else {
+                navMode = NAV_GRID;
+            }
+        } else if (navMode == NAV_GALLERY) {
+            if (galleryIndex % GALLERY_COLS == 0) {
+                navMode = NAV_TOOLS;
+            } else {
+                galleryIndex--;
+            }
+        }
+        drawEmojiMaker();
+    }
+    else if (key == '/') {  // RIGHT
+        if (moveMode && navMode == NAV_GRID) {
+            // Move canvas right (shift all pixels right)
+            saveUndo();
+            uint16_t temp[GRID_SIZE];
+            for (int y = 0; y < GRID_SIZE; y++) {
+                temp[y] = canvas[y][GRID_SIZE - 1];
+            }
+            for (int y = 0; y < GRID_SIZE; y++) {
+                for (int x = GRID_SIZE - 1; x > 0; x--) {
+                    canvas[y][x] = canvas[y][x - 1];
+                }
+            }
+            for (int y = 0; y < GRID_SIZE; y++) {
+                canvas[y][0] = temp[y];
+            }
+        } else if (navMode == NAV_GRID) {
+            if (cursorX == GRID_SIZE - 1) {
+                navMode = NAV_TOOLS;
+                int toolRow = (cursorY * 3) / GRID_SIZE;
+                toolRow = min(toolRow, 2);
+                toolIndex = toolRow * 2;
+            } else {
+                cursorX++;
+            }
+        } else if (navMode == NAV_PALETTE) {
+            if (paletteIndex % 2 == 0) {
+                paletteIndex++;
+            } else {
+                navMode = NAV_GRID;
+            }
+        } else if (navMode == NAV_TOOLS) {
+            if (toolIndex % 2 == 0) {
+                toolIndex++;
+            } else {
+                navMode = NAV_GALLERY;
+                int toolRow = toolIndex / 2;
+                int galleryRow = (toolRow * GALLERY_ROWS) / 3;
+                galleryRow = min(galleryRow, GALLERY_ROWS - 1);
+                galleryIndex = galleryRow * GALLERY_COLS;
+            }
+        } else if (navMode == NAV_GALLERY) {
+            if (galleryIndex % GALLERY_COLS < GALLERY_COLS - 1) galleryIndex++;
+        }
+        drawEmojiMaker();
+    }
+}
+
 void handleEmojiMakerInput() {
     // DON'T call update() - main loop already does it
     // DON'T check isChange() - main keyboard handler already did
@@ -862,183 +1018,48 @@ void handleEmojiMakerInput() {
         return;
     }
 
-    // Navigation handling based on current mode
+    // Navigation handling with key repeat
+    // Check for arrow keys and implement repeat logic
+    char currentKey = 0;
     for (auto key : status.word) {
-        // UP arrow
-        if (key == ';') {
-            if (moveMode && navMode == NAV_GRID) {
-                // Move canvas up (shift all pixels up)
-                saveUndo();
-                uint16_t temp[GRID_SIZE];
-                // Save top row
-                for (int x = 0; x < GRID_SIZE; x++) {
-                    temp[x] = canvas[0][x];
-                }
-                // Shift all rows up
-                for (int y = 0; y < GRID_SIZE - 1; y++) {
-                    for (int x = 0; x < GRID_SIZE; x++) {
-                        canvas[y][x] = canvas[y + 1][x];
-                    }
-                }
-                // Wrap top row to bottom
-                for (int x = 0; x < GRID_SIZE; x++) {
-                    canvas[GRID_SIZE - 1][x] = temp[x];
-                }
-                drawEmojiMaker();
-            } else if (navMode == NAV_GRID) {
-                cursorY = (cursorY - 1 + GRID_SIZE) % GRID_SIZE;
-            } else if (navMode == NAV_PALETTE) {
-                if (paletteIndex >= 2) paletteIndex -= 2;
-            } else if (navMode == NAV_TOOLS) {
-                if (toolIndex >= 2) toolIndex -= 2;  // Move up one row
-            } else if (navMode == NAV_GALLERY) {
-                if (galleryIndex >= GALLERY_COLS) galleryIndex -= GALLERY_COLS;
-            }
-            drawEmojiMaker();
+        if (key == ';' || key == '.' || key == ',' || key == '/') {
+            currentKey = key;
+            break;
         }
+    }
 
-        // DOWN arrow
-        if (key == '.') {
-            if (moveMode && navMode == NAV_GRID) {
-                // Move canvas down (shift all pixels down)
-                saveUndo();
-                uint16_t temp[GRID_SIZE];
-                // Save bottom row
-                for (int x = 0; x < GRID_SIZE; x++) {
-                    temp[x] = canvas[GRID_SIZE - 1][x];
+    if (currentKey != 0) {
+        // Arrow key is pressed
+        unsigned long now = millis();
+
+        if (currentKey != lastKey) {
+            // New key pressed - execute immediately and start tracking
+            lastKey = currentKey;
+            keyPressStartTime = now;
+            lastRepeatTime = now;
+            processArrowKey(currentKey);
+        } else {
+            // Same key still held - check if we should repeat
+            unsigned long heldTime = now - keyPressStartTime;
+
+            if (heldTime >= REPEAT_INITIAL_DELAY) {
+                // We're in repeat mode - check if enough time has passed
+                if (now - lastRepeatTime >= REPEAT_RATE) {
+                    lastRepeatTime = now;
+                    processArrowKey(currentKey);
                 }
-                // Shift all rows down
-                for (int y = GRID_SIZE - 1; y > 0; y--) {
-                    for (int x = 0; x < GRID_SIZE; x++) {
-                        canvas[y][x] = canvas[y - 1][x];
-                    }
-                }
-                // Wrap bottom row to top
-                for (int x = 0; x < GRID_SIZE; x++) {
-                    canvas[0][x] = temp[x];
-                }
-                drawEmojiMaker();
-            } else if (navMode == NAV_GRID) {
-                cursorY = (cursorY + 1) % GRID_SIZE;
-            } else if (navMode == NAV_PALETTE) {
-                if (paletteIndex < PALETTE_SIZE - 2) paletteIndex += 2;
-            } else if (navMode == NAV_TOOLS) {
-                if (toolIndex < 4) toolIndex += 2;  // Move down one row (max 6 tools)
-            } else if (navMode == NAV_GALLERY) {
-                if (galleryIndex + GALLERY_COLS < GALLERY_ROWS * GALLERY_COLS) galleryIndex += GALLERY_COLS;
             }
-            drawEmojiMaker();
         }
+    } else {
+        // No arrow key pressed - reset tracking
+        lastKey = 0;
+    }
 
-        // LEFT arrow
-        if (key == ',') {
-            if (moveMode && navMode == NAV_GRID) {
-                // Move canvas left (shift all pixels left)
-                saveUndo();
-                uint16_t temp[GRID_SIZE];
-                // Save left column
-                for (int y = 0; y < GRID_SIZE; y++) {
-                    temp[y] = canvas[y][0];
-                }
-                // Shift all columns left
-                for (int y = 0; y < GRID_SIZE; y++) {
-                    for (int x = 0; x < GRID_SIZE - 1; x++) {
-                        canvas[y][x] = canvas[y][x + 1];
-                    }
-                }
-                // Wrap left column to right
-                for (int y = 0; y < GRID_SIZE; y++) {
-                    canvas[y][GRID_SIZE - 1] = temp[y];
-                }
-                drawEmojiMaker();
-            } else if (navMode == NAV_GRID) {
-                if (cursorX == 0) {
-                    // Move to palette RIGHT column (closest to grid)
-                    navMode = NAV_PALETTE;
-                    // Map cursorY (0-15) to palette index (0-15, arranged in 8 rows x 2 cols)
-                    int paletteRow = (cursorY * 8) / GRID_SIZE;  // Map to 8 palette rows
-                    paletteRow = min(paletteRow, 7);  // Clamp to valid range
-                    paletteIndex = paletteRow * 2 + 1;  // Right column (closest to grid)
-                } else {
-                    cursorX--;
-                }
-            } else if (navMode == NAV_PALETTE) {
-                // Move left within palette
-                if (paletteIndex % 2 == 1) {
-                    paletteIndex--;  // Move from right to left column
-                }
-            } else if (navMode == NAV_TOOLS) {
-                if (toolIndex % 2 == 1) {
-                    toolIndex--;  // Move from right to left column
-                } else {
-                    // Already in left column, go back to grid
-                    navMode = NAV_GRID;
-                }
-            } else if (navMode == NAV_GALLERY) {
-                if (galleryIndex % GALLERY_COLS == 0) {
-                    // Move back to tools
-                    navMode = NAV_TOOLS;
-                } else {
-                    galleryIndex--;
-                }
-            }
-            drawEmojiMaker();
-        }
-
-        // RIGHT arrow
-        if (key == '/') {
-            if (moveMode && navMode == NAV_GRID) {
-                // Move canvas right (shift all pixels right)
-                saveUndo();
-                uint16_t temp[GRID_SIZE];
-                // Save right column
-                for (int y = 0; y < GRID_SIZE; y++) {
-                    temp[y] = canvas[y][GRID_SIZE - 1];
-                }
-                // Shift all columns right
-                for (int y = 0; y < GRID_SIZE; y++) {
-                    for (int x = GRID_SIZE - 1; x > 0; x--) {
-                        canvas[y][x] = canvas[y][x - 1];
-                    }
-                }
-                // Wrap right column to left
-                for (int y = 0; y < GRID_SIZE; y++) {
-                    canvas[y][0] = temp[y];
-                }
-                drawEmojiMaker();
-            } else if (navMode == NAV_GRID) {
-                if (cursorX == GRID_SIZE - 1) {
-                    // Move to tools - map grid Y position to tool row
-                    navMode = NAV_TOOLS;
-                    int toolRow = (cursorY * 3) / GRID_SIZE;  // Map to 3 tool rows
-                    toolRow = min(toolRow, 2);
-                    toolIndex = toolRow * 2;  // Left column of tools
-                } else {
-                    cursorX++;
-                }
-            } else if (navMode == NAV_PALETTE) {
-                // Move right within palette or back to grid
-                if (paletteIndex % 2 == 0) {
-                    paletteIndex++;  // Move from left to right column
-                } else {
-                    // Already in right column (closest to grid), go back to grid
-                    navMode = NAV_GRID;
-                }
-            } else if (navMode == NAV_TOOLS) {
-                if (toolIndex % 2 == 0) {
-                    toolIndex++;  // Move from left to right column
-                } else {
-                    // Already in right column, go to gallery
-                    navMode = NAV_GALLERY;
-                    int toolRow = toolIndex / 2;
-                    int galleryRow = (toolRow * GALLERY_ROWS) / 3;  // Map tool row to gallery row
-                    galleryRow = min(galleryRow, GALLERY_ROWS - 1);
-                    galleryIndex = galleryRow * GALLERY_COLS;
-                }
-            } else if (navMode == NAV_GALLERY) {
-                if (galleryIndex % GALLERY_COLS < GALLERY_COLS - 1) galleryIndex++;
-            }
-            drawEmojiMaker();
+    // Handle non-arrow keys
+    for (auto key : status.word) {
+        // Skip arrow keys (already handled above)
+        if (key == ';' || key == '.' || key == ',' || key == '/') {
+            continue;
         }
 
         // Number keys to select color (0-9)

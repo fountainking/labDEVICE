@@ -342,6 +342,9 @@ void stopCaptivePortal() {
     WiFi.mode(WIFI_OFF);
     delay(100);
 
+    // Restore brightness after low-power portal mode
+    M5Cardputer.Display.setBrightness(255);
+
     portalState = PORTAL_STOPPED;
     portalSSID = "";
 }
@@ -362,47 +365,48 @@ bool isPortalRunning() {
 }
 
 void drawPortalScreen() {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    drawStatusBar(false);
+    // Low power mode - dim display significantly
+    M5Cardputer.Display.setBrightness(20);
 
+    M5Cardputer.Display.fillScreen(TFT_BLACK);
+
+    // Show SSID in light green
+    M5Cardputer.Display.setTextSize(1);
+    M5Cardputer.Display.setTextColor(0x9FE7); // Light green
+    String ssidDisplay = portalSSID;
+    if (ssidDisplay.length() > 35) {
+        ssidDisplay = ssidDisplay.substring(0, 35) + "...";
+    }
+    int ssidX = 120 - (ssidDisplay.length() * 3);
+    M5Cardputer.Display.drawString(ssidDisplay.c_str(), ssidX, 15);
+
+    // Show IP in medium green
+    IPAddress IP = WiFi.softAPIP();
+    String ipStr = IP.toString();
+    M5Cardputer.Display.setTextColor(0x7FE0); // Medium green
+    int ipX = 120 - (ipStr.length() * 3);
+    M5Cardputer.Display.drawString(ipStr.c_str(), ipX, 25);
+
+    // Centered minimal display
     M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_CYAN);
-    M5Cardputer.Display.drawString("Portal Active", 50, 30);
+    M5Cardputer.Display.setTextColor(TFT_GREEN); // Bright green
+    M5Cardputer.Display.drawString("BROADCASTING", 50, 45);
 
     M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setTextColor(TFT_WHITE);
 
-    // Show SSID
-    String ssidDisplay = "SSID: " + portalSSID;
-    if (ssidDisplay.length() > 35) {
-        ssidDisplay = ssidDisplay.substring(0, 35) + "...";
-    }
-    M5Cardputer.Display.drawString(ssidDisplay.c_str(), 10, 55);
-
-    // Show IP
-    IPAddress IP = WiFi.softAPIP();
-    String ipStr = "IP: " + IP.toString();
-    M5Cardputer.Display.drawString(ipStr.c_str(), 10, 70);
-
-    // Show connected clients
-    int clients = WiFi.softAPgetStationNum();
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.drawString(("Connected: " + String(clients)).c_str(), 10, 85);
-
-    // Show visitor count
+    // Show visitor count - main metric
+    M5Cardputer.Display.setTextSize(3);
     M5Cardputer.Display.setTextColor(TFT_YELLOW);
-    M5Cardputer.Display.drawString(("Visitors: " + String(portalVisitorCount)).c_str(), 10, 100);
+    String visitors = String(portalVisitorCount);
+    int xPos = 120 - (visitors.length() * 9);
+    M5Cardputer.Display.drawString(visitors.c_str(), xPos, 75);
 
-    // Show uptime
-    unsigned long uptime = (millis() - portalStartTime) / 1000;
-    int minutes = uptime / 60;
-    int seconds = uptime % 60;
-    char timeStr[20];
-    sprintf(timeStr, "Uptime: %02d:%02d", minutes, seconds);
+    M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
-    M5Cardputer.Display.drawString(timeStr, 10, 115);
+    M5Cardputer.Display.drawString("visitors", 95, 105);
 
     // Instructions
     M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Press any key to stop", 50, 122);
+    M5Cardputer.Display.drawString("` to stop", 90, 122);
 }

@@ -3,6 +3,9 @@
 #include "esp_now_manager.h"
 #include "message_handler.h"
 #include "ui.h"
+#include "audio_manager.h"
+#include "file_manager.h"
+#include "radio.h"
 #include <M5Cardputer.h>
 #include <SD.h>
 
@@ -1831,7 +1834,8 @@ void exitLabChat() {
 
 void updateLabChat() {
   // Handle beep notification FIRST (works even when chat inactive)
-  if (needsBeep) {
+  // CRITICAL: Skip beep during audio playback to prevent I2S conflicts and buffer underruns
+  if (needsBeep && !isAudioPlaying() && !isRadioPlaying()) {
     needsBeep = false;
     // Descending then ascending chirp - more interesting
     M5Cardputer.Speaker.tone(1400, 50);

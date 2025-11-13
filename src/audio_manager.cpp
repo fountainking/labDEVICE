@@ -321,30 +321,18 @@ void updateMusicPlayback() {
   }
 
   if (currentSource == AUDIO_SOURCE_MUSIC && musicMP3 && musicMP3->isRunning()) {
-    // AGGRESSIVE watchdog feeding to prevent timeout during MP3 decoding
-    yield();
-    delay(1);  // Give watchdog extra time
-
-    // Log every 100 loops to track progress without flooding serial
-    loopCount++;
-    if (loopCount % 100 == 0 || millis() - lastLoopLog > 5000) {
-      Serial.printf("Music loop %d - Free heap: %d bytes\n", loopCount, ESP.getFreeHeap());
-      Serial.flush();
-      lastLoopLog = millis();
-    }
-
-    // Feed watchdog again before the potentially long loop() call
+    // Feed watchdog before MP3 decoding
     yield();
 
+    // Decode next audio frame (non-blocking, processes one MP3 frame)
     if (!musicMP3->loop()) {
       // Track finished - DON'T delete immediately (we're inside musicMP3->loop()!)
       // Mark for deletion on next iteration
       Serial.println("Track finished - marking for cleanup on next loop");
       pendingStop = true;
-      loopCount = 0;  // Reset counter
     }
 
-    // Feed watchdog after loop() completes
+    // Feed watchdog after decoding
     yield();
   }
 }

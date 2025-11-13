@@ -754,7 +754,7 @@ void loop() {
                 (currentScreenNumber == 18 && emojiMakerActive) ||  // Emoji Maker
                 (currentScreenNumber == 19 && slotMachineActive);  // Slot Machine
 
-  if (!screensaverActive && !inGame &&
+  if (!screensaverActive && !inGame && !isPortalRunning() &&
       millis() - lastActivityTime > SCREENSAVER_TIMEOUT) {
     // Start screensaver with star rain dissolve effect
     screensaverActive = true;
