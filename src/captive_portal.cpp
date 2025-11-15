@@ -2,6 +2,7 @@
 #include "ui.h"
 #include "settings.h"
 #include "portal_manager.h"
+#include "file_manager.h"
 
 // Portal globals
 PortalState portalState = PORTAL_STOPPED;
@@ -10,6 +11,24 @@ DNSServer* portalDNS = nullptr;
 int portalVisitorCount = 0;
 String portalSSID = "";
 unsigned long portalStartTime = 0;
+
+// Track unique visitors by IP
+#define MAX_VISITORS 50
+IPAddress visitorIPs[MAX_VISITORS];
+int uniqueVisitorCount = 0;
+
+// Helper: Check if visitor is new
+bool isNewVisitor(IPAddress ip) {
+    for (int i = 0; i < uniqueVisitorCount; i++) {
+        if (visitorIPs[i] == ip) return false;
+    }
+    if (uniqueVisitorCount < MAX_VISITORS) {
+        visitorIPs[uniqueVisitorCount++] = ip;
+        portalVisitorCount++;
+        return true;
+    }
+    return false;
+}
 
 // Simple HTML page - placeholder for Laboratory pitch deck
 const char PORTAL_HTML[] PROGMEM = R"rawliteral(
@@ -95,8 +114,14 @@ const char PORTAL_HTML[] PROGMEM = R"rawliteral(
 void startCaptivePortal(const String& ssid) {
     stopCaptivePortal(); // Stop any existing portal
 
+    // Ensure SD card is mounted for serving fonts/videos
+    if (!sdCardMounted) {
+        sdCardMounted = (SD.cardType() != CARD_NONE);
+    }
+
     portalSSID = ssid;
     portalVisitorCount = 0;
+    uniqueVisitorCount = 0; // Reset visitor tracking
     portalStartTime = millis();
 
     // Configure Access Point with custom IP configuration
@@ -124,78 +149,104 @@ void startCaptivePortal(const String& ssid) {
 
     // Handle all requests with the same HTML page
     portalWebServer->onNotFound([]() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->send(200, "text/html", PORTAL_HTML);
     });
 
     // Root handler
     portalWebServer->on("/", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->send(200, "text/html", PORTAL_HTML);
     });
 
     // Captive portal detection endpoints
     // Android - return 200 with HTML to trigger portal popup
     portalWebServer->on("/generate_204", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->send(200, "text/html", PORTAL_HTML);
     });
 
     portalWebServer->on("/gen_204", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->send(200, "text/html", PORTAL_HTML);
     });
 
     // Additional Android connectivity checks
     portalWebServer->on("/connectivitycheck.gstatic.com/generate_204", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->send(200, "text/html", PORTAL_HTML);
     });
 
-    // iOS/Apple
+    // iOS/Apple - return HTML to trigger portal (not "Success" text)
     portalWebServer->on("/hotspot-detect.html", []() {
-        portalVisitorCount++;
-        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
-        portalWebServer->send(302, "text/plain", "");
+        isNewVisitor(portalWebServer->client().remoteIP());
+        portalWebServer->send(200, "text/html", PORTAL_HTML);
     });
 
     portalWebServer->on("/library/test/success.html", []() {
-        portalVisitorCount++;
-        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
-        portalWebServer->send(302, "text/plain", "");
+        isNewVisitor(portalWebServer->client().remoteIP());
+        portalWebServer->send(200, "text/html", PORTAL_HTML);
     });
 
     // Windows - special case: redirect to logout.net
     portalWebServer->on("/connecttest.txt", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->sendHeader("Location", "http://logout.net", true);
         portalWebServer->send(302, "text/plain", "");
     });
 
     portalWebServer->on("/ncsi.txt", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
         portalWebServer->send(302, "text/plain", "");
     });
 
     // Ubuntu/Linux
     portalWebServer->on("/canonical.html", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
         portalWebServer->send(302, "text/plain", "");
     });
 
     portalWebServer->on("/connectivity-check.html", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
         portalWebServer->send(302, "text/plain", "");
     });
 
     // Firefox
     portalWebServer->on("/success.txt", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
         portalWebServer->send(302, "text/plain", "");
+    });
+
+    // Serve font file from SD card (/fonts/automate_light.ttf)
+    portalWebServer->on("/automate_light.ttf", []() {
+        if (sdCardMounted) {
+            File fontFile = SD.open("/fonts/automate_light.ttf");
+            if (fontFile) {
+                portalWebServer->sendHeader("Cache-Control", "max-age=86400");
+                portalWebServer->streamFile(fontFile, "font/ttf");
+                fontFile.close();
+                return;
+            }
+        }
+        portalWebServer->send(404, "text/plain", "Font not found");
+    });
+
+    // Serve video file from SD card (/videos/demo.mp4)
+    portalWebServer->on("/demo.mp4", []() {
+        if (sdCardMounted) {
+            File videoFile = SD.open("/videos/demo.mp4");
+            if (videoFile) {
+                portalWebServer->sendHeader("Cache-Control", "max-age=3600");
+                portalWebServer->streamFile(videoFile, "video/mp4");
+                videoFile.close();
+                return;
+            }
+        }
+        portalWebServer->send(404, "text/plain", "Video not found");
     });
 
     portalWebServer->begin();
@@ -210,8 +261,14 @@ String customPortalHTML = "";
 void startCaptivePortalFromProfile(const PortalProfile& profile) {
     stopCaptivePortal(); // Stop any existing portal
 
+    // Ensure SD card is mounted for serving fonts/videos
+    if (!sdCardMounted) {
+        sdCardMounted = (SD.cardType() != CARD_NONE);
+    }
+
     portalSSID = profile.ssid;
     portalVisitorCount = 0;
+    uniqueVisitorCount = 0; // Reset visitor tracking
     portalStartTime = millis();
 
     // Load custom HTML from profile
@@ -242,78 +299,104 @@ void startCaptivePortalFromProfile(const PortalProfile& profile) {
 
     // Handle all requests with custom HTML
     portalWebServer->onNotFound([]() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->send(200, "text/html", customPortalHTML);
     });
 
     // Root handler
     portalWebServer->on("/", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->send(200, "text/html", customPortalHTML);
     });
 
     // Captive portal detection endpoints
     // Android - return 200 with HTML to trigger portal popup
     portalWebServer->on("/generate_204", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->send(200, "text/html", customPortalHTML);
     });
 
     portalWebServer->on("/gen_204", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->send(200, "text/html", customPortalHTML);
     });
 
     // Additional Android connectivity checks
     portalWebServer->on("/connectivitycheck.gstatic.com/generate_204", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->send(200, "text/html", customPortalHTML);
     });
 
-    // iOS/Apple
+    // iOS/Apple - return HTML to trigger portal (not "Success" text)
     portalWebServer->on("/hotspot-detect.html", []() {
-        portalVisitorCount++;
-        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
-        portalWebServer->send(302, "text/plain", "");
+        isNewVisitor(portalWebServer->client().remoteIP());
+        portalWebServer->send(200, "text/html", customPortalHTML);
     });
 
     portalWebServer->on("/library/test/success.html", []() {
-        portalVisitorCount++;
-        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
-        portalWebServer->send(302, "text/plain", "");
+        isNewVisitor(portalWebServer->client().remoteIP());
+        portalWebServer->send(200, "text/html", customPortalHTML);
     });
 
     // Windows - special case: redirect to logout.net
     portalWebServer->on("/connecttest.txt", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->sendHeader("Location", "http://logout.net", true);
         portalWebServer->send(302, "text/plain", "");
     });
 
     portalWebServer->on("/ncsi.txt", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
         portalWebServer->send(302, "text/plain", "");
     });
 
     // Ubuntu/Linux
     portalWebServer->on("/canonical.html", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
         portalWebServer->send(302, "text/plain", "");
     });
 
     portalWebServer->on("/connectivity-check.html", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
         portalWebServer->send(302, "text/plain", "");
     });
 
     // Firefox
     portalWebServer->on("/success.txt", []() {
-        portalVisitorCount++;
+        isNewVisitor(portalWebServer->client().remoteIP());
         portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
         portalWebServer->send(302, "text/plain", "");
+    });
+
+    // Serve font file from SD card (/fonts/automate_light.ttf)
+    portalWebServer->on("/automate_light.ttf", []() {
+        if (sdCardMounted) {
+            File fontFile = SD.open("/fonts/automate_light.ttf");
+            if (fontFile) {
+                portalWebServer->sendHeader("Cache-Control", "max-age=86400");
+                portalWebServer->streamFile(fontFile, "font/ttf");
+                fontFile.close();
+                return;
+            }
+        }
+        portalWebServer->send(404, "text/plain", "Font not found");
+    });
+
+    // Serve video file from SD card (/videos/demo.mp4)
+    portalWebServer->on("/demo.mp4", []() {
+        if (sdCardMounted) {
+            File videoFile = SD.open("/videos/demo.mp4");
+            if (videoFile) {
+                portalWebServer->sendHeader("Cache-Control", "max-age=3600");
+                portalWebServer->streamFile(videoFile, "video/mp4");
+                videoFile.close();
+                return;
+            }
+        }
+        portalWebServer->send(404, "text/plain", "Video not found");
     });
 
     portalWebServer->begin();
@@ -350,12 +433,20 @@ void stopCaptivePortal() {
 }
 
 void handlePortalLoop() {
+    static int lastDisplayedCount = 0;
+
     if (portalState == PORTAL_RUNNING) {
         if (portalDNS != nullptr) {
             portalDNS->processNextRequest();
         }
         if (portalWebServer != nullptr) {
             portalWebServer->handleClient();
+        }
+
+        // Update display when visitor count changes
+        if (portalVisitorCount != lastDisplayedCount) {
+            lastDisplayedCount = portalVisitorCount;
+            drawPortalScreen();
         }
     }
 }
