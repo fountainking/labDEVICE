@@ -3,10 +3,12 @@
 #include "captive_portal.h"
 #include <M5Cardputer.h>
 
-// Credits scroll state
-float creditsScrollOffset = 0.0;
-unsigned long lastScrollTime = 0;
-const float SCROLL_SPEED = 0.5;  // Pixels per frame
+// About screen scroll state
+int aboutScrollOffset = 0;
+const int LINE_HEIGHT = 10;
+unsigned long lastAutoScrollTime = 0;
+const int AUTO_SCROLL_INTERVAL = 2000; // 2 seconds between auto-scrolls
+bool autoScrollEnabled = true;
 
 // Roadmap item structure
 struct RoadmapItem {
@@ -106,119 +108,163 @@ RoadmapItem roadmapItems[] = {
 
 const int totalRoadmapItems = sizeof(roadmapItems) / sizeof(roadmapItems[0]);
 
+// Star emoji - hardcoded for About UI (from OTA)
+static const uint16_t STAR_ICON[16][16] = {
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0xFFE0, 0xFFE0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x0000, 0x0000, 0x07E0, 0x07E0},
+    {0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0},
+    {0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0},
+    {0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x0000, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x0000, 0xFFE0, 0xFFE0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000, 0xFFE0, 0xFFE0, 0x0000, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+    {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
+};
+
+// Helper: Draw 2x scaled star emoji (from OTA)
+static void drawStarEmoji2x(int x, int y) {
+    for (int row = 0; row < 16; row++) {
+        for (int col = 0; col < 16; col++) {
+            uint16_t color = STAR_ICON[row][col];
+            if (color != 0x07E0) { // Skip transparent pixels
+                // Draw 2x2 block for each pixel
+                M5Cardputer.Display.fillRect(x + col * 2, y + row * 2, 2, 2, color);
+            }
+        }
+    }
+}
+
+// Helper: Interpolate between blue and white (from OTA)
+static uint16_t aboutGradientColor(int line, int totalLines) {
+    float ratio = (float)line / (float)totalLines;
+    uint8_t r = (uint8_t)(ratio * 31);
+    uint8_t g = (uint8_t)(ratio * 63);
+    uint8_t b = 31; // Keep blue channel max
+    return ((r & 0x1F) << 11) | ((g & 0x3F) << 5) | (b & 0x1F);
+}
+
 void enterRoadmap() {
-  creditsScrollOffset = 135.0;  // Start from bottom of screen
-  lastScrollTime = millis();
+  aboutScrollOffset = 0;
+  autoScrollEnabled = true;
+  lastAutoScrollTime = millis();
   drawRoadmap();
 }
 
 void drawRoadmap() {
   M5Cardputer.Display.fillScreen(TFT_BLACK);
 
-  // Star Wars-style credits window (trapezoid perspective)
-  // Credits scroll from bottom to top with perspective scaling
+  // Draw 2x star emoji on right side (centered vertically, same as OTA)
+  drawStarEmoji2x(240 - 32 - 10, 51);
 
-  const char* credits[] = {
+  const char* aboutText[] = {
     "",
+    "ABOUT",
     "",
+    "James Edward Fauntleroy II",
+    "Born: May 16, 1984",
     "",
-    "LABORATORY M5",
+    "Singer, songwriter, producer,",
+    "and community builder from",
+    "Inglewood, California.",
     "",
-    "Created by",
+    "Known for songwriting and",
+    "vocal work for:",
     "",
-    "JAMES",
+    "Bruno Mars, Justin Timberlake,",
+    "Rihanna, Beyonce, Lady Gaga,",
+    "Travis Scott, Frank Ocean,",
+    "Kendrick Lamar, SZA, Drake,",
+    "Vince Staples, BTS,",
+    "Mariah Carey, Justin Bieber,",
+    "Jay-Z, Chris Brown, John Mayer",
     "",
+    "ACHIEVEMENTS",
     "",
-    "A portable hacking",
-    "& creative tool",
+    "Four-time Grammy Award winner",
     "",
-    "Built with ESP32-S3",
+    "Co-founder of",
+    "1500 Sound Academy",
     "",
-    "2025",
+    "Founder of Laboratory",
+    "(Workforce Development)",
     "",
+    "Founder of ALL NEW",
+    "(Music Pathways)",
+    "",
+    "Designed Mickey Mouse toy",
+    "and statue for Disney's",
+    "100th anniversary",
+    "",
+    "Designed and coded this device",
+    "",
+    "---",
+    "",
+    "2025 Laboratory M5",
     "",
     ""
   };
-  const int numLines = sizeof(credits) / sizeof(credits[0]);
+  const int numLines = sizeof(aboutText) / sizeof(aboutText[0]);
 
-  // Draw credits with perspective (larger at bottom, smaller at top)
+  M5Cardputer.Display.setTextSize(1);
+
+  int y = 15;
+  int visibleLineCount = 0;
   for (int i = 0; i < numLines; i++) {
-    // Calculate Y position for this line
-    float lineY = creditsScrollOffset + (i * 18);
+    int drawY = y - aboutScrollOffset;
+    if (drawY >= 10 && drawY < 125) {
+      String line = aboutText[i];
 
-    // Only draw if on screen
-    if (lineY > 10 && lineY < 100) {
-      // Perspective scale: bigger near bottom (lineY ~100), smaller near top (lineY ~10)
-      float scale = 1.0 + ((lineY - 55) / 100.0);  // Range: 0.5 to 1.5
-      scale = constrain(scale, 0.6, 2.0);
-
-      // Fade effect: fade out near top
-      uint8_t alpha = 255;
-      if (lineY < 30) {
-        alpha = map((int)lineY, 10, 30, 0, 255);
-      }
-
-      // Yellow color with alpha (Star Wars style)
-      uint16_t color = TFT_YELLOW;
-      if (alpha < 128) {
-        color = TFT_ORANGE;  // Darker when fading
-      }
-
-      M5Cardputer.Display.setTextColor(color);
-
-      // Text size based on scale
-      if (scale > 1.5) {
-        M5Cardputer.Display.setTextSize(3);
-      } else if (scale > 1.0) {
-        M5Cardputer.Display.setTextSize(2);
+      // Yellow for titles (ABOUT, ACHIEVEMENTS), gradient for rest (OTA style)
+      if (line == "ABOUT" || line == "ACHIEVEMENTS") {
+        M5Cardputer.Display.setTextColor(TFT_YELLOW);
       } else {
-        M5Cardputer.Display.setTextSize(1);
+        M5Cardputer.Display.setTextColor(aboutGradientColor(i, numLines));
       }
 
-      // Center the text (approximate width calculation)
-      String line = credits[i];
-      int charWidth = (scale > 1.5) ? 18 : (scale > 1.0) ? 12 : 6;
-      int textWidth = line.length() * charWidth;
-      int textX = (240 - textWidth) / 2;
-
-      M5Cardputer.Display.drawString(line, textX, (int)lineY);
+      M5Cardputer.Display.drawString(line, 15, drawY); // Left margin: 15px (OTA style)
+      visibleLineCount++;
     }
+    y += LINE_HEIGHT;
   }
 
-  // Draw bottom button area (dark grey bar)
-  M5Cardputer.Display.fillRect(0, 100, 240, 35, 0x2104);  // Dark grey
-
-  // Portal button
-  M5Cardputer.Display.fillRoundRect(45, 105, 150, 20, 8, TFT_RED);
-  M5Cardputer.Display.drawRoundRect(45, 105, 150, 20, 8, TFT_WHITE);
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("LAUNCH PORTAL (ENTER)", 55, 110);
-
-  // Back button hint
+  // Bottom hint bar
+  M5Cardputer.Display.fillRect(0, 125, 240, 10, TFT_BLACK);
   M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("` = Back", 90, 120);
+  M5Cardputer.Display.drawString(";/. scroll | ` back", 50, 125);
 }
 
 void updateCreditsScroll() {
-  unsigned long now = millis();
-  if (now - lastScrollTime > 30) {  // ~30 FPS
-    creditsScrollOffset -= SCROLL_SPEED;
-
-    // Loop credits when they scroll off top
-    if (creditsScrollOffset < -200) {
-      creditsScrollOffset = 135.0;
+  // Auto-scroll with user interrupt capability
+  if (autoScrollEnabled && (millis() - lastAutoScrollTime > AUTO_SCROLL_INTERVAL)) {
+    aboutScrollOffset += LINE_HEIGHT;
+    const int maxScroll = 400; // Approximate max scroll
+    if (aboutScrollOffset > maxScroll) {
+      aboutScrollOffset = maxScroll;
+      autoScrollEnabled = false; // Stop at end
     }
-
-    lastScrollTime = now;
+    lastAutoScrollTime = millis();
     drawRoadmap();
   }
 }
 
 void scrollRoadmapUp() {
-  // Not used in credits mode
+  autoScrollEnabled = false; // User interrupt - disable autoscroll
+  aboutScrollOffset -= LINE_HEIGHT;
+  if (aboutScrollOffset < 0) aboutScrollOffset = 0;
+  drawRoadmap();
 }
 
 void scrollRoadmapDown() {
-  // Not used in credits mode
+  autoScrollEnabled = false; // User interrupt - disable autoscroll
+  aboutScrollOffset += LINE_HEIGHT;
+  const int maxScroll = 400;  // Approximate max scroll
+  if (aboutScrollOffset > maxScroll) aboutScrollOffset = maxScroll;
+  drawRoadmap();
 }
