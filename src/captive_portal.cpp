@@ -133,7 +133,9 @@ void startCaptivePortal(const String& ssid) {
     IPAddress subnet(255, 255, 255, 0);
     WiFi.softAPConfig(local_IP, gateway, subnet);
 
-    WiFi.softAP(ssid.c_str());
+    // Parameters: ssid, password, channel, hidden, max_connections
+    // Max connections bumped to 10 (ESP32 hardware limit)
+    WiFi.softAP(ssid.c_str(), NULL, 6, 0, 10);
 
     delay(100);
 
@@ -141,7 +143,7 @@ void startCaptivePortal(const String& ssid) {
 
     // Start DNS server (captures all DNS requests)
     portalDNS = new DNSServer();
-    portalDNS->setTTL(3600);
+    portalDNS->setTTL(30); // Short TTL for faster portal detection
     portalDNS->start(53, "*", IP); // Redirect everything to our IP
 
     // Start web server
@@ -160,32 +162,37 @@ void startCaptivePortal(const String& ssid) {
     });
 
     // Captive portal detection endpoints
-    // Android - return 200 with HTML to trigger portal popup
+    // Android - redirect to portal to trigger popup
     portalWebServer->on("/generate_204", []() {
         isNewVisitor(portalWebServer->client().remoteIP());
-        portalWebServer->send(200, "text/html", PORTAL_HTML);
+        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
+        portalWebServer->send(302, "text/plain", "");
     });
 
     portalWebServer->on("/gen_204", []() {
         isNewVisitor(portalWebServer->client().remoteIP());
-        portalWebServer->send(200, "text/html", PORTAL_HTML);
+        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
+        portalWebServer->send(302, "text/plain", "");
     });
 
     // Additional Android connectivity checks
     portalWebServer->on("/connectivitycheck.gstatic.com/generate_204", []() {
         isNewVisitor(portalWebServer->client().remoteIP());
-        portalWebServer->send(200, "text/html", PORTAL_HTML);
+        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
+        portalWebServer->send(302, "text/plain", "");
     });
 
-    // iOS/Apple - return HTML to trigger portal (not "Success" text)
+    // iOS/Apple - redirect to portal to trigger popup
     portalWebServer->on("/hotspot-detect.html", []() {
         isNewVisitor(portalWebServer->client().remoteIP());
-        portalWebServer->send(200, "text/html", PORTAL_HTML);
+        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
+        portalWebServer->send(302, "text/plain", "");
     });
 
     portalWebServer->on("/library/test/success.html", []() {
         isNewVisitor(portalWebServer->client().remoteIP());
-        portalWebServer->send(200, "text/html", PORTAL_HTML);
+        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
+        portalWebServer->send(302, "text/plain", "");
     });
 
     // Windows - special case: redirect to logout.net
@@ -221,6 +228,13 @@ void startCaptivePortal(const String& ssid) {
         portalWebServer->send(302, "text/plain", "");
     });
 
+    // iOS captive portal success endpoint - signals portal completion
+    portalWebServer->on("/connected", []() {
+        // Redirect to Apple's success URL to close captive portal
+        portalWebServer->sendHeader("Location", "http://captive.apple.com/hotspot-detect.html", true);
+        portalWebServer->send(302, "text/plain", "");
+    });
+
     // Serve font file from SD card (/fonts/automate_light.ttf)
     portalWebServer->on("/automate_light.ttf", []() {
         if (sdCardMounted) {
@@ -233,20 +247,6 @@ void startCaptivePortal(const String& ssid) {
             }
         }
         portalWebServer->send(404, "text/plain", "Font not found");
-    });
-
-    // Serve video file from SD card (/videos/demo.mp4)
-    portalWebServer->on("/demo.mp4", []() {
-        if (sdCardMounted) {
-            File videoFile = SD.open("/videos/demo.mp4");
-            if (videoFile) {
-                portalWebServer->sendHeader("Cache-Control", "max-age=3600");
-                portalWebServer->streamFile(videoFile, "video/mp4");
-                videoFile.close();
-                return;
-            }
-        }
-        portalWebServer->send(404, "text/plain", "Video not found");
     });
 
     portalWebServer->begin();
@@ -283,7 +283,9 @@ void startCaptivePortalFromProfile(const PortalProfile& profile) {
     IPAddress subnet(255, 255, 255, 0);
     WiFi.softAPConfig(local_IP, gateway, subnet);
 
-    WiFi.softAP(profile.ssid.c_str());
+    // Parameters: ssid, password, channel, hidden, max_connections
+    // Max connections bumped to 10 (ESP32 hardware limit)
+    WiFi.softAP(profile.ssid.c_str(), NULL, 6, 0, 10);
 
     delay(100);
 
@@ -291,7 +293,7 @@ void startCaptivePortalFromProfile(const PortalProfile& profile) {
 
     // Start DNS server (captures all DNS requests)
     portalDNS = new DNSServer();
-    portalDNS->setTTL(3600);
+    portalDNS->setTTL(30); // Short TTL for faster portal detection
     portalDNS->start(53, "*", IP); // Redirect everything to our IP
 
     // Start web server
@@ -310,32 +312,37 @@ void startCaptivePortalFromProfile(const PortalProfile& profile) {
     });
 
     // Captive portal detection endpoints
-    // Android - return 200 with HTML to trigger portal popup
+    // Android - redirect to portal to trigger popup
     portalWebServer->on("/generate_204", []() {
         isNewVisitor(portalWebServer->client().remoteIP());
-        portalWebServer->send(200, "text/html", customPortalHTML);
+        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
+        portalWebServer->send(302, "text/plain", "");
     });
 
     portalWebServer->on("/gen_204", []() {
         isNewVisitor(portalWebServer->client().remoteIP());
-        portalWebServer->send(200, "text/html", customPortalHTML);
+        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
+        portalWebServer->send(302, "text/plain", "");
     });
 
     // Additional Android connectivity checks
     portalWebServer->on("/connectivitycheck.gstatic.com/generate_204", []() {
         isNewVisitor(portalWebServer->client().remoteIP());
-        portalWebServer->send(200, "text/html", customPortalHTML);
+        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
+        portalWebServer->send(302, "text/plain", "");
     });
 
-    // iOS/Apple - return HTML to trigger portal (not "Success" text)
+    // iOS/Apple - redirect to portal to trigger popup
     portalWebServer->on("/hotspot-detect.html", []() {
         isNewVisitor(portalWebServer->client().remoteIP());
-        portalWebServer->send(200, "text/html", customPortalHTML);
+        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
+        portalWebServer->send(302, "text/plain", "");
     });
 
     portalWebServer->on("/library/test/success.html", []() {
         isNewVisitor(portalWebServer->client().remoteIP());
-        portalWebServer->send(200, "text/html", customPortalHTML);
+        portalWebServer->sendHeader("Location", "http://192.168.4.1", true);
+        portalWebServer->send(302, "text/plain", "");
     });
 
     // Windows - special case: redirect to logout.net
@@ -371,6 +378,13 @@ void startCaptivePortalFromProfile(const PortalProfile& profile) {
         portalWebServer->send(302, "text/plain", "");
     });
 
+    // iOS captive portal success endpoint - signals portal completion
+    portalWebServer->on("/connected", []() {
+        // Redirect to Apple's success URL to close captive portal
+        portalWebServer->sendHeader("Location", "http://captive.apple.com/hotspot-detect.html", true);
+        portalWebServer->send(302, "text/plain", "");
+    });
+
     // Serve font file from SD card (/fonts/automate_light.ttf)
     portalWebServer->on("/automate_light.ttf", []() {
         if (sdCardMounted) {
@@ -383,20 +397,6 @@ void startCaptivePortalFromProfile(const PortalProfile& profile) {
             }
         }
         portalWebServer->send(404, "text/plain", "Font not found");
-    });
-
-    // Serve video file from SD card (/videos/demo.mp4)
-    portalWebServer->on("/demo.mp4", []() {
-        if (sdCardMounted) {
-            File videoFile = SD.open("/videos/demo.mp4");
-            if (videoFile) {
-                portalWebServer->sendHeader("Cache-Control", "max-age=3600");
-                portalWebServer->streamFile(videoFile, "video/mp4");
-                videoFile.close();
-                return;
-            }
-        }
-        portalWebServer->send(404, "text/plain", "Video not found");
     });
 
     portalWebServer->begin();
