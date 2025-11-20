@@ -21,20 +21,20 @@ import sys
 # Common game control presets
 PRESETS = {
     "1": {
+        "name": "D-Pad Standard (2=up, 8=down, 4=left, 6=right, 5=action)",
+        "config": {"up": "2", "down": "8", "left": "4", "right": "6", "action": "5"}
+    },
+    "2": {
         "name": "Tetris (4=left, 5=rotate, 6=right, 2=drop)",
         "config": {"up": "5", "down": "2", "left": "4", "right": "6", "action": "0"}
     },
-    "2": {
+    "3": {
         "name": "Space Invaders (4=left, 5=shoot, 6=right)",
         "config": {"up": "5", "down": "5", "left": "4", "right": "6", "action": "5"}
     },
-    "3": {
+    "4": {
         "name": "Pong (1=up, 4=down)",
         "config": {"up": "1", "down": "4", "left": "0", "right": "0", "action": "0"}
-    },
-    "4": {
-        "name": "Maze/Adventure (2=up, 8=down, 4=left, 6=right)",
-        "config": {"up": "2", "down": "8", "left": "4", "right": "6", "action": "0"}
     },
     "5": {
         "name": "Custom (you specify each key)",
@@ -47,7 +47,14 @@ def find_roms(directory="."):
     """Find all CHIP-8 ROM files in directory"""
     roms = []
     for filename in os.listdir(directory):
-        if filename.lower().endswith(('.ch8', '.ch8')):
+        filepath = os.path.join(directory, filename)
+        # Include .ch8 files OR extensionless files that aren't hidden/config
+        if filename.lower().endswith('.ch8'):
+            roms.append(filename)
+        elif (os.path.isfile(filepath) and
+              '.' not in filename and
+              not filename.startswith('.') and
+              not filename.endswith('.cfg')):
             roms.append(filename)
     return sorted(roms)
 
@@ -192,6 +199,11 @@ def main():
     print("CHIP-8 Key Configuration Generator")
     print("="*60)
 
+    # Check for batch mode
+    batch_mode = "--batch" in sys.argv
+    if batch_mode:
+        sys.argv.remove("--batch")
+
     # Get directory
     if len(sys.argv) > 1:
         directory = sys.argv[1]
@@ -201,6 +213,25 @@ def main():
     if not os.path.isdir(directory):
         print(f"Error: '{directory}' is not a directory")
         sys.exit(1)
+
+    # Batch mode - apply D-Pad Standard to all ROMs
+    if batch_mode:
+        roms = find_roms(directory)
+        if not roms:
+            print("\n⚠ No CHIP-8 ROM files found")
+            sys.exit(0)
+
+        print(f"\nBatch mode: Applying D-Pad Standard config to {len(roms)} ROM(s)")
+        config = PRESETS["1"]["config"]
+
+        for rom in roms:
+            rom_path = os.path.join(directory, rom)
+            config_path = rom_path + ".cfg"
+            write_config(config_path, config, rom)
+            print(f"  ✓ {rom}")
+
+        print(f"\n✓ Created {len(roms)} config file(s)")
+        sys.exit(0)
 
     print(f"\nScanning directory: {os.path.abspath(directory)}")
 

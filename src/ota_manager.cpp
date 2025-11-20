@@ -1,4 +1,5 @@
 #include "ota_manager.h"
+#include "ui.h"
 #include <M5Cardputer.h>
 #include <WiFiClientSecure.h>
 
@@ -45,10 +46,12 @@ void drawStarEmoji2x(int x, int y) {
             uint16_t color = STAR_ICON[row][col];
             if (color != 0x07E0) { // Skip transparent pixels
                 // Draw 2x2 block for each pixel
-                M5Cardputer.Display.fillRect(x + col * 2, y + row * 2, 2, 2, color);
+                canvas.fillRect(x + col * 2, y + row * 2, 2, 2, color);
             }
         }
     }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // Helper: Wait for any key press and release (fixes restart bug)
@@ -87,7 +90,7 @@ String OTAManager::parseJsonField(String json, String field) {
 }
 
 bool OTAManager::checkForUpdate() {
-    M5Cardputer.Display.clear();
+    canvas.clear();
 
     // Draw 2x star emoji on right side (centered vertically)
     // Screen is 240x135, star is 32x32, so center at y=(135-32)/2 ≈ 51
@@ -97,47 +100,47 @@ bool OTAManager::checkForUpdate() {
     int lineY = 15;
     int lineSpacing = 10;
 
-    M5Cardputer.Display.setTextSize(1);
+    canvas.setTextSize(1);
 
     // Line 0: "Current: vX.X.X" - gradient blue to white
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(0, 5));
-    M5Cardputer.Display.printf("Current: %s", FIRMWARE_VERSION);
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(0, 5));
+    canvas.printf("Current: %s", FIRMWARE_VERSION);
     lineY += lineSpacing;
 
     // Line 1: "Checking for updates..."
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(1, 5));
-    M5Cardputer.Display.println("Checking for updates...");
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(1, 5));
+    canvas.println("Checking for updates...");
     lineY += lineSpacing;
 
     // Debug: Check WiFi status
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(2, 5));
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(2, 5));
     if (WiFi.status() != WL_CONNECTED) {
-        M5Cardputer.Display.println("WiFi not connected!");
+        canvas.println("WiFi not connected!");
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, lineY);
+        canvas.println("Press any key...");
         waitForKeyPressAndRelease();
         return false;
     }
-    M5Cardputer.Display.printf("WiFi: %s", WiFi.SSID().c_str());
+    canvas.printf("WiFi: %s", WiFi.SSID().c_str());
     lineY += lineSpacing;
 
     // Debug: Show RSSI
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(3, 5));
-    M5Cardputer.Display.printf("Signal: %d dBm", WiFi.RSSI());
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(3, 5));
+    canvas.printf("Signal: %d dBm", WiFi.RSSI());
     lineY += lineSpacing;
 
     secureClient.setInsecure(); // Skip certificate validation
     secureClient.setHandshakeTimeout(60); // 60 second TLS timeout
 
     // Debug: Connecting
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(4, 5));
-    M5Cardputer.Display.println("Connecting to GitHub...");
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(4, 5));
+    canvas.println("Connecting to GitHub...");
     lineY += lineSpacing;
 
     HTTPClient http;
@@ -145,21 +148,21 @@ bool OTAManager::checkForUpdate() {
     http.addHeader("User-Agent", "M5Cardputer-Laboratory");
     http.setTimeout(60000); // 60 second timeout
 
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(WHITE);
-    M5Cardputer.Display.println("Sending GET request...");
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(WHITE);
+    canvas.println("Sending GET request...");
     lineY += lineSpacing;
 
     int httpCode = http.GET();
 
     if (httpCode != 200) {
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(2, 5));
-        M5Cardputer.Display.printf("Error: HTTP %d", httpCode);
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(2, 5));
+        canvas.printf("Error: HTTP %d", httpCode);
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(3, 5));
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(3, 5));
+        canvas.println("Press any key...");
         http.end();
         waitForKeyPressAndRelease();
         return false;
@@ -171,32 +174,32 @@ bool OTAManager::checkForUpdate() {
     // Parse version tag
     String latestVersion = parseJsonField(payload, "tag_name");
     if (latestVersion.length() == 0) {
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(2, 5));
-        M5Cardputer.Display.println("Parse error: No tag found");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(2, 5));
+        canvas.println("Parse error: No tag found");
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(3, 5));
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(3, 5));
+        canvas.println("Press any key...");
         waitForKeyPressAndRelease();
         return false;
     }
 
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(2, 5));
-    M5Cardputer.Display.printf("Latest: %s", latestVersion.c_str());
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(2, 5));
+    canvas.printf("Latest: %s", latestVersion.c_str());
     lineY += lineSpacing;
 
     // Compare versions
     if (latestVersion == String(FIRMWARE_VERSION)) {
         lineY += lineSpacing; // Extra space
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(3, 5));
-        M5Cardputer.Display.println("Already up to date!");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(3, 5));
+        canvas.println("Already up to date!");
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(4, 5));
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(4, 5));
+        canvas.println("Press any key...");
         waitForKeyPressAndRelease();
         return false;
     }
@@ -205,13 +208,13 @@ bool OTAManager::checkForUpdate() {
     String searchStr = "\"browser_download_url\":\"";
     int urlStart = payload.indexOf(searchStr);
     if (urlStart < 0) {
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(3, 5));
-        M5Cardputer.Display.println("No firmware.bin found");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(3, 5));
+        canvas.println("No firmware.bin found");
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(4, 5));
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(4, 5));
+        canvas.println("Press any key...");
         waitForKeyPressAndRelease();
         return false;
     }
@@ -222,13 +225,13 @@ bool OTAManager::checkForUpdate() {
 
     // Confirm only if we find firmware.bin in the URL
     if (firmwareUrl.indexOf("firmware.bin") < 0) {
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(3, 5));
-        M5Cardputer.Display.println("Invalid firmware URL");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(3, 5));
+        canvas.println("Invalid firmware URL");
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(4, 5));
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(4, 5));
+        canvas.println("Press any key...");
         waitForKeyPressAndRelease();
         return false;
     }
@@ -242,29 +245,29 @@ bool OTAManager::checkForUpdate() {
 
     if (isMandatory) {
         // MANDATORY UPDATE - auto-install, no ESC
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(TFT_RED);
-        M5Cardputer.Display.println("CRITICAL UPDATE REQUIRED");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(TFT_RED);
+        canvas.println("CRITICAL UPDATE REQUIRED");
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(TFT_YELLOW);
-        M5Cardputer.Display.println("Installing automatically...");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(TFT_YELLOW);
+        canvas.println("Installing automatically...");
         delay(2000); // Give user time to read
         return performUpdate(firmwareUrl);
     }
 
     // Optional update - show ENTER/ESC options
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(3, 5));
-    M5Cardputer.Display.println("Update available!");
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(3, 5));
+    canvas.println("Update available!");
     lineY += lineSpacing;
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(4, 5));
-    M5Cardputer.Display.println("Press ENTER to install");
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(4, 5));
+    canvas.println("Press ENTER to install");
     lineY += lineSpacing;
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(WHITE);
-    M5Cardputer.Display.println("Press ESC to cancel");
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(WHITE);
+    canvas.println("Press ESC to cancel");
 
     // Wait for user input
     while (true) {
@@ -281,9 +284,9 @@ bool OTAManager::checkForUpdate() {
                 for (auto key : status.word) {
                     if (key == '`') {
                         lineY += lineSpacing;
-                        M5Cardputer.Display.setCursor(15, lineY);
-                        M5Cardputer.Display.setTextColor(WHITE);
-                        M5Cardputer.Display.println("Cancelled.");
+                        canvas.setCursor(15, lineY);
+                        canvas.setTextColor(WHITE);
+                        canvas.println("Cancelled.");
                         delay(1000);
                         return false;
                     }
@@ -298,7 +301,7 @@ bool OTAManager::checkForUpdate() {
 }
 
 bool OTAManager::performUpdate(String firmwareURL) {
-    M5Cardputer.Display.clear();
+    canvas.clear();
 
     // Draw 2x star emoji on right side (centered vertically)
     drawStarEmoji2x(240 - 32 - 10, 51);
@@ -307,45 +310,45 @@ bool OTAManager::performUpdate(String firmwareURL) {
     int lineY = 15;
     int lineSpacing = 10;
 
-    M5Cardputer.Display.setTextSize(1);
+    canvas.setTextSize(1);
 
     // Line 0: "Downloading firmware..."
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(0, 5));
-    M5Cardputer.Display.println("Downloading firmware...");
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(0, 5));
+    canvas.println("Downloading firmware...");
     lineY += lineSpacing;
 
     // Line 1: Firmware URL (truncate if too long)
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(1, 5));
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(1, 5));
     String displayURL = firmwareURL;
     if (displayURL.length() > 35) {
         displayURL = displayURL.substring(0, 32) + "...";
     }
-    M5Cardputer.Display.println(displayURL);
+    canvas.println(displayURL);
     lineY += lineSpacing;
 
     // Debug: WiFi check
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(2, 5));
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(2, 5));
     if (WiFi.status() != WL_CONNECTED) {
-        M5Cardputer.Display.println("WiFi disconnected!");
+        canvas.println("WiFi disconnected!");
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, lineY);
+        canvas.println("Press any key...");
         waitForKeyPressAndRelease();
         return false;
     }
-    M5Cardputer.Display.printf("WiFi OK (%d dBm)", WiFi.RSSI());
+    canvas.printf("WiFi OK (%d dBm)", WiFi.RSSI());
     lineY += lineSpacing;
 
     secureClient.setInsecure(); // Skip certificate validation
     secureClient.setHandshakeTimeout(60); // 60 second TLS timeout
 
     lineY += lineSpacing; // Extra space
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(3, 5));
-    M5Cardputer.Display.println("TLS handshake...");
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(3, 5));
+    canvas.println("TLS handshake...");
     lineY += lineSpacing;
 
     HTTPClient http;
@@ -353,36 +356,36 @@ bool OTAManager::performUpdate(String firmwareURL) {
     http.setTimeout(60000); // 60 second timeout for download
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(4, 5));
-    M5Cardputer.Display.println("Requesting firmware...");
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(4, 5));
+    canvas.println("Requesting firmware...");
     lineY += lineSpacing;
 
     int httpCode = http.GET();
 
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(WHITE);
-    M5Cardputer.Display.printf("Response: %d", httpCode);
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(WHITE);
+    canvas.printf("Response: %d", httpCode);
     lineY += lineSpacing;
 
     if (httpCode != 200) {
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(gradientColor(4, 5));
-        M5Cardputer.Display.printf("Download failed: %d", httpCode);
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(gradientColor(4, 5));
+        canvas.printf("Download failed: %d", httpCode);
         lineY += lineSpacing;
         if (httpCode == -1) {
-            M5Cardputer.Display.setCursor(15, lineY);
-            M5Cardputer.Display.setTextColor(WHITE);
-            M5Cardputer.Display.println("Connection error");
+            canvas.setCursor(15, lineY);
+            canvas.setTextColor(WHITE);
+            canvas.println("Connection error");
             lineY += lineSpacing;
-            M5Cardputer.Display.setCursor(15, lineY);
-            M5Cardputer.Display.println("Check WiFi signal");
+            canvas.setCursor(15, lineY);
+            canvas.println("Check WiFi signal");
             lineY += lineSpacing;
         }
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(WHITE);
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(WHITE);
+        canvas.println("Press any key...");
         http.end();
         waitForKeyPressAndRelease();
         return false;
@@ -390,18 +393,18 @@ bool OTAManager::performUpdate(String firmwareURL) {
 
     int contentLength = http.getSize();
     lineY += lineSpacing;
-    M5Cardputer.Display.setCursor(15, lineY);
-    M5Cardputer.Display.setTextColor(gradientColor(4, 5));
-    M5Cardputer.Display.printf("Size: %d bytes", contentLength);
+    canvas.setCursor(15, lineY);
+    canvas.setTextColor(gradientColor(4, 5));
+    canvas.printf("Size: %d bytes", contentLength);
     lineY += lineSpacing;
 
     if (contentLength <= 0) {
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(WHITE);
-        M5Cardputer.Display.println("Invalid content length");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(WHITE);
+        canvas.println("Invalid content length");
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, lineY);
+        canvas.println("Press any key...");
         http.end();
         waitForKeyPressAndRelease();
         return false;
@@ -409,15 +412,15 @@ bool OTAManager::performUpdate(String firmwareURL) {
 
     bool canBegin = Update.begin(contentLength);
     if (!canBegin) {
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.setTextColor(WHITE);
-        M5Cardputer.Display.println("Not enough space!");
+        canvas.setCursor(15, lineY);
+        canvas.setTextColor(WHITE);
+        canvas.println("Not enough space!");
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.printf("Needed: %d bytes", contentLength);
+        canvas.setCursor(15, lineY);
+        canvas.printf("Needed: %d bytes", contentLength);
         lineY += lineSpacing;
-        M5Cardputer.Display.setCursor(15, lineY);
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, lineY);
+        canvas.println("Press any key...");
         http.end();
         waitForKeyPressAndRelease();
         return false;
@@ -449,13 +452,13 @@ bool OTAManager::performUpdate(String firmwareURL) {
     http.end();
 
     if (written != contentLength) {
-        M5Cardputer.Display.setCursor(15, 100);
-        M5Cardputer.Display.setTextColor(WHITE);
-        M5Cardputer.Display.printf("Write incomplete!");
-        M5Cardputer.Display.setCursor(15, 110);
-        M5Cardputer.Display.printf("Written: %d / %d", written, contentLength);
-        M5Cardputer.Display.setCursor(15, 120);
-        M5Cardputer.Display.println("Press any key...");
+        canvas.setCursor(15, 100);
+        canvas.setTextColor(WHITE);
+        canvas.printf("Write incomplete!");
+        canvas.setCursor(15, 110);
+        canvas.printf("Written: %d / %d", written, contentLength);
+        canvas.setCursor(15, 120);
+        canvas.println("Press any key...");
         Update.abort();
         waitForKeyPressAndRelease();
         return false;
@@ -463,24 +466,24 @@ bool OTAManager::performUpdate(String firmwareURL) {
 
     if (Update.end()) {
         if (Update.isFinished()) {
-            M5Cardputer.Display.setCursor(15, 100);
-            M5Cardputer.Display.setTextColor(WHITE);
-            M5Cardputer.Display.println("Update complete!");
-            M5Cardputer.Display.setCursor(15, 110);
-            M5Cardputer.Display.println("Rebooting in 3s...");
+            canvas.setCursor(15, 100);
+            canvas.setTextColor(WHITE);
+            canvas.println("Update complete!");
+            canvas.setCursor(15, 110);
+            canvas.println("Rebooting in 3s...");
             delay(3000);
             ESP.restart();
             return true;
         }
     }
 
-    M5Cardputer.Display.setCursor(15, 100);
-    M5Cardputer.Display.setTextColor(WHITE);
-    M5Cardputer.Display.println("Update failed!");
-    M5Cardputer.Display.setCursor(15, 110);
-    M5Cardputer.Display.printf("Error: %s", Update.errorString());
-    M5Cardputer.Display.setCursor(15, 120);
-    M5Cardputer.Display.println("Press any key...");
+    canvas.setCursor(15, 100);
+    canvas.setTextColor(WHITE);
+    canvas.println("Update failed!");
+    canvas.setCursor(15, 110);
+    canvas.printf("Error: %s", Update.errorString());
+    canvas.setCursor(15, 120);
+    canvas.println("Press any key...");
     waitForKeyPressAndRelease();
     return false;
 }
@@ -493,15 +496,15 @@ void OTAManager::displayProgress(int current, int total) {
     int barY = 115; // Bottom of screen (135 - 20)
 
     // Draw progress bar background
-    M5Cardputer.Display.drawRect(barX, barY, barWidth, barHeight, WHITE);
+    canvas.drawRect(barX, barY, barWidth, barHeight, WHITE);
 
     // Draw progress bar fill (YELLOW = 0xFFE0)
     int fillWidth = (barWidth * current) / total;
-    M5Cardputer.Display.fillRect(barX + 2, barY + 2, fillWidth - 4, barHeight - 4, 0xFFE0);
+    canvas.fillRect(barX + 2, barY + 2, fillWidth - 4, barHeight - 4, 0xFFE0);
 
     // Draw percentage text centered inside the bar
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setCursor(barX + barWidth / 2 - 12, barY + 6);
-    M5Cardputer.Display.setTextColor(BLACK, 0xFFE0); // Black text on yellow background
-    M5Cardputer.Display.printf("%d%%", percent);
+    canvas.setTextSize(1);
+    canvas.setCursor(barX + barWidth / 2 - 12, barY + 6);
+    canvas.setTextColor(BLACK, 0xFFE0); // Black text on yellow background
+    canvas.printf("%d%%", percent);
 }

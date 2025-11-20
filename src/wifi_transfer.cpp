@@ -745,77 +745,81 @@ void enterWiFiTransferApp() {
 }
 
 void drawTransferMenu() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_WHITE);
 
   if (WiFi.status() != WL_CONNECTED) {
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Not connected to WiFi!", 40, 30);  // Raised 20px
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Connect to WiFi first", 50, 45);  // Raised 20px
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Not connected to WiFi!", 40, 30);  // Raised 20px
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("Connect to WiFi first", 50, 45);  // Raised 20px
   } else {
-    M5Cardputer.Display.setTextColor(0xAFE5);  // WiFi Connected - chartreuse
-    M5Cardputer.Display.drawString("WiFi Connected", 70, 30);  // Raised 20px
-    M5Cardputer.Display.setTextColor(0x0400);  // Press ENTER - darker green
-    M5Cardputer.Display.drawString("Press ENTER to start", 50, 50);  // Raised 20px
-    M5Cardputer.Display.drawString("web server", 80, 62);  // Raised 20px
+    canvas.setTextColor(0xAFE5);  // WiFi Connected - chartreuse
+    canvas.drawString("WiFi Connected", 70, 30);  // Raised 20px
+    canvas.setTextColor(0x0400);  // Press ENTER - darker green
+    canvas.drawString("Press ENTER to start", 50, 50);  // Raised 20px
+    canvas.drawString("web server", 80, 62);  // Raised 20px
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Upload & Download files", 50, 80);  // Raised 20px
-  M5Cardputer.Display.drawString("via web browser", 65, 90);  // Raised 20px
-  M5Cardputer.Display.drawString("`=Back", 95, 100);  // Raised 20px
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Upload & Download files", 50, 80);  // Raised 20px
+  canvas.drawString("via web browser", 65, 90);  // Raised 20px
+  canvas.drawString("`=Back", 95, 100);  // Raised 20px
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawTransferRunning() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(0xFBDF);  // Baby pink
-  M5Cardputer.Display.drawString("Server Running", 40, 25);
+  canvas.setTextSize(2);
+  canvas.setTextColor(0xFBDF);  // Baby pink
+  canvas.drawString("Server Running", 40, 25);
   
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_RED);  // Red for "Open in browser:"
-  M5Cardputer.Display.drawString("Open in browser:", 10, 45);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_RED);  // Red for "Open in browser:"
+  canvas.drawString("Open in browser:", 10, 45);
   
-  M5Cardputer.Display.setTextColor(TFT_YELLOW);
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextColor(TFT_YELLOW);
+  canvas.setTextSize(1);
   String url = "http://" + WiFi.localIP().toString();
-  M5Cardputer.Display.drawString(url.c_str(), 10, 60);
+  canvas.drawString(url.c_str(), 10, 60);
   
   // Stats
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString(("Uploads: " + String(uploadCount)).c_str(), 10, 80);
-  M5Cardputer.Display.drawString(("Downloads: " + String(downloadCount)).c_str(), 10, 92);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString(("Uploads: " + String(uploadCount)).c_str(), 10, 80);
+  canvas.drawString(("Downloads: " + String(downloadCount)).c_str(), 10, 92);
 
-  M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
-  M5Cardputer.Display.drawString(lastAction.c_str(), 10, 104);
+  canvas.setTextColor(TFT_LIGHTGREY);
+  canvas.drawString(lastAction.c_str(), 10, 104);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Any key to stop server", 50, 125);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Any key to stop server", 50, 125);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void startWebServer() {
   if (WiFi.status() != WL_CONNECTED) {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("WiFi not connected!", 50, 60);
+    canvas.fillScreen(TFT_BLACK);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("WiFi not connected!", 50, 60);
     delay(2000);
     return;
   }
   
   // SD card is already initialized in setup() - just check if it's mounted
   if (SD.cardType() == CARD_NONE) {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("SD Card Error!", 60, 60);
+    canvas.fillScreen(TFT_BLACK);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("SD Card Error!", 60, 60);
     delay(2000);
     return;
   }

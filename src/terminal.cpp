@@ -171,7 +171,7 @@ bool isValidCommand(const String& cmd) {
 
 void drawTerminal() {
   // Clear entire screen
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
 
   // Define layout zones with margins (Files app style)
   int pathBoxY = 8;  // Moved down from top
@@ -185,7 +185,7 @@ void drawTerminal() {
   int terminalMarginX = 15; // Left margin for text (aligned with box insets)
 
   // Draw terminal output buffer with AGGRESSIVE AUTO-SCROLL TO BOTTOM
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
 
   int lineHeight = 9;
   int maxVisibleLines = (terminalEndY - terminalStartY) / lineHeight; // Calculate available lines
@@ -203,8 +203,8 @@ void drawTerminal() {
       int xPos = terminalMarginX;
       // Render each colored segment in the line
       for (const auto& segment : outputBuffer[i].segments) {
-        M5Cardputer.Display.setTextColor(segment.color);
-        M5Cardputer.Display.drawString(segment.text.c_str(), xPos, yPos);
+        canvas.setTextColor(segment.color);
+        canvas.drawString(segment.text.c_str(), xPos, yPos);
         xPos += segment.text.length() * 6; // 6 pixels per character
       }
       yPos += lineHeight;
@@ -215,21 +215,21 @@ void drawTerminal() {
   }
 
   // Draw PATH BOX at top (yellow outline, narrower)
-  M5Cardputer.Display.fillRoundRect(10, pathBoxY, 220, pathBoxH, 8, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(10, pathBoxY, 220, pathBoxH, 8, TFT_YELLOW);
+  canvas.fillRoundRect(10, pathBoxY, 220, pathBoxH, 8, TFT_BLACK);
+  canvas.drawRoundRect(10, pathBoxY, 220, pathBoxH, 8, TFT_YELLOW);
 
   // Draw current directory path (just the path, no label)
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_YELLOW);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_YELLOW);
   String pathDisplay = currentDirectory;
   if (pathDisplay.length() > 34) {
     pathDisplay = "..." + pathDisplay.substring(pathDisplay.length() - 31);
   }
-  M5Cardputer.Display.drawString(pathDisplay.c_str(), 15, pathBoxY + 6);
+  canvas.drawString(pathDisplay.c_str(), 15, pathBoxY + 6);
 
   // Draw COMMAND LINE BOX at bottom (orange outline, narrower)
-  M5Cardputer.Display.fillRoundRect(10, cmdBoxY, 220, cmdBoxH, 8, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(10, cmdBoxY, 220, cmdBoxH, 8, TFT_ORANGE);
+  canvas.fillRoundRect(10, cmdBoxY, 220, cmdBoxH, 8, TFT_BLACK);
+  canvas.drawRoundRect(10, cmdBoxY, 220, cmdBoxH, 8, TFT_ORANGE);
 
   // Draw command line input inside bottom box
   int inputY = cmdBoxY + 8;
@@ -289,8 +289,8 @@ void drawTerminal() {
 
     // Draw prompt character by character with gradient
     for (int i = 0; i < prompt.length(); i++) {
-      M5Cardputer.Display.setTextColor(getInputGradientColor(i, fullInput.length(), false));
-      M5Cardputer.Display.drawString(String(prompt[i]).c_str(), xPos, inputY);
+      canvas.setTextColor(getInputGradientColor(i, fullInput.length(), false));
+      canvas.drawString(String(prompt[i]).c_str(), xPos, inputY);
       xPos += 6;
     }
 
@@ -303,22 +303,22 @@ void drawTerminal() {
 
     // Draw command character by character
     for (int i = 0; i < command.length(); i++) {
-      M5Cardputer.Display.setTextColor(getInputGradientColor(prompt.length() + i, fullInput.length(), isValid));
-      M5Cardputer.Display.drawString(String(command[i]).c_str(), xPos, inputY);
+      canvas.setTextColor(getInputGradientColor(prompt.length() + i, fullInput.length(), isValid));
+      canvas.drawString(String(command[i]).c_str(), xPos, inputY);
       xPos += 6;
     }
 
     // Draw arguments character by character with gradient
     for (int i = 0; i < args.length(); i++) {
-      M5Cardputer.Display.setTextColor(getInputGradientColor(prompt.length() + command.length() + i, fullInput.length(), false));
-      M5Cardputer.Display.drawString(String(args[i]).c_str(), xPos, inputY);
+      canvas.setTextColor(getInputGradientColor(prompt.length() + command.length() + i, fullInput.length(), false));
+      canvas.drawString(String(args[i]).c_str(), xPos, inputY);
       xPos += 6;
     }
 
     // Draw cursor
     int cursorX = 10 + fullInput.length() * 6;
     if (millis() % 1000 < 500) {
-      M5Cardputer.Display.fillRect(cursorX, inputY, 6, 8, getInputGradientColor(fullInput.length(), fullInput.length(), false));
+      canvas.fillRect(cursorX, inputY, 6, 8, getInputGradientColor(fullInput.length(), fullInput.length(), false));
     }
   } else {
     // Auto-scroll input: only show the last N characters that fit
@@ -329,25 +329,27 @@ void drawTerminal() {
     for (int i = 0; i < visibleInput.length(); i++) {
       int actualIndex = fullInput.length() - maxCharsPerLine + i;
       bool isValid = (actualIndex >= prompt.length()) && isValidCommand(currentInput);
-      M5Cardputer.Display.setTextColor(getInputGradientColor(actualIndex, fullInput.length(), isValid));
-      M5Cardputer.Display.drawString(String(visibleInput[i]).c_str(), xPos, inputY);
+      canvas.setTextColor(getInputGradientColor(actualIndex, fullInput.length(), isValid));
+      canvas.drawString(String(visibleInput[i]).c_str(), xPos, inputY);
       xPos += 6;
     }
 
     // Draw cursor at end of visible text
     int cursorX = 10 + visibleInput.length() * 6;
     if (millis() % 1000 < 500) {
-      M5Cardputer.Display.fillRect(cursorX, inputY, 6, 8, getInputGradientColor(fullInput.length(), fullInput.length(), false));
+      canvas.fillRect(cursorX, inputY, 6, 8, getInputGradientColor(fullInput.length(), fullInput.length(), false));
     }
   }
 
   // Draw scroll indicators (adjusted for new layout)
   if (startLine > 0) {
-    M5Cardputer.Display.fillTriangle(235, 25, 230, 30, 240, 30, TFT_CYAN);
+    canvas.fillTriangle(235, 25, 230, 30, 240, 30, TFT_CYAN);
   }
   if (endLine < outputBuffer.size()) {
-    M5Cardputer.Display.fillTriangle(235, 108, 230, 103, 240, 103, TFT_CYAN);
+    canvas.fillTriangle(235, 108, 230, 103, 240, 103, TFT_CYAN);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void handleTerminalInput(char key) {
@@ -1062,42 +1064,42 @@ void cmd_img(const String& filename) {
   lowerPath.toLowerCase();
 
   // Clear screen and show image
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.setTextSize(1);
+  canvas.fillScreen(TFT_BLACK);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.setTextSize(1);
 
   bool success = false;
 
   if (lowerPath.endsWith(".jpg") || lowerPath.endsWith(".jpeg")) {
     // Load and display JPEG
-    M5Cardputer.Display.drawJpgFile(SD, filePath.c_str(), 0, 0, 240, 135);
+    canvas.drawJpgFile(SD, filePath.c_str(), 0, 0, 240, 135);
     success = true;
   } else if (lowerPath.endsWith(".png")) {
     // Load and display PNG
-    M5Cardputer.Display.drawPngFile(SD, filePath.c_str(), 0, 0, 240, 135);
+    canvas.drawPngFile(SD, filePath.c_str(), 0, 0, 240, 135);
     success = true;
   } else if (lowerPath.endsWith(".bmp")) {
     // Load and display BMP
-    M5Cardputer.Display.drawBmpFile(SD, filePath.c_str(), 0, 0);
+    canvas.drawBmpFile(SD, filePath.c_str(), 0, 0);
     success = true;
   } else {
-    M5Cardputer.Display.drawString("Unsupported format", 10, 60);
-    M5Cardputer.Display.drawString("Use .jpg, .png, or .bmp", 10, 70);
+    canvas.drawString("Unsupported format", 10, 60);
+    canvas.drawString("Use .jpg, .png, or .bmp", 10, 70);
   }
 
   if (success) {
     // Show filename at top
-    M5Cardputer.Display.fillRect(0, 0, 240, 10, TFT_BLACK);
+    canvas.fillRect(0, 0, 240, 10, TFT_BLACK);
     String displayName = filename;
     if (displayName.length() > 38) {
       displayName = displayName.substring(0, 35) + "...";
     }
-    M5Cardputer.Display.drawString(displayName.c_str(), 2, 2);
+    canvas.drawString(displayName.c_str(), 2, 2);
   }
 
   // Show instructions at bottom
-  M5Cardputer.Display.fillRect(0, 125, 240, 10, TFT_BLACK);
-  M5Cardputer.Display.drawString("Press any key to return", 45, 127);
+  canvas.fillRect(0, 125, 240, 10, TFT_BLACK);
+  canvas.drawString("Press any key to return", 45, 127);
 
   // Wait for key press
   M5Cardputer.update();
@@ -1201,11 +1203,11 @@ void cmd_ssh(const String& args) {
     // Only redraw if content changed
     if (currentDisplay != lastDisplayed) {
       // Clear just the text area inside the box
-      M5Cardputer.Display.fillRect(12, cmdBoxY + 2, 216, 20, TFT_BLACK);
+      canvas.fillRect(12, cmdBoxY + 2, 216, 20, TFT_BLACK);
 
-      M5Cardputer.Display.setTextColor(TFT_YELLOW);
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.drawString(currentDisplay.c_str(), 15, cmdBoxY + 8);
+      canvas.setTextColor(TFT_YELLOW);
+      canvas.setTextSize(1);
+      canvas.drawString(currentDisplay.c_str(), 15, cmdBoxY + 8);
 
       lastDisplayed = currentDisplay;
     }
@@ -1218,9 +1220,9 @@ void cmd_ssh(const String& args) {
       cursorVisible = !cursorVisible;
       lastBlink = millis();
       if (cursorVisible) {
-        M5Cardputer.Display.fillRect(cursorX, cmdBoxY + 8, 6, 8, TFT_YELLOW);
+        canvas.fillRect(cursorX, cmdBoxY + 8, 6, 8, TFT_YELLOW);
       } else {
-        M5Cardputer.Display.fillRect(cursorX, cmdBoxY + 8, 6, 8, TFT_BLACK);
+        canvas.fillRect(cursorX, cmdBoxY + 8, 6, 8, TFT_BLACK);
       }
     }
 
@@ -1578,7 +1580,7 @@ void cmd_ssh(const String& args) {
         historyIndex = -1;  // Reset history navigation
         tempInput = "";
         scrollOffset = 0;  // Auto-scroll to bottom
-        M5Cardputer.Display.fillRect(0, 117, 240, 18, TFT_BLACK);
+        canvas.fillRect(0, 117, 240, 18, TFT_BLACK);
         drawTerminal();
 
         lastActivity = millis();
@@ -1624,9 +1626,9 @@ void cmd_ssh(const String& args) {
     static unsigned long pauseTimer = 0;
     static bool paused = false;
 
-    M5Cardputer.Display.fillRect(12, pathBoxY + 2, 216, 16, TFT_BLACK);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_YELLOW);
+    canvas.fillRect(12, pathBoxY + 2, 216, 16, TFT_BLACK);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_YELLOW);
 
     String fullPath = currentDirectory;
     const int maxVisibleChars = 34;
@@ -1671,10 +1673,10 @@ void cmd_ssh(const String& args) {
       }
     }
 
-    M5Cardputer.Display.drawString(displayPath.c_str(), 15, pathBoxY + 6);
+    canvas.drawString(displayPath.c_str(), 15, pathBoxY + 6);
 
     // Clear input area inside command box (boxes already drawn by drawTerminal)
-    M5Cardputer.Display.fillRect(12, cmdBoxY + 2, 216, 20, TFT_BLACK);
+    canvas.fillRect(12, cmdBoxY + 2, 216, 20, TFT_BLACK);
 
     // Use * prompt like main terminal (no path in command line)
     String promptText = "* ";
@@ -1732,24 +1734,24 @@ void cmd_ssh(const String& args) {
     if (fullInputWithPath.length() <= maxCharsPerLine) {
       // Single line with gradient - draw inside command box
       for (int i = 0; i < fullInputWithPath.length(); i++) {
-        M5Cardputer.Display.setTextColor(getInputGradientColor(i));
-        M5Cardputer.Display.drawChar(fullInputWithPath[i], xPos, yPos);
+        canvas.setTextColor(getInputGradientColor(i));
+        canvas.drawChar(fullInputWithPath[i], xPos, yPos);
         xPos += 6;
       }
       if (!waitingForResponse && millis() % 1000 < 500) {
-        M5Cardputer.Display.fillRect(xPos, yPos, 6, 8, 0xFFE0);
+        canvas.fillRect(xPos, yPos, 6, 8, 0xFFE0);
       }
     } else {
       // Auto-scroll: show last N characters that fit
       String visibleInput = fullInputWithPath.substring(fullInputWithPath.length() - maxCharsPerLine);
       for (int i = 0; i < visibleInput.length(); i++) {
         int actualIndex = fullInputWithPath.length() - maxCharsPerLine + i;
-        M5Cardputer.Display.setTextColor(getInputGradientColor(actualIndex));
-        M5Cardputer.Display.drawChar(visibleInput[i], xPos, yPos);
+        canvas.setTextColor(getInputGradientColor(actualIndex));
+        canvas.drawChar(visibleInput[i], xPos, yPos);
         xPos += 6;
       }
       if (!waitingForResponse && millis() % 1000 < 500) {
-        M5Cardputer.Display.fillRect(xPos, yPos, 6, 8, 0xFFE0);
+        canvas.fillRect(xPos, yPos, 6, 8, 0xFFE0);
       }
     }
 
@@ -1843,9 +1845,9 @@ void cmd_edit(const String& filename) {
   }
 
   // Clear screen for editor
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_YELLOW);
+  canvas.fillScreen(TFT_BLACK);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_YELLOW);
 
   // Load existing file content
   std::vector<String> lines;
@@ -1874,18 +1876,18 @@ void cmd_edit(const String& filename) {
   bool editMode = true;
 
   auto redraw = [&]() {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    canvas.fillScreen(TFT_BLACK);
 
     // Draw title bar
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    canvas.setTextColor(TFT_WHITE);
     String title = "Edit: " + filename;
     if (title.length() > 38) {
       title = title.substring(0, 35) + "...";
     }
-    M5Cardputer.Display.drawString(title.c_str(), 2, 0);
+    canvas.drawString(title.c_str(), 2, 0);
 
     // Draw lines
-    M5Cardputer.Display.setTextColor(TFT_YELLOW);
+    canvas.setTextColor(TFT_YELLOW);
     int maxVisibleLines = 12;
     int startLine = max(0, currentLine - maxVisibleLines / 2);
     int endLine = min((int)lines.size(), startLine + maxVisibleLines);
@@ -1894,39 +1896,39 @@ void cmd_edit(const String& filename) {
     for (int i = startLine; i < endLine; i++) {
       if (i == currentLine) {
         // Current line - show with cursor
-        M5Cardputer.Display.setTextColor(TFT_WHITE);
+        canvas.setTextColor(TFT_WHITE);
         String lineNum = String(i + 1) + ":";
-        M5Cardputer.Display.drawString(lineNum.c_str(), 2, yPos);
+        canvas.drawString(lineNum.c_str(), 2, yPos);
 
         // Draw input buffer
-        M5Cardputer.Display.setTextColor(TFT_YELLOW);
-        M5Cardputer.Display.drawString(inputBuffer.c_str(), 20, yPos);
+        canvas.setTextColor(TFT_YELLOW);
+        canvas.drawString(inputBuffer.c_str(), 20, yPos);
 
         // Draw cursor
         int cursorX = 20 + cursorPos * 6;
         if (millis() % 1000 < 500) {
-          M5Cardputer.Display.fillRect(cursorX, yPos, 6, 8, TFT_YELLOW);
+          canvas.fillRect(cursorX, yPos, 6, 8, TFT_YELLOW);
         }
       } else {
         // Other lines - show normally
-        M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+        canvas.setTextColor(TFT_DARKGREY);
         String lineNum = String(i + 1) + ":";
-        M5Cardputer.Display.drawString(lineNum.c_str(), 2, yPos);
+        canvas.drawString(lineNum.c_str(), 2, yPos);
 
-        M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+        canvas.setTextColor(TFT_DARKGREY);
         String displayLine = lines[i];
         if (displayLine.length() > 35) {
           displayLine = displayLine.substring(0, 32) + "...";
         }
-        M5Cardputer.Display.drawString(displayLine.c_str(), 20, yPos);
+        canvas.drawString(displayLine.c_str(), 20, yPos);
       }
       yPos += 10;
     }
 
     // Draw help at bottom
-    M5Cardputer.Display.fillRect(0, 125, 240, 10, TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("` exit | Enter newline | Opt+S save", 2, 127);
+    canvas.fillRect(0, 125, 240, 10, TFT_BLACK);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("` exit | Enter newline | Opt+S save", 2, 127);
   };
 
   // Edit loop
@@ -1961,9 +1963,9 @@ void cmd_edit(const String& filename) {
           file.close();
 
           // Show save confirmation
-          M5Cardputer.Display.fillRect(0, 125, 240, 10, TFT_BLACK);
-          M5Cardputer.Display.setTextColor(TFT_GREEN);
-          M5Cardputer.Display.drawString("Saved!", 100, 127);
+          canvas.fillRect(0, 125, 240, 10, TFT_BLACK);
+          canvas.setTextColor(TFT_GREEN);
+          canvas.drawString("Saved!", 100, 127);
           delay(500);
         }
         continue;

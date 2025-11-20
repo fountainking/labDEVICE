@@ -51,36 +51,36 @@ void scanWiFiNetworks() {
 }
 
 void connectToWiFi() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawStatusBar(false);
   
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_BLUE);
-  M5Cardputer.Display.drawString("Connecting...", 50, 60);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_BLUE);
+  canvas.drawString("Connecting...", 50, 60);
   
   WiFi.begin(targetSSID.c_str(), inputPassword.c_str());
   
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
-    M5Cardputer.Display.fillCircle(100 + (attempts * 10), 90, 3, TFT_BLUE);
+    canvas.fillCircle(100 + (attempts * 10), 90, 3, TFT_BLUE);
     attempts++;
   }
   
   if (WiFi.status() == WL_CONNECTED) {
-    M5Cardputer.Display.fillScreen(TFT_WHITE);
+    canvas.fillScreen(TFT_WHITE);
     drawStatusBar(false);
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.drawString("Connected!", 60, 60);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_GREEN);
+    canvas.drawString("Connected!", 60, 60);
     // M5Cardputer.Speaker.tone(1200, 100);
     
     // Sync time with NTP using timezone with DST support
     applyTimezone();
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLUE);
-    M5Cardputer.Display.drawString("Syncing time...", 70, 85);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_BLUE);
+    canvas.drawString("Syncing time...", 70, 85);
 
     // Wait for time sync with reduced timeout (max 1 second)
     int syncAttempts = 0;
@@ -101,12 +101,12 @@ void connectToWiFi() {
       preferences.putULong("lastTime", (unsigned long)now);
       preferences.end();
 
-      M5Cardputer.Display.setTextColor(TFT_GREEN);
-      M5Cardputer.Display.drawString("Time synced!", 75, 100);
+      canvas.setTextColor(TFT_GREEN);
+      canvas.drawString("Time synced!", 75, 100);
       delay(300);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_ORANGE);
-      M5Cardputer.Display.drawString("Time sync timeout", 65, 100);
+      canvas.setTextColor(TFT_ORANGE);
+      canvas.drawString("Time sync timeout", 65, 100);
       delay(300);
     }
     
@@ -115,11 +115,11 @@ void connectToWiFi() {
     // Save network if connection successful
     saveNetwork(targetSSID, inputPassword);
   } else {
-    M5Cardputer.Display.fillScreen(TFT_WHITE);
+    canvas.fillScreen(TFT_WHITE);
     drawStatusBar(false);
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Failed!", 70, 60);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Failed!", 70, 60);
     // M5Cardputer.Speaker.tone(400, 200);
     delay(1500);
 
@@ -129,7 +129,8 @@ void connectToWiFi() {
 
   currentState = MAIN_MENU;
   inputPassword = "";
-  drawScreen(false);
+  extern bool uiInverted;
+  drawScreen(uiInverted);
 }
 
 void saveNetwork(String ssid, String password) {
@@ -187,36 +188,36 @@ void deleteNetwork(int index) {
 void connectToSavedNetwork(int index) {
   if (index < 0 || index >= numSavedNetworks) return;
   
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawStatusBar(false);
   
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_BLUE);
-  M5Cardputer.Display.drawString("Connecting...", 50, 60);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_BLUE);
+  canvas.drawString("Connecting...", 50, 60);
   
   WiFi.begin(savedSSIDs[index].c_str(), savedPasswords[index].c_str());
   
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
-    M5Cardputer.Display.fillCircle(100 + (attempts * 10), 90, 3, TFT_BLUE);
+    canvas.fillCircle(100 + (attempts * 10), 90, 3, TFT_BLUE);
     attempts++;
   }
   
   if (WiFi.status() == WL_CONNECTED) {
-    M5Cardputer.Display.fillScreen(TFT_WHITE);
+    canvas.fillScreen(TFT_WHITE);
     drawStatusBar(false);
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.drawString("Connected!", 60, 60);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_GREEN);
+    canvas.drawString("Connected!", 60, 60);
     // M5Cardputer.Speaker.tone(1200, 100);
     
     // Sync time with NTP using timezone with DST support
     applyTimezone();
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLUE);
-    M5Cardputer.Display.drawString("Syncing time...", 70, 85);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_BLUE);
+    canvas.drawString("Syncing time...", 70, 85);
 
     struct tm timeinfo;
     int syncAttempts = 0;
@@ -236,22 +237,22 @@ void connectToSavedNetwork(int index) {
       preferences.putULong("lastTime", (unsigned long)now);
       preferences.end();
 
-      M5Cardputer.Display.setTextColor(TFT_GREEN);
-      M5Cardputer.Display.drawString("Time synced!", 75, 100);
+      canvas.setTextColor(TFT_GREEN);
+      canvas.drawString("Time synced!", 75, 100);
       delay(300);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_ORANGE);
-      M5Cardputer.Display.drawString("Time sync timeout", 65, 100);
+      canvas.setTextColor(TFT_ORANGE);
+      canvas.drawString("Time sync timeout", 65, 100);
       delay(300);
     }
     
     delay(500);
   } else {
-    M5Cardputer.Display.fillScreen(TFT_WHITE);
+    canvas.fillScreen(TFT_WHITE);
     drawStatusBar(false);
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Failed!", 70, 60);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Failed!", 70, 60);
     // M5Cardputer.Speaker.tone(400, 200);
     delay(1500);
 
@@ -260,5 +261,6 @@ void connectToSavedNetwork(int index) {
   }
 
   currentState = MAIN_MENU;
-  drawScreen(false);
+  extern bool uiInverted;
+  drawScreen(uiInverted);
 }

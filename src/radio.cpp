@@ -58,59 +58,61 @@ void exitRadioApp() {
 }
 
 void drawRadioUI() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
   // No "RADIO" title - removed
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(0xF81F);  // Bright purple for station name
+  canvas.setTextSize(1);
+  canvas.setTextColor(0xF81F);  // Bright purple for station name
 
   String stationName = String(stations[currentStationIndex].name);
   if (stationName.length() > 35) {
     stationName = stationName.substring(0, 35) + "...";
   }
-  M5Cardputer.Display.drawString(stationName.c_str(), 10, 35);  // Lifted up
+  canvas.drawString(stationName.c_str(), 10, 35);  // Lifted up
 
-  M5Cardputer.Display.setTextColor(0xC99F);  // Light purple for genre
+  canvas.setTextColor(0xC99F);  // Light purple for genre
   String genre = String(stations[currentStationIndex].genre);
-  M5Cardputer.Display.drawString(genre.c_str(), 10, 50);  // Lifted
+  canvas.drawString(genre.c_str(), 10, 50);  // Lifted
 
-  M5Cardputer.Display.setTextColor(0x780F);  // Deep purple for bitrate
+  canvas.setTextColor(0x780F);  // Deep purple for bitrate
   String bitrate = String(stations[currentStationIndex].bitrate) + " kbps";
-  M5Cardputer.Display.drawString(bitrate.c_str(), 10, 62);  // Lifted
+  canvas.drawString(bitrate.c_str(), 10, 62);  // Lifted
 
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
   switch (radioState) {
     case RADIO_STOPPED:
-      M5Cardputer.Display.setTextColor(0x780F);  // Deep purple
-      M5Cardputer.Display.drawString("Stopped", 90, 75);  // Lifted
+      canvas.setTextColor(0x780F);  // Deep purple
+      canvas.drawString("Stopped", 90, 75);  // Lifted
       break;
     case RADIO_CONNECTING:
-      M5Cardputer.Display.setTextColor(0xC99F);  // Light purple
-      M5Cardputer.Display.drawString("Connecting...", 80, 75);
+      canvas.setTextColor(0xC99F);  // Light purple
+      canvas.drawString("Connecting...", 80, 75);
       break;
     case RADIO_PLAYING:
-      M5Cardputer.Display.setTextColor(0xF81F);  // Bright purple
-      M5Cardputer.Display.drawString("Now Playing", 80, 75);
+      canvas.setTextColor(0xF81F);  // Bright purple
+      canvas.drawString("Now Playing", 80, 75);
       break;
     case RADIO_ERROR:
-      M5Cardputer.Display.setTextColor(TFT_RED);  // Keep red for errors
-      M5Cardputer.Display.drawString("Connection Failed", 70, 75);
+      canvas.setTextColor(TFT_RED);  // Keep red for errors
+      canvas.drawString("Connection Failed", 70, 75);
       break;
   }
 
-  M5Cardputer.Display.setTextColor(0xA11F);  // Medium purple for "Volume:"
-  M5Cardputer.Display.drawString("Volume:", 10, 95);  // Lifted
-  M5Cardputer.Display.drawRect(55, 95, 102, 8, 0x780F);  // Deep purple border
+  canvas.setTextColor(0xA11F);  // Medium purple for "Volume:"
+  canvas.drawString("Volume:", 10, 95);  // Lifted
+  canvas.drawRect(55, 95, 102, 8, 0x780F);  // Deep purple border
   int volumeWidth = (volume * 100) / 100;
-  M5Cardputer.Display.fillRect(56, 96, volumeWidth, 6, 0xC99F);  // Light purple fill
-  M5Cardputer.Display.drawString(String(volume).c_str(), 165, 95);
+  canvas.fillRect(56, 96, volumeWidth, 6, 0xC99F);  // Light purple fill
+  canvas.drawString(String(volume).c_str(), 165, 95);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(0x780F);  // Deep purple for instructions
-  M5Cardputer.Display.drawString(";/. =Stations  Space=Play/Stop", 15, 110);  // Lifted
-  M5Cardputer.Display.drawString("+/- =Volume  `=Back", 30, 120);
+  canvas.setTextSize(1);
+  canvas.setTextColor(0x780F);  // Deep purple for instructions
+  canvas.drawString(";/. =Stations  Space=Play/Stop", 15, 110);  // Lifted
+  canvas.drawString("+/- =Volume  `=Back", 30, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void playStation(int stationIndex) {
@@ -171,14 +173,14 @@ void increaseVolume() {
     setMasterVolume(volume);
     if (settings.soundEnabled) M5Cardputer.Speaker.tone(1000, 30);
 
-    M5Cardputer.Display.fillRect(55, 110, 102, 8, TFT_BLACK);
-    M5Cardputer.Display.drawRect(55, 110, 102, 8, TFT_DARKGREY);
+    canvas.fillRect(55, 110, 102, 8, TFT_BLACK);
+    canvas.drawRect(55, 110, 102, 8, TFT_DARKGREY);
     int volumeWidth = (volume * 100) / 100;
-    M5Cardputer.Display.fillRect(56, 111, volumeWidth, 6, TFT_CYAN);
-    M5Cardputer.Display.fillRect(165, 110, 15, 8, TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString(String(volume).c_str(), 165, 110);
+    canvas.fillRect(56, 111, volumeWidth, 6, TFT_CYAN);
+    canvas.fillRect(165, 110, 15, 8, TFT_BLACK);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.setTextSize(1);
+    canvas.drawString(String(volume).c_str(), 165, 110);
   }
 }
 
@@ -189,14 +191,14 @@ void decreaseVolume() {
     setMasterVolume(volume);
     if (settings.soundEnabled) M5Cardputer.Speaker.tone(800, 30);
 
-    M5Cardputer.Display.fillRect(55, 110, 102, 8, TFT_BLACK);
-    M5Cardputer.Display.drawRect(55, 110, 102, 8, TFT_DARKGREY);
+    canvas.fillRect(55, 110, 102, 8, TFT_BLACK);
+    canvas.drawRect(55, 110, 102, 8, TFT_DARKGREY);
     int volumeWidth = (volume * 100) / 100;
-    M5Cardputer.Display.fillRect(56, 111, volumeWidth, 6, TFT_CYAN);
-    M5Cardputer.Display.fillRect(165, 110, 15, 8, TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString(String(volume).c_str(), 165, 110);
+    canvas.fillRect(56, 111, volumeWidth, 6, TFT_CYAN);
+    canvas.fillRect(165, 110, 15, 8, TFT_BLACK);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.setTextSize(1);
+    canvas.drawString(String(volume).c_str(), 165, 110);
   }
 }
 

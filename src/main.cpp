@@ -22,7 +22,7 @@
 #include "audio_manager.h"
 #include "the_book.h"
 #include "music_tools.h"
-#include "chip8.h"
+// #include "chip8.h"  // Disabled
 #include "emoji_maker.h"
 #include "slot_machine.h"
 #include "labchat.h"
@@ -93,12 +93,12 @@ int musicMenuIndex = 0;
 
 // Games submenu (struct defined in config.h)
 GamesMenuItem gamesMenuItems[] = {
-  {"CHIP-8", TFT_YELLOW, 14},
+  // {"CHIP-8", TFT_YELLOW, 14},  // Disabled
   {"Emoji Maker", TFT_YELLOW, 18},
   {"Slot Machine", TFT_YELLOW, 19}
 };
 
-int totalGamesItems = 3;
+int totalGamesItems = 2;
 int gamesMenuIndex = 0;
 
 // Global state for background WiFi connection
@@ -202,7 +202,7 @@ void drawStarfield(String statusText = "") {
   if (starfieldSpeed > 12.0) starfieldSpeed = 12.0; // Higher max warp speed
 
   // Dark blue background
-  M5Cardputer.Display.fillScreen(M5Cardputer.Display.color565(0, 0, 25));
+  canvas.fillScreen(canvas.color565(0, 0, 25));
 
   // Draw and update each star
   for (int i = 0; i < 80; i++) {
@@ -257,22 +257,22 @@ void drawStarfield(String statusText = "") {
     uint16_t color;
     if (stars[i].baseColor == 0) {
       // White - brightest
-      color = M5Cardputer.Display.color565(depthBrightness, depthBrightness, depthBrightness);
+      color = canvas.color565(depthBrightness, depthBrightness, depthBrightness);
     } else if (stars[i].baseColor == 1) {
       // Blue - vibrant
-      color = M5Cardputer.Display.color565(depthBrightness/4, depthBrightness/2, depthBrightness);
+      color = canvas.color565(depthBrightness/4, depthBrightness/2, depthBrightness);
     } else if (stars[i].baseColor == 2) {
       // Cyan - bright
-      color = M5Cardputer.Display.color565(0, depthBrightness, depthBrightness);
+      color = canvas.color565(0, depthBrightness, depthBrightness);
     } else if (stars[i].baseColor == 3) {
       // Green - emerald
-      color = M5Cardputer.Display.color565(0, depthBrightness, depthBrightness/3);
+      color = canvas.color565(0, depthBrightness, depthBrightness/3);
     } else if (stars[i].baseColor == 4) {
       // Purple/Pink - vibrant
-      color = M5Cardputer.Display.color565(depthBrightness, depthBrightness/4, depthBrightness);
+      color = canvas.color565(depthBrightness, depthBrightness/4, depthBrightness);
     } else {
       // Yellow/Orange - warm
-      color = M5Cardputer.Display.color565(depthBrightness, depthBrightness/2, 0);
+      color = canvas.color565(depthBrightness, depthBrightness/2, 0);
     }
 
     // Draw warp streaks at high speed (stars stretch into lines!)
@@ -286,50 +286,52 @@ void drawStarfield(String statusText = "") {
         // Fade the streak color for effect
         uint16_t streakColor;
         if (stars[i].baseColor == 0) {
-          streakColor = M5Cardputer.Display.color565(depthBrightness/2, depthBrightness/2, depthBrightness/2);
+          streakColor = canvas.color565(depthBrightness/2, depthBrightness/2, depthBrightness/2);
         } else if (stars[i].baseColor == 1) {
-          streakColor = M5Cardputer.Display.color565(depthBrightness/8, depthBrightness/4, depthBrightness/2);
+          streakColor = canvas.color565(depthBrightness/8, depthBrightness/4, depthBrightness/2);
         } else if (stars[i].baseColor == 2) {
-          streakColor = M5Cardputer.Display.color565(0, depthBrightness/2, depthBrightness/2);
+          streakColor = canvas.color565(0, depthBrightness/2, depthBrightness/2);
         } else if (stars[i].baseColor == 3) {
-          streakColor = M5Cardputer.Display.color565(0, depthBrightness/2, depthBrightness/6);
+          streakColor = canvas.color565(0, depthBrightness/2, depthBrightness/6);
         } else if (stars[i].baseColor == 4) {
-          streakColor = M5Cardputer.Display.color565(depthBrightness/2, depthBrightness/8, depthBrightness/2);
+          streakColor = canvas.color565(depthBrightness/2, depthBrightness/8, depthBrightness/2);
         } else {
-          streakColor = M5Cardputer.Display.color565(depthBrightness/2, depthBrightness/4, 0);
+          streakColor = canvas.color565(depthBrightness/2, depthBrightness/4, 0);
         }
-        M5Cardputer.Display.drawLine(oldScreenX, oldScreenY, screenX, screenY, streakColor);
+        canvas.drawLine(oldScreenX, oldScreenY, screenX, screenY, streakColor);
       }
     }
 
     // Draw star based on type and size
     if (starSize == 1 || stars[i].type == 0) {
       // Simple dot
-      M5Cardputer.Display.drawPixel(screenX, screenY, color);
+      canvas.drawPixel(screenX, screenY, color);
     } else if (stars[i].type == 1 || starSize == 2) {
       // Small cross
-      M5Cardputer.Display.fillRect(screenX-1, screenY-1, 3, 3, color);
+      canvas.fillRect(screenX-1, screenY-1, 3, 3, color);
     } else {
       // Large cross (close stars)
-      M5Cardputer.Display.drawPixel(screenX, screenY, color);
-      M5Cardputer.Display.drawPixel(screenX-1, screenY, color);
-      M5Cardputer.Display.drawPixel(screenX+1, screenY, color);
-      M5Cardputer.Display.drawPixel(screenX, screenY-1, color);
-      M5Cardputer.Display.drawPixel(screenX, screenY+1, color);
-      M5Cardputer.Display.drawPixel(screenX-2, screenY, color);
-      M5Cardputer.Display.drawPixel(screenX+2, screenY, color);
-      M5Cardputer.Display.drawPixel(screenX, screenY-2, color);
-      M5Cardputer.Display.drawPixel(screenX, screenY+2, color);
+      canvas.drawPixel(screenX, screenY, color);
+      canvas.drawPixel(screenX-1, screenY, color);
+      canvas.drawPixel(screenX+1, screenY, color);
+      canvas.drawPixel(screenX, screenY-1, color);
+      canvas.drawPixel(screenX, screenY+1, color);
+      canvas.drawPixel(screenX-2, screenY, color);
+      canvas.drawPixel(screenX+2, screenY, color);
+      canvas.drawPixel(screenX, screenY-2, color);
+      canvas.drawPixel(screenX, screenY+2, color);
     }
   }
 
   // Draw status text in bottom RIGHT corner if provided
   if (statusText.length() > 0) {
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_YELLOW);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_YELLOW);
     int textWidth = statusText.length() * 6; // Approximate width
-    M5Cardputer.Display.drawString(statusText, 235 - textWidth, 125);
+    canvas.drawString(statusText, 235 - textWidth, 125);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void setup() {
@@ -346,16 +348,20 @@ void setup() {
 
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
-  M5Cardputer.Display.setRotation(1);
+  canvas.setRotation(1);
+
+  // Initialize canvas for double-buffered rendering (eliminates flicker)
+  canvas.createSprite(240, 135);
+  canvas.setColorDepth(16); // 16-bit color (RGB565)
 
   // Set CPU to 80MHz for battery savings (~100mA reduction from 240MHz)
   setCpuFrequencyMhz(80);
   Serial.println("CPU frequency: 80MHz (idle mode)");
 
   // Try to enable Unicode/emoji rendering
-  M5Cardputer.Display.setFont(&fonts::Font0); // Default font
-  M5Cardputer.Display.setTextWrap(false);
-  M5Cardputer.Display.cp437(true); // Enable extended ASCII
+  canvas.setFont(&fonts::Font0); // Default font
+  canvas.setTextWrap(false);
+  canvas.cp437(true); // Enable extended ASCII
 
   // WiFi OFF by default to save battery (~80mA)
   // Will be enabled on-demand when needed
@@ -478,7 +484,7 @@ void setup() {
 
   // Skip star rain landing page - go straight to main menu
   currentState = MAIN_MENU;
-  drawScreen(false);
+  drawScreen(uiInverted);
 
   // Mark when boot completes - defer expensive WiFi ops for smooth animation
   bootCompleteTime = millis();
@@ -721,10 +727,12 @@ void loop() {
           } else if (musicToolsState == LAB_BEAT_MACHINE) {
             drawLBM();
           }
-        } else if (currentScreenNumber == 14) {
-          // CHIP-8
-          drawChip8ROMBrowser();
-        } else if (currentScreenNumber == 18) {
+        }
+        // else if (currentScreenNumber == 14) {
+        //   // CHIP-8
+        //   drawChip8ROMBrowser();
+        // }
+        else if (currentScreenNumber == 18) {
           // Emoji Maker
           drawEmojiMaker();
         } else if (currentScreenNumber == 16) {
@@ -746,11 +754,11 @@ void loop() {
   }
 
   // Check for inactivity timeout (works on all screens, except during games)
-  extern bool chip8Running;
+  // extern bool chip8Running;  // Disabled
   extern bool emojiMakerActive;
   extern bool slotMachineActive;
 
-  bool inGame = (currentScreenNumber == 14 && chip8Running) ||  // CHIP-8
+  bool inGame = // (currentScreenNumber == 14 && chip8Running) ||  // CHIP-8 - Disabled
                 (currentScreenNumber == 18 && emojiMakerActive) ||  // Emoji Maker
                 (currentScreenNumber == 19 && slotMachineActive);  // Slot Machine
 
@@ -776,10 +784,10 @@ void loop() {
     Serial.println("=== AUTO-CONNECT: Scanning for saved networks ===");
 
     // Show scanning message
-    M5Cardputer.Display.fillRect(0, 125, 240, 10, TFT_BLUE);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("Scanning...", 80, 125);
+    canvas.fillRect(0, 125, 240, 10, TFT_BLUE);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("Scanning...", 80, 125);
 
     // Enable WiFi for scan
     WiFi.mode(WIFI_STA);
@@ -819,22 +827,22 @@ void loop() {
     if (bestNetwork.length() > 0) {
       Serial.println(">>> Auto-connecting to: " + bestNetwork + " (RSSI: " + String(bestRSSI) + ")");
 
-      M5Cardputer.Display.fillRect(0, 125, 240, 10, TFT_GREEN);
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
-      M5Cardputer.Display.drawString("Connecting: " + bestNetwork, 5, 125);
+      canvas.fillRect(0, 125, 240, 10, TFT_GREEN);
+      canvas.setTextColor(TFT_BLACK);
+      canvas.drawString("Connecting: " + bestNetwork, 5, 125);
 
       WiFi.begin(bestNetwork.c_str(), bestPassword.c_str());
       delay(1000); // Show message for 1 second
     } else {
       Serial.println(">>> No saved networks found in range");
 
-      M5Cardputer.Display.fillRect(0, 125, 240, 10, TFT_ORANGE);
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
-      M5Cardputer.Display.drawString("No saved networks nearby", 20, 125);
+      canvas.fillRect(0, 125, 240, 10, TFT_ORANGE);
+      canvas.setTextColor(TFT_BLACK);
+      canvas.drawString("No saved networks nearby", 20, 125);
       delay(1500);
     }
 
-    drawScreen(false); // Redraw to clear message
+    drawScreen(uiInverted); // Redraw to clear message
   }
 #endif
 
@@ -876,7 +884,7 @@ void loop() {
             if (key == '`') {
               safeBeep(600, 100);
               currentState = APPS_MENU;
-              drawScreen(false);
+              drawScreen(uiInverted);
               return;
             }
           }
@@ -1028,7 +1036,7 @@ void loop() {
                 }
                 safeBeep(600, 100);
                 currentState = APPS_MENU;
-                drawScreen(false);
+                drawScreen(uiInverted);
               } else {
                 // Go to parent directory
                 int lastSlash = currentPath.lastIndexOf('/', currentPath.length() - 2);
@@ -1099,7 +1107,7 @@ void loop() {
               safeBeep(600, 100);
               stopWebServer();  // CRITICAL: Clean up WebServer to free RAM!
               currentState = APPS_MENU;
-              drawScreen(false);
+              drawScreen(uiInverted);
               return;
             }
           }
@@ -1111,7 +1119,7 @@ void loop() {
               safeBeep(600, 100);
               stopWebServer();  // CRITICAL: Clean up WebServer to free RAM!
               currentState = APPS_MENU;
-              drawScreen(false);
+              drawScreen(uiInverted);
               return;
             }
           }
@@ -1165,7 +1173,7 @@ void loop() {
             if (key == '`') {
               safeBeep(600, 100);
               currentState = APPS_MENU;
-              drawScreen(false);
+              drawScreen(uiInverted);
               return;
             }
           }
@@ -1699,7 +1707,7 @@ void loop() {
             // Back to apps menu
             safeBeep(600, 100);
             currentState = APPS_MENU;
-            drawScreen(false);
+            drawScreen(uiInverted);
             return;
           } else {
             handleTerminalInput(key);
@@ -1780,7 +1788,7 @@ void loop() {
               exitTheBook();
               safeBeep(600, 100);
               currentState = MAIN_MENU;
-              drawScreen(false);
+              drawScreen(uiInverted);
               return;
             } else if (key >= 32 && key <= 126) {
               // Regular text input (excluding special chars we already handled)
@@ -1854,7 +1862,7 @@ void loop() {
               exitTheBook();
               safeBeep(600, 100);
               currentState = MAIN_MENU;
-              drawScreen(false);
+              drawScreen(uiInverted);
               return;
             }
           }
@@ -1906,9 +1914,10 @@ void loop() {
           Serial.println("CPU: 160MHz (game)");
 
           // Call appropriate enter function
-          if (currentScreenNumber == 14) {
-            enterChip8();
-          } else if (currentScreenNumber == 18) {
+          // if (currentScreenNumber == 14) {
+          //   enterChip8();
+          // } else
+          if (currentScreenNumber == 18) {
             enterEmojiMaker();
           } else if (currentScreenNumber == 19) {
             enterSlotMachine();
@@ -1922,7 +1931,7 @@ void loop() {
             safeBeep(600, 100);
             currentState = MAIN_MENU;
             gamesMenuIndex = 0;
-            drawScreen(false);
+            drawScreen(uiInverted);
             return;
           } else if (key == ';') {
             // Up
@@ -1961,11 +1970,11 @@ void loop() {
             } else if (settingsMenuIndex == 3) {
               // OTA Update
               if (WiFi.status() != WL_CONNECTED) {
-                M5Cardputer.Display.clear();
-                M5Cardputer.Display.setCursor(10, 10);
-                M5Cardputer.Display.println("WiFi not connected!");
-                M5Cardputer.Display.println("\nConnect WiFi first.");
-                M5Cardputer.Display.println("\nPress any key...");
+                canvas.clear();
+                canvas.setCursor(10, 10);
+                canvas.println("WiFi not connected!");
+                canvas.println("\nConnect WiFi first.");
+                canvas.println("\nPress any key...");
                 delay(2000);
                 drawSettingsMenu();
               } else {
@@ -1989,9 +1998,12 @@ void loop() {
               toggleFindability();
               drawSettingsMenu();
             } else if (settingsMenuIndex == 7) {
-              // Theme placeholder
-              settingsState = SETTINGS_THEME;
-              drawThemePlaceholder();
+              // Dark Mode toggle
+              uiInverted = !uiInverted;
+              if (settings.soundEnabled) {
+                M5Cardputer.Speaker.tone(uiInverted ? 1200 : 600, 50);
+              }
+              drawSettingsMenu();
             }
           } else if (settingsState == SETTINGS_DEVICE_NAME) {
             // Save device name
@@ -2029,7 +2041,7 @@ void loop() {
               // ESC - back to main menu (page 1)
               safeBeep(400, 50);
               currentState = MAIN_MENU;
-              drawScreen(false);
+              drawScreen(uiInverted);
               return;
             } else if (key >= 32 && key <= 126 && settings.deviceName.length() < 25) {
               settings.deviceName += (char)key;
@@ -2053,7 +2065,7 @@ void loop() {
               // Back to main menu
               safeBeep(400, 50);
               currentState = MAIN_MENU;
-              drawScreen(false);
+              drawScreen(uiInverted);
             } else {
               // Back to settings main
               safeBeep(400, 50);
@@ -2081,10 +2093,11 @@ void loop() {
           } else if (currentScreenNumber == 13) {
             // Music Tools
             enterMusicTools();
-          } else if (currentScreenNumber == 14) {
-            // CHIP-8
-            enterChip8();
           }
+          // else if (currentScreenNumber == 14) {
+          //   // CHIP-8
+          //   enterChip8();
+          // }
           return;
         }
 
@@ -2109,7 +2122,7 @@ void loop() {
             currentState = APPS_MENU;
             currentAppIndex = 4;  // Set to Music position in apps
             musicMenuIndex = 0;
-            drawScreen(false);
+            drawScreen(uiInverted);
             return;
           }
         }
@@ -2194,8 +2207,16 @@ void loop() {
             // Back to main menu
             safeBeep(600, 100);
             currentState = MAIN_MENU;
-            drawScreen(false);
+            drawScreen(uiInverted);
             return;
+          }
+          if (key == ';') {
+            // Scroll up
+            scrollRoadmapUp();
+          }
+          if (key == '.') {
+            // Scroll down
+            scrollRoadmapDown();
           }
         }
 
@@ -2205,7 +2226,7 @@ void loop() {
           startCaptivePortal("LaboratoryM5");
           currentState = SCREEN_VIEW;
           currentScreenNumber = 2;  // WiFi Fun screen shows portal status
-          drawScreen(false);
+          drawScreen(uiInverted);
           return;
         }
         return;
@@ -2313,7 +2334,7 @@ void loop() {
           }
           if (numSavedNetworks == 0) {
             currentState = MAIN_MENU;
-            drawScreen(false);
+            drawScreen(uiInverted);
           } else {
             drawWiFiSaved();
           }
@@ -2486,33 +2507,34 @@ void loop() {
   }
 
   // Update CHIP-8 emulator (always handle input for overlay)
-  if (currentState == SCREEN_VIEW && currentScreenNumber == 14) {
-    extern bool chip8Running;
-    extern Chip8 chip8;
+  // DISABLED - CHIP-8 removed
+  // if (currentState == SCREEN_VIEW && currentScreenNumber == 14) {
+  //   extern bool chip8Running;
+  //   extern Chip8 chip8;
 
-    // ALWAYS handle input (overlay or game)
-    handleChip8Input();
+  //   // ALWAYS handle input (overlay or game)
+  //   handleChip8Input();
 
-    if (chip8Running) {
-      // Run 10 cycles per frame (~600 Hz at 60fps)
-      for (int i = 0; i < 10; i++) {
-        chip8.cycle();
-      }
+  //   if (chip8Running) {
+  //     // Run 10 cycles per frame (~600 Hz at 60fps)
+  //     for (int i = 0; i < 10; i++) {
+  //       chip8.cycle();
+  //     }
 
-      // Update timers at 60Hz
-      static unsigned long lastTimerUpdate = 0;
-      if (millis() - lastTimerUpdate >= 16) {  // ~60Hz
-        if (chip8.delayTimer > 0) chip8.delayTimer--;
-        if (chip8.soundTimer > 0) chip8.soundTimer--;
-        lastTimerUpdate = millis();
-      }
+  //     // Update timers at 60Hz
+  //     static unsigned long lastTimerUpdate = 0;
+  //     if (millis() - lastTimerUpdate >= 16) {  // ~60Hz
+  //       if (chip8.delayTimer > 0) chip8.delayTimer--;
+  //       if (chip8.soundTimer > 0) chip8.soundTimer--;
+  //       lastTimerUpdate = millis();
+  //     }
 
-      // Redraw if needed
-      if (chip8.drawFlag) {
-        drawChip8Screen();
-      }
-    }
-  }
+  //     // Redraw if needed
+  //     if (chip8.drawFlag) {
+  //       drawChip8Screen();
+  //     }
+  //   }
+  // }
 
   // Update Emoji Maker
   if (currentState == SCREEN_VIEW && currentScreenNumber == 18 && emojiMakerActive) {
@@ -2535,14 +2557,16 @@ void loop() {
   // Use shorter delay when audio or emulators are running for responsiveness
   if (isRadioPlaying() || isAudioPlaying()) {
     delay(1);  // Minimal delay for smooth audio
-  } else if (currentState == SCREEN_VIEW && currentScreenNumber == 14) {
-    extern bool chip8Running;
-    if (chip8Running) {
-      delay(1);  // Minimal delay for responsive CHIP-8 input
-    } else {
-      delay(10);  // Normal delay in ROM browser
-    }
-  } else {
+  }
+  // else if (currentState == SCREEN_VIEW && currentScreenNumber == 14) {
+  //   extern bool chip8Running;
+  //   if (chip8Running) {
+  //     delay(1);  // Minimal delay for responsive CHIP-8 input
+  //   } else {
+  //     delay(10);  // Normal delay in ROM browser
+  //   }
+  // }
+  else {
     delay(10);  // Normal delay when no audio
   }
 }

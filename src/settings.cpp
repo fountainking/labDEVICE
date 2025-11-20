@@ -211,12 +211,18 @@ void enterSettingsApp() {
 }
 
 void drawSettingsMenu() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
-  drawStatusBar(false);
+  extern bool uiInverted;
+  uint16_t bgColor = uiInverted ? TFT_BLACK : TFT_WHITE;
+  uint16_t fgColor = uiInverted ? TFT_WHITE : TFT_BLACK;
+  uint16_t hlColor = uiInverted ? TFT_DARKGREY : TFT_LIGHTGREY;
+  uint16_t accentColor = uiInverted ? TFT_CYAN : TFT_BLUE;
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Settings", 70, 30);
+  canvas.fillScreen(bgColor);
+  drawStatusBar(uiInverted);
+
+  canvas.setTextSize(2);
+  canvas.setTextColor(fgColor);
+  canvas.drawString("Settings", 70, 30);
 
   const char* menuItems[] = {
     "Sound: ",
@@ -226,7 +232,7 @@ void drawSettingsMenu() {
     "Timezone: ",
     "Friend Compass",
     "Findability: ",
-    "Theme: "
+    "Dark Mode: "
   };
 
   // Draw menu items
@@ -234,15 +240,15 @@ void drawSettingsMenu() {
     int yPos = 50 + (i * 12);
 
     if (i == settingsMenuIndex) {
-      M5Cardputer.Display.fillRoundRect(5, yPos - 2, 230, 12, 5, TFT_LIGHTGREY);
+      canvas.fillRoundRect(5, yPos - 2, 230, 12, 5, hlColor);
     }
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString(menuItems[i], 15, yPos);
+    canvas.setTextSize(1);
+    canvas.setTextColor(fgColor);
+    canvas.drawString(menuItems[i], 15, yPos);
 
     // Draw current values
-    M5Cardputer.Display.setTextColor(TFT_BLUE);
+    canvas.setTextColor(accentColor);
     String value = "";
     int valueX = 100;
 
@@ -273,25 +279,35 @@ void drawSettingsMenu() {
       case 6: // Findability
         value = settings.findabilityEnabled ? "ON" : "OFF";
         break;
-      case 7: // Theme
-        value = "Coming Soon";
-        valueX = 80;
+      case 7: // Dark Mode
+        {
+          extern bool uiInverted;
+          value = uiInverted ? "ON" : "OFF";
+        }
         break;
     }
 
     if (!value.isEmpty()) {
-      M5Cardputer.Display.drawString(value.c_str(), valueX, yPos);
+      canvas.drawString(value.c_str(), valueX, yPos);
     }
   }
+
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawTimezoneSelector() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
-  drawStatusBar(false);
+  extern bool uiInverted;
+  uint16_t bgColor = uiInverted ? TFT_BLACK : TFT_WHITE;
+  uint16_t fgColor = uiInverted ? TFT_WHITE : TFT_BLACK;
+  uint16_t hlColor = uiInverted ? TFT_DARKGREY : TFT_LIGHTGREY;
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Select Timezone", 40, 30);
+  canvas.fillScreen(bgColor);
+  drawStatusBar(uiInverted);
+
+  canvas.setTextSize(2);
+  canvas.setTextColor(fgColor);
+  canvas.drawString("Select Timezone", 40, 30);
 
   // Show 5 timezones at a time, centered on selection
   int startIdx = max(0, timezoneSelectIndex - 2);
@@ -306,34 +322,40 @@ void drawTimezoneSelector() {
     int yPos = 50 + ((i - startIdx) * 15);
 
     if (i == timezoneSelectIndex) {
-      M5Cardputer.Display.fillRoundRect(5, yPos - 2, 230, 14, 5, TFT_LIGHTGREY);
+      canvas.fillRoundRect(5, yPos - 2, 230, 14, 5, hlColor);
     }
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
+    canvas.setTextSize(1);
+    canvas.setTextColor(fgColor);
 
     String tzName = String(timezones[i].name);
     if (tzName.length() > 34) {
       tzName = tzName.substring(0, 34) + "...";
     }
-    M5Cardputer.Display.drawString(tzName.c_str(), 10, yPos);
+    canvas.drawString(tzName.c_str(), 10, yPos);
   }
+
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawThemePlaceholder() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Themes", 80, 50);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("Themes", 80, 50);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLUE);
-  M5Cardputer.Display.drawString("Coming Soon!", 75, 75);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLUE);
+  canvas.drawString("Coming Soon!", 75, 75);
 
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Press ` to go back", 60, 110);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Press ` to go back", 60, 110);
+
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void handleSettingsNavigation(char key) {
@@ -369,19 +391,25 @@ void handleSettingsNavigation(char key) {
 }
 
 void drawDeviceNameInput() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
-  drawStatusBar(false);
+  extern bool uiInverted;
+  uint16_t bgColor = uiInverted ? TFT_BLACK : TFT_WHITE;
+  uint16_t fgColor = uiInverted ? TFT_WHITE : TFT_BLACK;
+  uint16_t accentColor = uiInverted ? TFT_CYAN : TFT_BLUE;
+  uint16_t hintColor = uiInverted ? TFT_LIGHTGREY : TFT_DARKGREY;
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Device Name", 60, 30);
+  canvas.fillScreen(bgColor);
+  drawStatusBar(uiInverted);
+
+  canvas.setTextSize(2);
+  canvas.setTextColor(fgColor);
+  canvas.drawString("Device Name", 60, 30);
 
   // Draw rounded rectangle input box
-  M5Cardputer.Display.drawRoundRect(20, 55, 200, 20, 5, TFT_BLUE);
+  canvas.drawRoundRect(20, 55, 200, 20, 5, accentColor);
 
   // Show current name centered in box
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
+  canvas.setTextSize(1);
+  canvas.setTextColor(fgColor);
   String displayName = settings.deviceName;
   if (displayName.length() > 30) {
     displayName = displayName.substring(displayName.length() - 30);
@@ -390,9 +418,12 @@ void drawDeviceNameInput() {
   // Center text in the box
   int textWidth = displayName.length() * 6;
   int textX = 120 - (textWidth / 2);  // Center horizontally
-  M5Cardputer.Display.drawString(displayName.c_str(), textX, 60);
+  canvas.drawString(displayName.c_str(), textX, 60);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Type name, Enter=Save `=Cancel", 15, 110);
+  canvas.setTextSize(1);
+  canvas.setTextColor(hintColor);
+  canvas.drawString("Type name, Enter=Save `=Cancel", 15, 110);
+
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }

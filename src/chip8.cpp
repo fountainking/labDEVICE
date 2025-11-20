@@ -607,39 +607,41 @@ void enterChip8() {
   overlayRomIndex = 0;
   firstDraw = true;
 
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawRomOverlay();
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawChip8ROMBrowser() {
   // OPTIMIZED: Only full redraw when entering browser
   if (browserFullRedraw) {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    canvas.fillScreen(TFT_BLACK);
     drawStatusBar(false);
 
     // Fullscreen ROM browser - centered layout
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_CYAN);
-    M5Cardputer.Display.drawString("CHIP-8", 85, 28);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_CYAN);
+    canvas.drawString("CHIP-8", 85, 28);
 
     // Controls info
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Arrows=Move  Space=Action  TAB=Switch", 20, 115);
-    M5Cardputer.Display.drawString("ENTER=Play  ESC=Exit  `=Back", 35, 125);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("Arrows=Move  Space=Action  TAB=Switch", 20, 115);
+    canvas.drawString("ENTER=Play  ESC=Exit  `=Back", 35, 125);
 
     browserFullRedraw = false;
     lastSelectedRom = -1;  // Force list redraw
   }
 
   if (numRoms == 0) {
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("No ROMs!", 75, 55);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("Place ROM files in:", 65, 75);
-    M5Cardputer.Display.drawString("/roms/chip8/", 75, 87);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("No ROMs!", 75, 55);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString("Place ROM files in:", 65, 75);
+    canvas.drawString("/roms/chip8/", 75, 87);
     return;
   }
 
@@ -653,7 +655,7 @@ void drawChip8ROMBrowser() {
 
   if (needsFullRedraw) {
     // Clear entire list area
-    M5Cardputer.Display.fillRect(10, 48, 220, 63, TFT_BLACK);
+    canvas.fillRect(10, 48, 220, 63, TFT_BLACK);
   }
 
   int yPos = 50;
@@ -672,21 +674,21 @@ void drawChip8ROMBrowser() {
 
       // Clear and redraw row
       if (!needsFullRedraw) {
-        M5Cardputer.Display.fillRect(15, yPos - 2, 210, 11, TFT_BLACK);
+        canvas.fillRect(15, yPos - 2, 210, 11, TFT_BLACK);
       }
 
-      M5Cardputer.Display.setTextSize(1);
+      canvas.setTextSize(1);
 
       if (isSelected) {
         // Selected - highlighted
-        M5Cardputer.Display.fillRoundRect(15, yPos - 2, 210, 11, 2, TFT_CYAN);
-        M5Cardputer.Display.setTextColor(TFT_BLACK);
+        canvas.fillRoundRect(15, yPos - 2, 210, 11, 2, TFT_CYAN);
+        canvas.setTextColor(TFT_BLACK);
       } else {
         // Unselected
-        M5Cardputer.Display.setTextColor(TFT_WHITE);
+        canvas.setTextColor(TFT_WHITE);
       }
 
-      M5Cardputer.Display.drawString(filename, 20, yPos);
+      canvas.drawString(filename, 20, yPos);
     }
 
     yPos += 9;
@@ -694,6 +696,8 @@ void drawChip8ROMBrowser() {
 
   lastSelectedRom = selectedRomIndex;
   lastStartIdx = startIdx;
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawChip8Screen() {
@@ -723,7 +727,7 @@ void drawChip8Screen() {
 
   // First draw: clear screen
   if (firstDraw) {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    canvas.fillScreen(TFT_BLACK);
     memset(prevDisplay, 0, sizeof(prevDisplay));
     firstDraw = false;
   }
@@ -740,9 +744,9 @@ void drawChip8Screen() {
         uint16_t color = current ? TFT_WHITE : TFT_BLACK;
 
         if (scaleX > 1 || scaleY > 1) {
-          M5Cardputer.Display.fillRect(screenX, screenY, scaleX, scaleY, color);
+          canvas.fillRect(screenX, screenY, scaleX, scaleY, color);
         } else {
-          M5Cardputer.Display.drawPixel(screenX, screenY, color);
+          canvas.drawPixel(screenX, screenY, color);
         }
 
         prevDisplay[x][y] = current;
@@ -759,17 +763,17 @@ void drawChip8Screen() {
     int y = 95;
 
     // Semi-transparent background
-    M5Cardputer.Display.fillRoundRect(x-2, y-2, 88, 38, 3, TFT_DARKGREY);
-    M5Cardputer.Display.drawRoundRect(x-2, y-2, 88, 38, 3, TFT_YELLOW);
+    canvas.fillRoundRect(x-2, y-2, 88, 38, 3, TFT_DARKGREY);
+    canvas.drawRoundRect(x-2, y-2, 88, 38, 3, TFT_YELLOW);
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_YELLOW);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_YELLOW);
 
     // Keymap (compact format)
-    M5Cardputer.Display.drawString("4567->123C", x, y);
-    M5Cardputer.Display.drawString("rtyu->456D", x, y+9);
-    M5Cardputer.Display.drawString("dfgh->789E", x, y+18);
-    M5Cardputer.Display.drawString("xcvb->A0BF", x, y+27);
+    canvas.drawString("4567->123C", x, y);
+    canvas.drawString("rtyu->456D", x, y+9);
+    canvas.drawString("dfgh->789E", x, y+18);
+    canvas.drawString("xcvb->A0BF", x, y+27);
 
     // Auto-hide after 3 seconds
     if (millis() - keymapShowTime > 3000) {
@@ -782,6 +786,8 @@ void drawChip8Screen() {
   if (showRomOverlay) {
     drawRomOverlay();
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawRomOverlay() {
@@ -793,25 +799,25 @@ void drawRomOverlay() {
   int overlayH = 115;
 
   // Semi-transparent dark background
-  M5Cardputer.Display.fillRoundRect(overlayX, overlayY, overlayW, overlayH, 5, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(overlayX, overlayY, overlayW, overlayH, 5, TFT_CYAN);
-  M5Cardputer.Display.drawRoundRect(overlayX+1, overlayY+1, overlayW-2, overlayH-2, 4, TFT_CYAN);
+  canvas.fillRoundRect(overlayX, overlayY, overlayW, overlayH, 5, TFT_BLACK);
+  canvas.drawRoundRect(overlayX, overlayY, overlayW, overlayH, 5, TFT_CYAN);
+  canvas.drawRoundRect(overlayX+1, overlayY+1, overlayW-2, overlayH-2, 4, TFT_CYAN);
 
   // "TAB" label at top
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("TAB", overlayX + 5, overlayY + 3);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("TAB", overlayX + 5, overlayY + 3);
 
   // Instructions
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Press TAB/ESC to close", overlayX + 5, overlayY + overlayH - 12);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Press TAB/ESC to close", overlayX + 5, overlayY + overlayH - 12);
 
   // Draw ROM list (max 9 items visible in taller overlay)
   int startIdx = max(0, overlayRomIndex - 4);
   int endIdx = min(numRoms, startIdx + 9);
   int yPos = overlayY + 15;
 
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
 
   for (int i = startIdx; i < endIdx; i++) {
     bool selected = (i == overlayRomIndex);
@@ -826,15 +832,17 @@ void drawRomOverlay() {
 
     if (selected) {
       // Highlighted selection
-      M5Cardputer.Display.fillRoundRect(overlayX + 3, yPos - 1, overlayW - 6, 10, 2, TFT_CYAN);
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      canvas.fillRoundRect(overlayX + 3, yPos - 1, overlayW - 6, 10, 2, TFT_CYAN);
+      canvas.setTextColor(TFT_BLACK);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
+      canvas.setTextColor(TFT_WHITE);
     }
 
-    M5Cardputer.Display.drawString(filename, overlayX + 5, yPos);
+    canvas.drawString(filename, overlayX + 5, yPos);
     yPos += 11;
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void handleChip8Input() {
@@ -857,7 +865,7 @@ void handleChip8Input() {
       if (chip8Running) {
         drawChip8Screen();
       } else {
-        M5Cardputer.Display.fillScreen(TFT_BLACK);
+        canvas.fillScreen(TFT_BLACK);
       }
     }
   }

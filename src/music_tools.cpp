@@ -146,7 +146,7 @@ void enterMusicTools() {
 }
 
 void drawMusicToolsMenu() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
   // No title - removed
@@ -155,26 +155,28 @@ void drawMusicToolsMenu() {
   const char* menuItems[] = {"Guitar Tuner", "Equalizer", "Lab Beat Machine", "Tap Tempo"};
   const int menuCount = 4;
 
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
   int yPos = 35;  // Lifted up
 
   for (int i = 0; i < menuCount; i++) {
     if (i == musicToolsMenuIndex) {
       // Selected item - white highlight
-      M5Cardputer.Display.fillRoundRect(10, yPos - 2, 220, 16, 3, TFT_WHITE);
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      canvas.fillRoundRect(10, yPos - 2, 220, 16, 3, TFT_WHITE);
+      canvas.setTextColor(TFT_WHITE);
     } else {
       // Use different purple shades
       uint16_t itemColor = (i == 0) ? 0xF81F : (i == 1) ? 0xC99F : 0xA11F;  // Bright, light, medium purple
-      M5Cardputer.Display.setTextColor(itemColor);
+      canvas.setTextColor(itemColor);
     }
-    M5Cardputer.Display.drawString(menuItems[i], 15, yPos);
+    canvas.drawString(menuItems[i], 15, yPos);
     yPos += 20;
   }
 
   // Instructions
-  M5Cardputer.Display.setTextColor(0x780F);  // Deep purple
-  M5Cardputer.Display.drawString("`;/.` Navigate | Enter Select", 20, 115);
+  canvas.setTextColor(0x780F);  // Deep purple
+  canvas.drawString("`;/.` Navigate | Enter Select", 20, 115);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void startGuitarTuner() {
@@ -199,18 +201,20 @@ void stopGuitarTuner() {
 
 void drawGuitarTuner() {
   // Draw static UI elements only once
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
 
   // Draw status bar first
   drawStatusBar(false);
 
   // Fill white background AFTER status bar (starts at y=24 to avoid cutting off status bar)
-  M5Cardputer.Display.fillRect(0, 24, 240, 111, TFT_WHITE);
+  canvas.fillRect(0, 24, 240, 111, TFT_WHITE);
 
   // Instructions
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.drawString("`] Back", 95, 122);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.setTextSize(1);
+  canvas.drawString("`] Back", 95, 122);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // Update only the dynamic parts of the tuner display
@@ -237,7 +241,7 @@ void updateTunerDisplay() {
   lastCentsDiff = centsDiff;
 
   // Clear entire display area (white background, starts after status bar)
-  M5Cardputer.Display.fillRect(0, 24, 240, 95, TFT_WHITE);
+  canvas.fillRect(0, 24, 240, 95, TFT_WHITE);
 
   if (closestString >= 0) {
     // Calculate fill amount based on how far off we are (0-50 cents = 0-100%)
@@ -251,7 +255,7 @@ void updateTunerDisplay() {
     }
 
     // Draw FLAT triangle - outline in red, filled based on proximity
-    M5Cardputer.Display.drawTriangle(70, 65, 50, 80, 70, 95, TFT_RED);
+    canvas.drawTriangle(70, 65, 50, 80, 70, 95, TFT_RED);
     if (flatAmount > 0) {
       // Fill from bottom up based on how flat we are
       int fillHeight = (int)(30 * flatAmount);  // Triangle height is 30px
@@ -269,13 +273,13 @@ void updateTunerDisplay() {
             leftX = 50 + (70 - 50) * (y - 80) / 15;
             rightX = 70;
           }
-          M5Cardputer.Display.drawLine(leftX, y, rightX, y, TFT_RED);
+          canvas.drawLine(leftX, y, rightX, y, TFT_RED);
         }
       }
     }
 
     // Draw SHARP triangle - outline in red, filled based on proximity
-    M5Cardputer.Display.drawTriangle(170, 65, 190, 80, 170, 95, TFT_RED);
+    canvas.drawTriangle(170, 65, 190, 80, 170, 95, TFT_RED);
     if (sharpAmount > 0) {
       // Fill from bottom up based on how sharp we are
       int fillHeight = (int)(30 * sharpAmount);  // Triangle height is 30px
@@ -291,26 +295,26 @@ void updateTunerDisplay() {
           } else {
             rightX = 190 - (190 - 170) * (y - 80) / 15;
           }
-          M5Cardputer.Display.drawLine(leftX, y, rightX, y, TFT_RED);
+          canvas.drawLine(leftX, y, rightX, y, TFT_RED);
         }
       }
     }
 
     // Draw note/symbol in center (black text on white background)
-    M5Cardputer.Display.setTextSize(5);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString(guitarStrings[closestString].name, noteX, noteY);
+    canvas.setTextSize(5);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString(guitarStrings[closestString].name, noteX, noteY);
 
     // If in tune, add black outline box
     if (abs(centsDiff) < 3.0) {
-      M5Cardputer.Display.drawRoundRect(100, 60, 40, 45, 5, TFT_BLACK);
-      M5Cardputer.Display.drawRoundRect(101, 61, 38, 43, 5, TFT_BLACK);
+      canvas.drawRoundRect(100, 60, 40, 45, 5, TFT_BLACK);
+      canvas.drawRoundRect(101, 61, 38, 43, 5, TFT_BLACK);
     }
   } else {
     // No note detected - show "?"
-    M5Cardputer.Display.setTextSize(5);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("?", 110, noteY);
+    canvas.setTextSize(5);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("?", 110, noteY);
   }
 
   // Save current state
@@ -357,14 +361,16 @@ void stopAudioVisualizer() {
 
 void drawAudioVisualizer() {
   // Static elements only - draw once
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
   // No title - removed
 
   // Instructions
-  M5Cardputer.Display.setTextColor(0x780F);  // Deep purple
-  M5Cardputer.Display.drawString("`] Back", 95, 120);
+  canvas.setTextColor(0x780F);  // Deep purple
+  canvas.drawString("`] Back", 95, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void updateAudioVisualizer() {
@@ -421,7 +427,7 @@ void updateAudioVisualizer() {
           // Only redraw if changed by more than 1px (reduce flicker)
           if (abs(newHeight - lastBarHeights[i]) > 0) {
             // Clear old bar area
-            M5Cardputer.Display.fillRect(x, barsY - barMaxHeight, barWidth, barMaxHeight, TFT_BLACK);
+            canvas.fillRect(x, barsY - barMaxHeight, barWidth, barMaxHeight, TFT_BLACK);
 
             // Purple gradient based on height (3 shades)
             uint16_t barColor = 0x780F;  // Deep purple (low)
@@ -430,7 +436,7 @@ void updateAudioVisualizer() {
 
             // Draw new bar from bottom up
             if (newHeight > 0) {
-              M5Cardputer.Display.fillRect(x, barsY - newHeight, barWidth, newHeight, barColor);
+              canvas.fillRect(x, barsY - newHeight, barWidth, newHeight, barColor);
             }
 
             lastBarHeights[i] = newHeight;

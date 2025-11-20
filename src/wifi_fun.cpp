@@ -131,10 +131,9 @@ int partyTimeListScroll = 0;
 
 // Portals submenu
 const char* portalsMenuItems[] = {
-  "portalDECK",
-  "portalGAMES"
+  "labPORTAL"
 };
-const int portalsMenuCount = 2;
+const int portalsMenuCount = 1;
 
 // Big Party submenu
 const char* bigPartyMenuItems[] = {
@@ -280,7 +279,7 @@ void enterWiFiFunApp() {
 }
 
 void drawWiFiFunMenu() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
   // No "Fun" title - removed
@@ -290,92 +289,98 @@ void drawWiFiFunMenu() {
     int yPos = 35 + (i * 18);  // Lifted up
 
     if (i == wifiFunMenuIndex) {
-      M5Cardputer.Display.fillRoundRect(10, yPos - 2, 220, 18, 5, TFT_BLUE);
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
+      canvas.fillRoundRect(10, yPos - 2, 220, 18, 5, TFT_BLUE);
+      canvas.setTextColor(TFT_WHITE);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
+      canvas.setTextColor(TFT_LIGHTGREY);
     }
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString(wifiFunMenuItems[i], 20, yPos);
+    canvas.setTextSize(1);
+    canvas.drawString(wifiFunMenuItems[i], 20, yPos);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawFakeWiFiInput() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
   
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("Fake WiFi", 65, 30);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("Fake WiFi", 65, 30);
   
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("Network Name:", 10, 55);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("Network Name:", 10, 55);
   
   // Input box
-  M5Cardputer.Display.drawRect(5, 70, 230, 20, TFT_WHITE);
-  M5Cardputer.Display.drawRect(6, 71, 228, 18, TFT_WHITE);
+  canvas.drawRect(5, 70, 230, 20, TFT_WHITE);
+  canvas.drawRect(6, 71, 228, 18, TFT_WHITE);
 
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
 
   if (fakeSSID.length() == 0) {
     // Show greyed placeholder text
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Type network name...", 10, 75);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("Type network name...", 10, 75);
   } else {
     // Show actual input
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    canvas.setTextColor(TFT_WHITE);
     String displaySSID = fakeSSID;
     if (displaySSID.length() > 30) {
       displaySSID = displaySSID.substring(displaySSID.length() - 30);
     }
-    M5Cardputer.Display.drawString(displaySSID.c_str(), 10, 75);
+    canvas.drawString(displaySSID.c_str(), 10, 75);
   }
 
   // Cursor blink
   if ((millis() / 500) % 2 == 0) {
     int cursorX = 10 + (fakeSSID.length() * 6);
-    M5Cardputer.Display.drawLine(cursorX, 75, cursorX, 85, TFT_WHITE);
+    canvas.drawLine(cursorX, 75, cursorX, 85, TFT_WHITE);
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Enter=Start Broadcast", 50, 105);
-  M5Cardputer.Display.drawString("Del=Delete `=Back", 60, 115);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Enter=Start Broadcast", 50, 105);
+  canvas.drawString("Del=Delete `=Back", 60, 115);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawFakeWiFiRunning() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
   
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_GREEN);
-  M5Cardputer.Display.drawString("Broadcasting!", 45, 30);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_GREEN);
+  canvas.drawString("Broadcasting!", 45, 30);
   
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("Network Name:", 10, 55);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("Network Name:", 10, 55);
   
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
+  canvas.setTextColor(TFT_WHITE);
   String displaySSID = fakeSSID;
   if (displaySSID.length() > 32) {
     displaySSID = displaySSID.substring(0, 32);
   }
-  M5Cardputer.Display.drawString(displaySSID.c_str(), 10, 70);
+  canvas.drawString(displaySSID.c_str(), 10, 70);
   
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("Devices nearby can see this!", 30, 85);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("Devices nearby can see this!", 30, 85);
   
   // Animation - pulsing signal icon
   int pulseSize = 3 + (millis() / 200) % 5;
   for (int i = 0; i < 3; i++) {
-    M5Cardputer.Display.drawCircle(120, 100, pulseSize + (i * 8), TFT_GREEN);
+    canvas.drawCircle(120, 100, pulseSize + (i * 8), TFT_GREEN);
   }
   
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Press any key to stop", 55, 120);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Press any key to stop", 55, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void startFakeWiFi(String ssid) {
@@ -408,103 +413,109 @@ void stopFakeWiFi() {
 }
 
 void drawPortalInput() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("Portal Setup", 55, 30);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("Portal Setup", 55, 30);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("Network Name:", 10, 55);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("Network Name:", 10, 55);
 
   // Input box
-  M5Cardputer.Display.drawRect(5, 70, 230, 20, TFT_WHITE);
-  M5Cardputer.Display.drawRect(6, 71, 228, 18, TFT_WHITE);
+  canvas.drawRect(5, 70, 230, 20, TFT_WHITE);
+  canvas.drawRect(6, 71, 228, 18, TFT_WHITE);
 
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
 
   if (portalSSIDInput.length() == 0) {
     // Show greyed placeholder text
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Type portal name...", 10, 75);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("Type portal name...", 10, 75);
   } else {
     // Show actual input
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    canvas.setTextColor(TFT_WHITE);
     String displaySSID = portalSSIDInput;
     if (displaySSID.length() > 30) {
       displaySSID = displaySSID.substring(displaySSID.length() - 30);
     }
-    M5Cardputer.Display.drawString(displaySSID.c_str(), 10, 75);
+    canvas.drawString(displaySSID.c_str(), 10, 75);
   }
 
   // Cursor blink
   if ((millis() / 500) % 2 == 0) {
     int cursorX = 10 + (portalSSIDInput.length() * 6);
-    M5Cardputer.Display.drawLine(cursorX, 75, cursorX, 85, TFT_WHITE);
+    canvas.drawLine(cursorX, 75, cursorX, 85, TFT_WHITE);
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Enter=Start Portal", 60, 105);
-  M5Cardputer.Display.drawString("Del=Delete `=Back", 60, 115);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Enter=Start Portal", 60, 105);
+  canvas.drawString("Del=Delete `=Back", 60, 115);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawPortalsMenu() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("Portals", 80, 30);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("Portals", 80, 30);
 
   // Draw menu items
   for (int i = 0; i < portalsMenuCount; i++) {
     int yPos = 55 + (i * 20);
 
     if (i == portalsMenuIndex) {
-      M5Cardputer.Display.fillRoundRect(10, yPos - 2, 220, 18, 5, TFT_CYAN);
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      canvas.fillRoundRect(10, yPos - 2, 220, 18, 5, TFT_CYAN);
+      canvas.setTextColor(TFT_BLACK);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
+      canvas.setTextColor(TFT_LIGHTGREY);
     }
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString(portalsMenuItems[i], 20, yPos);
+    canvas.setTextSize(1);
+    canvas.drawString(portalsMenuItems[i], 20, yPos);
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString(",/=Navigate Enter=Select `=Back", 15, 120);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString(",/=Navigate Enter=Select `=Back", 15, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawBigPartyMenu() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("Wi-Fi Party", 50, 30);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("Wi-Fi Party", 50, 30);
 
   // Draw menu items
   for (int i = 0; i < bigPartyMenuCount; i++) {
     int yPos = 55 + (i * 20);
 
     if (i == bigPartyMenuIndex) {
-      M5Cardputer.Display.fillRoundRect(10, yPos - 2, 220, 18, 5, TFT_MAGENTA);
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      canvas.fillRoundRect(10, yPos - 2, 220, 18, 5, TFT_MAGENTA);
+      canvas.setTextColor(TFT_WHITE);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
+      canvas.setTextColor(TFT_LIGHTGREY);
     }
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString(bigPartyMenuItems[i], 20, yPos);
+    canvas.setTextSize(1);
+    canvas.drawString(bigPartyMenuItems[i], 20, yPos);
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString(",/=Navigate Enter=Select `=Back", 15, 120);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString(",/=Navigate Enter=Select `=Back", 15, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawRickRoll() {
@@ -513,19 +524,21 @@ void drawRickRoll() {
     drawGifViewer("/gifs/rick.gif");
   } else {
     // Fallback if SD card not available
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    canvas.fillScreen(TFT_BLACK);
 
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("RICK ROLL!", 55, 50);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("RICK ROLL!", 55, 50);
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("Broadcasting...", 75, 75);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString("Broadcasting...", 75, 75);
 
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Press any key to stop", 55, 110);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("Press any key to stop", 55, 110);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void startRickRoll() {
@@ -604,34 +617,36 @@ void stopPartyTime() {
 }
 
 void drawAPListEdit() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("AP Lists", 70, 30);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("AP Lists", 70, 30);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLUE);
-  M5Cardputer.Display.drawString("Coming Soon!", 75, 75);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLUE);
+  canvas.drawString("Coming Soon!", 75, 75);
 
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Press ` to go back", 60, 110);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Press ` to go back", 60, 110);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawPartyTimeEdit() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_MAGENTA);
-  M5Cardputer.Display.drawString("Party Time!", 60, 20);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_MAGENTA);
+  canvas.drawString("Party Time!", 60, 20);
 
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
 
   // Show count
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString(String(apListCount) + "/10 SSIDs", 10, 40);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString(String(apListCount) + "/10 SSIDs", 10, 40);
 
   // Display SSID list (scrollable, max 4 visible at once)
   int visibleLines = 4;
@@ -640,103 +655,107 @@ void drawPartyTimeEdit() {
 
   for (int i = startIdx; i < endIdx; i++) {
     int yPos = 55 + ((i - startIdx) * 12);
-    M5Cardputer.Display.setTextColor(TFT_CYAN);
-    M5Cardputer.Display.drawString(String(i + 1) + ".", 10, yPos);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    canvas.setTextColor(TFT_CYAN);
+    canvas.drawString(String(i + 1) + ".", 10, yPos);
+    canvas.setTextColor(TFT_WHITE);
     String displaySSID = apList[i];
     if (displaySSID.length() > 28) {
       displaySSID = displaySSID.substring(0, 25) + "...";
     }
-    M5Cardputer.Display.drawString(displaySSID.c_str(), 25, yPos);
+    canvas.drawString(displaySSID.c_str(), 25, yPos);
   }
 
   // Scroll indicators
   if (partyTimeListScroll > 0) {
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("^ More above", 150, 55);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("^ More above", 150, 55);
   }
   if (endIdx < apListCount) {
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("v More below", 150, 95);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("v More below", 150, 95);
   }
 
   // Input area at bottom
-  M5Cardputer.Display.setTextColor(TFT_YELLOW);
-  M5Cardputer.Display.drawString("Add SSID:", 10, 100);
+  canvas.setTextColor(TFT_YELLOW);
+  canvas.drawString("Add SSID:", 10, 100);
 
   // Input box with + button
-  M5Cardputer.Display.drawRect(10, 110, 200, 14, TFT_WHITE);
+  canvas.drawRect(10, 110, 200, 14, TFT_WHITE);
 
   if (partyTimeInput.length() == 0) {
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Type name...", 13, 113);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("Type name...", 13, 113);
   } else {
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    canvas.setTextColor(TFT_WHITE);
     String displayInput = partyTimeInput;
     if (displayInput.length() > 26) {
       displayInput = displayInput.substring(displayInput.length() - 26);
     }
-    M5Cardputer.Display.drawString(displayInput.c_str(), 13, 113);
+    canvas.drawString(displayInput.c_str(), 13, 113);
   }
 
   // Cursor blink
   if ((millis() / 500) % 2 == 0) {
     int cursorX = 13 + (min((int)partyTimeInput.length(), 26) * 6);
-    M5Cardputer.Display.drawLine(cursorX, 113, cursorX, 121, TFT_WHITE);
+    canvas.drawLine(cursorX, 113, cursorX, 121, TFT_WHITE);
   }
 
   // + button
   if (apListCount < 10) {
-    M5Cardputer.Display.fillRoundRect(215, 110, 18, 14, 3, TFT_GREEN);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("+", 220, 113);
+    canvas.fillRoundRect(215, 110, 18, 14, 3, TFT_GREEN);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString("+", 220, 113);
   } else {
-    M5Cardputer.Display.fillRoundRect(215, 110, 18, 14, 3, TFT_DARKGREY);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("+", 220, 113);
+    canvas.fillRoundRect(215, 110, 18, 14, 3, TFT_DARKGREY);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString("+", 220, 113);
   }
 
   // Instructions
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Enter=Start ;/=Scroll Del=Clear `=Back", 5, 127);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Enter=Start ;/=Scroll Del=Clear `=Back", 5, 127);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawPartyTimeRunning() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_MAGENTA);
-  M5Cardputer.Display.drawString("PARTY TIME!", 50, 25);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_MAGENTA);
+  canvas.drawString("PARTY TIME!", 50, 25);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("Broadcasting custom SSIDs...", 40, 50);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("Broadcasting custom SSIDs...", 40, 50);
 
   // Show current SSID being broadcast
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("Current:", 10, 70);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("Current:", 10, 70);
   String currentSSID = apList[currentPartyTimeSSID];
   if (currentSSID.length() > 30) {
     currentSSID = currentSSID.substring(0, 27) + "...";
   }
-  M5Cardputer.Display.setTextColor(TFT_GREEN);
-  M5Cardputer.Display.drawString(currentSSID.c_str(), 10, 85);
+  canvas.setTextColor(TFT_GREEN);
+  canvas.drawString(currentSSID.c_str(), 10, 85);
 
   // Show total count and which one is active
-  M5Cardputer.Display.setTextColor(TFT_YELLOW);
-  M5Cardputer.Display.drawString(String(currentPartyTimeSSID + 1) + " of " + String(apListCount), 10, 100);
+  canvas.setTextColor(TFT_YELLOW);
+  canvas.drawString(String(currentPartyTimeSSID + 1) + " of " + String(apListCount), 10, 100);
 
   // Animation - pulsing broadcast icon
   int pulseSize = 3 + (millis() / 200) % 5;
   for (int i = 0; i < 3; i++) {
-    M5Cardputer.Display.drawCircle(200, 85, pulseSize + (i * 8), TFT_MAGENTA);
+    canvas.drawCircle(200, 85, pulseSize + (i * 8), TFT_MAGENTA);
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("a:Save  s:Load  d:Manage  `=Stop", 25, 120);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("a:Save  s:Load  d:Manage  `=Stop", 25, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void handleWiFiFunNavigation(char key) {
@@ -817,31 +836,33 @@ void handleWiFiFunNavigation(char key) {
 // ========== ANALYTICS FUNCTIONS ==========
 
 void drawAnalyticsMenu() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("Analytics", 70, 30);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("Analytics", 70, 30);
 
   // Draw menu items
   for (int i = 0; i < analyticsMenuCount; i++) {
     int yPos = 55 + (i * 20);
 
     if (i == analyticsMenuIndex) {
-      M5Cardputer.Display.fillRoundRect(10, yPos - 2, 220, 18, 5, TFT_YELLOW);
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      canvas.fillRoundRect(10, yPos - 2, 220, 18, 5, TFT_YELLOW);
+      canvas.setTextColor(TFT_WHITE);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
+      canvas.setTextColor(TFT_LIGHTGREY);
     }
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString(analyticsMenuItems[i], 20, yPos);
+    canvas.setTextSize(1);
+    canvas.drawString(analyticsMenuItems[i], 20, yPos);
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString(",/=Navigate Enter=Select `=Back", 15, 120);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString(",/=Navigate Enter=Select `=Back", 15, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // WiFi Packet Sniffer - Promiscuous Mode Callback
@@ -1143,76 +1164,76 @@ void updateCrowdCounter() {
 }
 
 void drawCrowdCounter() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_YELLOW);
-  M5Cardputer.Display.drawString("Device Counter", 75, 20);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_YELLOW);
+  canvas.drawString("Device Counter", 75, 20);
 
   // Animated scanning indicator
   if (crowdCounterActive) {
     int pulseSize = 1 + (millis() / 150) % 3;
-    M5Cardputer.Display.drawCircle(15, 20, pulseSize, TFT_GREEN);
-    M5Cardputer.Display.drawCircle(15, 20, pulseSize + 3, TFT_GREEN);
+    canvas.drawCircle(15, 20, pulseSize, TFT_GREEN);
+    canvas.drawCircle(15, 20, pulseSize + 3, TFT_GREEN);
   }
 
   // Compact header with total count
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("Total:", 5, 32);
-  M5Cardputer.Display.setTextColor(TFT_GREEN);
-  M5Cardputer.Display.drawString(String(deviceCount).c_str(), 40, 32);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("Total:", 5, 32);
+  canvas.setTextColor(TFT_GREEN);
+  canvas.drawString(String(deviceCount).c_str(), 40, 32);
 
   // Compact device category counters in a horizontal row
   int xPos = 70;
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
 
   if (totalPhones > 0) {
-    M5Cardputer.Display.setTextColor(TFT_CYAN);
-    M5Cardputer.Display.drawString("Ph:" + String(totalPhones), xPos, 32);
+    canvas.setTextColor(TFT_CYAN);
+    canvas.drawString("Ph:" + String(totalPhones), xPos, 32);
     xPos += 32;
   }
   if (totalComputers > 0) {
-    M5Cardputer.Display.setTextColor(TFT_MAGENTA);
-    M5Cardputer.Display.drawString("PC:" + String(totalComputers), xPos, 32);
+    canvas.setTextColor(TFT_MAGENTA);
+    canvas.drawString("PC:" + String(totalComputers), xPos, 32);
     xPos += 32;
   }
   if (totalRouters > 0) {
-    M5Cardputer.Display.setTextColor(TFT_ORANGE);
-    M5Cardputer.Display.drawString("Rt:" + String(totalRouters), xPos, 32);
+    canvas.setTextColor(TFT_ORANGE);
+    canvas.drawString("Rt:" + String(totalRouters), xPos, 32);
     xPos += 32;
   }
   if (totalTVs > 0) {
-    M5Cardputer.Display.setTextColor(TFT_YELLOW);
-    M5Cardputer.Display.drawString("TV:" + String(totalTVs), xPos, 32);
+    canvas.setTextColor(TFT_YELLOW);
+    canvas.drawString("TV:" + String(totalTVs), xPos, 32);
     xPos += 28;
   }
   if (totalIoT > 0) {
-    M5Cardputer.Display.setTextColor(TFT_GREENYELLOW);
-    M5Cardputer.Display.drawString("IoT:" + String(totalIoT), xPos, 32);
+    canvas.setTextColor(TFT_GREENYELLOW);
+    canvas.drawString("IoT:" + String(totalIoT), xPos, 32);
     xPos += 32;
   }
   if (totalCameras > 0) {
-    M5Cardputer.Display.setTextColor(TFT_PINK);
-    M5Cardputer.Display.drawString("Cam:" + String(totalCameras), xPos, 32);
+    canvas.setTextColor(TFT_PINK);
+    canvas.drawString("Cam:" + String(totalCameras), xPos, 32);
     xPos += 36;
   }
   if (totalCars > 0) {
-    M5Cardputer.Display.setTextColor(TFT_SKYBLUE);
-    M5Cardputer.Display.drawString("Car:" + String(totalCars), xPos, 32);
+    canvas.setTextColor(TFT_SKYBLUE);
+    canvas.drawString("Car:" + String(totalCars), xPos, 32);
     xPos += 36;
   }
   if (unknownDevices > 0) {
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("?:" + String(unknownDevices), xPos, 32);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("?:" + String(unknownDevices), xPos, 32);
   }
 
   // Grid of MAC addresses with device types
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
-  M5Cardputer.Display.drawString("MAC Address : Device Type", 5, 44);
-  M5Cardputer.Display.drawLine(0, 52, 240, 52, TFT_DARKGREY);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_LIGHTGREY);
+  canvas.drawString("MAC Address : Device Type", 5, 44);
+  canvas.drawLine(0, 52, 240, 52, TFT_DARKGREY);
 
   // Show up to 7 devices in a grid (more compact)
   int yPos = 56;
@@ -1226,12 +1247,12 @@ void drawCrowdCounter() {
     DeviceInfo device = lookupDevice(deviceMACs[i]);
 
     // Display MAC address
-    M5Cardputer.Display.setTextColor(TFT_CYAN);
-    M5Cardputer.Display.drawString(mac, 5, yPos);
+    canvas.setTextColor(TFT_CYAN);
+    canvas.drawString(mac, 5, yPos);
 
     // Display colon separator
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString(":", 53, yPos);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString(":", 53, yPos);
 
     // Display device type and brand
     if (device.found) {
@@ -1251,11 +1272,11 @@ void drawCrowdCounter() {
       else if (device.type.equals("camera")) typeColor = TFT_PINK;
       else if (device.type.equals("car")) typeColor = TFT_SKYBLUE;
 
-      M5Cardputer.Display.setTextColor(typeColor);
-      M5Cardputer.Display.drawString(brand, 62, yPos);
+      canvas.setTextColor(typeColor);
+      canvas.drawString(brand, 62, yPos);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("Unknown", 62, yPos);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString("Unknown", 62, yPos);
     }
 
     yPos += 9;
@@ -1263,40 +1284,42 @@ void drawCrowdCounter() {
 
   // Show "more devices" indicator if needed
   if (deviceCount > 7) {
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("+" + String(deviceCount - 7) + " more...", 5, yPos);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("+" + String(deviceCount - 7) + " more...", 5, yPos);
   }
 
   // CSV file status indicator
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
   if (sdCardMounted) {
     File csvFile = SD.open("/oui.csv");
     if (csvFile) {
-      M5Cardputer.Display.setTextColor(TFT_GREEN);
-      M5Cardputer.Display.drawString("CSV:OK", 160, 122);
+      canvas.setTextColor(TFT_GREEN);
+      canvas.drawString("CSV:OK", 160, 122);
       csvFile.close();
     } else {
-      M5Cardputer.Display.setTextColor(TFT_RED);
-      M5Cardputer.Display.drawString("CSV:MISSING", 145, 122);
+      canvas.setTextColor(TFT_RED);
+      canvas.drawString("CSV:MISSING", 145, 122);
     }
   } else {
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("SD:NO", 160, 122);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("SD:NO", 160, 122);
   }
 
   // Show current WiFi channel being scanned
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_ORANGE);
-  M5Cardputer.Display.drawString("Ch:" + String(currentChannel), 75, 122);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_ORANGE);
+  canvas.drawString("Ch:" + String(currentChannel), 75, 122);
 
   // Show BLE status
   if (bleInitialized) {
-    M5Cardputer.Display.setTextColor(TFT_CYAN);
-    M5Cardputer.Display.drawString("BLE:" + String(bleDeviceCount), 115, 122);
+    canvas.setTextColor(TFT_CYAN);
+    canvas.drawString("BLE:" + String(bleDeviceCount), 115, 122);
   }
 
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("`=Stop", 5, 122);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("`=Stop", 5, 122);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void stopCrowdCounter() {
@@ -1411,16 +1434,16 @@ void updateSpeedometer() {
 }
 
 void drawSpeedometer() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
   if (WiFi.status() != WL_CONNECTED) {
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Not connected to WiFi!", 45, 60);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Connect first to test speed", 35, 75);
-    M5Cardputer.Display.drawString("Press ` to stop", 75, 120);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Not connected to WiFi!", 45, 60);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("Connect first to test speed", 35, 75);
+    canvas.drawString("Press ` to stop", 75, 120);
   } else {
     // Helper function to draw a gauge
     auto drawGauge = [](int centerX, int centerY, int radius, float speed, uint16_t labelColor, const char* label) {
@@ -1437,18 +1460,18 @@ void drawSpeedometer() {
         if (angle < 240) {
           // Green to yellow gradient (180-240 degrees)
           int t = map(angle, 180, 240, 0, 255);
-          color = M5Cardputer.Display.color565(t, 255, 0);
+          color = canvas.color565(t, 255, 0);
         } else if (angle < 300) {
           // Yellow to orange gradient (240-300 degrees)
           int t = map(angle, 240, 300, 0, 255);
-          color = M5Cardputer.Display.color565(255, 255 - t, 0);
+          color = canvas.color565(255, 255 - t, 0);
         } else {
           // Orange to red gradient (300-360 degrees)
           int t = map(angle, 300, 360, 0, 128);
-          color = M5Cardputer.Display.color565(255, 128 - t, 0);
+          color = canvas.color565(255, 128 - t, 0);
         }
 
-        M5Cardputer.Display.drawLine(x1, y1, x2, y2, color);
+        canvas.drawLine(x1, y1, x2, y2, color);
       }
 
       // Draw needle based on speed (0-70 Mbps mapped to 180-360 degrees)
@@ -1457,22 +1480,22 @@ void drawSpeedometer() {
       float rad = speedAngle * PI / 180.0;
       int needleX = centerX + cos(rad) * (radius - 6);
       int needleY = centerY + sin(rad) * (radius - 6);
-      M5Cardputer.Display.drawLine(centerX, centerY, needleX, needleY, TFT_WHITE);
-      M5Cardputer.Display.fillCircle(centerX, centerY, 2, TFT_WHITE);
+      canvas.drawLine(centerX, centerY, needleX, needleY, TFT_WHITE);
+      canvas.fillCircle(centerX, centerY, 2, TFT_WHITE);
 
       // Display speed number
-      M5Cardputer.Display.setTextSize(2);
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
+      canvas.setTextSize(2);
+      canvas.setTextColor(TFT_WHITE);
       String speedStr = String((int)speed);
-      M5Cardputer.Display.drawString(speedStr.c_str(), centerX - (speedStr.length() * 6), centerY + 8);
+      canvas.drawString(speedStr.c_str(), centerX - (speedStr.length() * 6), centerY + 8);
 
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
-      M5Cardputer.Display.drawString("Mbps", centerX - 12, centerY + 24);
+      canvas.setTextSize(1);
+      canvas.setTextColor(TFT_LIGHTGREY);
+      canvas.drawString("Mbps", centerX - 12, centerY + 24);
 
       // Label
-      M5Cardputer.Display.setTextColor(labelColor);
-      M5Cardputer.Display.drawString(label, centerX - (strlen(label) * 3), centerY - radius - 8);
+      canvas.setTextColor(labelColor);
+      canvas.drawString(label, centerX - (strlen(label) * 3), centerY - radius - 8);
     };
 
     // Draw download speedometer (left) - moved down
@@ -1488,14 +1511,16 @@ void drawSpeedometer() {
     int rectX = (240 - ipWidth) / 2; // Center the rectangle
 
     // Draw rectangle background
-    M5Cardputer.Display.fillRoundRect(rectX, 118, ipWidth, 14, 3, TFT_DARKGREY);
-    M5Cardputer.Display.drawRoundRect(rectX, 118, ipWidth, 14, 3, TFT_CYAN);
+    canvas.fillRoundRect(rectX, 118, ipWidth, 14, 3, TFT_DARKGREY);
+    canvas.drawRoundRect(rectX, 118, ipWidth, 14, 3, TFT_CYAN);
 
     // Draw IP text centered in rectangle
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString(ipStr.c_str(), rectX + 5, 121);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString(ipStr.c_str(), rectX + 5, 121);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void stopSpeedometer() {
@@ -1536,16 +1561,16 @@ void updateHeatmap() {
 }
 
 void drawHeatmap() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_MAGENTA);
-  M5Cardputer.Display.drawString("WiFi Heatmap", 75, 25);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_MAGENTA);
+  canvas.drawString("WiFi Heatmap", 75, 25);
 
   if (WiFi.status() != WL_CONNECTED) {
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Not connected!", 70, 60);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Not connected!", 70, 60);
   } else {
     // Draw heatmap grid (12x8 = 96 cells, each 18x12 pixels)
     int cellW = 18;
@@ -1573,20 +1598,22 @@ void drawHeatmap() {
           color = 0xF800;  // Red - poor
         }
 
-        M5Cardputer.Display.fillRect(px, py, cellW - 2, cellH - 2, color);
+        canvas.fillRect(px, py, cellW - 2, cellH - 2, color);
 
         // Highlight current position
         if (x == heatmapX && y == heatmapY) {
-          M5Cardputer.Display.drawRect(px - 1, py - 1, cellW, cellH, TFT_WHITE);
-          M5Cardputer.Display.drawRect(px, py, cellW - 2, cellH - 2, TFT_WHITE);
+          canvas.drawRect(px - 1, py - 1, cellW, cellH, TFT_WHITE);
+          canvas.drawRect(px, py, cellW - 2, cellH - 2, TFT_WHITE);
         }
       }
     }
 
     // Instructions
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("Move: ;,/. Sample: Enter", 25, 120);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString("Move: ;,/. Sample: Enter", 25, 120);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void stopHeatmap() {
@@ -1727,24 +1754,24 @@ void stopProbeSniffer() {
 }
 
 void drawProbeSniffer() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
   // No title - removed
   // No green scanning indicator - removed
 
   // Stats line (moved up)
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_WHITE);
   char stats[40];
   snprintf(stats, sizeof(stats), "Total: %lu | Shown: %d", totalProbesSeen, probeRequestCount);
-  M5Cardputer.Display.drawString(stats, 10, 25);
+  canvas.drawString(stats, 10, 25);
 
   // Column headers
-  M5Cardputer.Display.setTextColor(TFT_YELLOW);
-  M5Cardputer.Display.drawString("MAC", 5, 40);
-  M5Cardputer.Display.drawString("SSID", 55, 40);
-  M5Cardputer.Display.drawString("RSSI", 205, 40);
+  canvas.setTextColor(TFT_YELLOW);
+  canvas.drawString("MAC", 5, 40);
+  canvas.drawString("SSID", 55, 40);
+  canvas.drawString("RSSI", 205, 40);
 
   // Draw probe requests (show last 7 - more space now)
   int yPos = 52;
@@ -1770,11 +1797,11 @@ void drawProbeSniffer() {
     else if (pr.rssi > -70) color = TFT_YELLOW;
     else color = TFT_RED;
 
-    M5Cardputer.Display.setTextColor(color);
+    canvas.setTextColor(color);
 
     // MAC address (shorten to last 5 chars for compact display)
     String shortMac = pr.mac.substring(12);  // XX:XX (last 2 octets)
-    M5Cardputer.Display.drawString(shortMac.c_str(), 5, yPos);
+    canvas.drawString(shortMac.c_str(), 5, yPos);
 
     // SSID (truncate if too long - now have more space!)
     String displaySSID = pr.ssid;
@@ -1782,20 +1809,22 @@ void drawProbeSniffer() {
     if (displaySSID.length() > 22) {
       displaySSID = displaySSID.substring(0, 19) + "...";
     }
-    M5Cardputer.Display.drawString(displaySSID.c_str(), 55, yPos);
+    canvas.drawString(displaySSID.c_str(), 55, yPos);
 
     // RSSI
     char rssiStr[8];
     snprintf(rssiStr, sizeof(rssiStr), "%d", pr.rssi);
-    M5Cardputer.Display.drawString(rssiStr, 205, yPos);
+    canvas.drawString(rssiStr, 205, yPos);
 
     yPos += 11;
   }
 
   // Instructions
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("`=Exit", 180, 120);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("`=Exit", 180, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // ========== PORTAL GAMES FUNCTIONS ==========
@@ -2037,31 +2066,31 @@ void stopPortalGames() {
 }
 
 void drawPortalGames() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("portalGAMES", 55, 25);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("portalGAMES", 55, 25);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_WHITE);
 
   // Show SSID
-  M5Cardputer.Display.drawString("SSID: Free WiFi - Word Game!", 10, 50);
+  canvas.drawString("SSID: Free WiFi - Word Game!", 10, 50);
 
   // Show IP
   IPAddress IP = WiFi.softAPIP();
-  M5Cardputer.Display.drawString(("IP: " + IP.toString()).c_str(), 10, 65);
+  canvas.drawString(("IP: " + IP.toString()).c_str(), 10, 65);
 
   // Show connected clients
   int clients = WiFi.softAPgetStationNum();
-  M5Cardputer.Display.setTextColor(TFT_GREEN);
-  M5Cardputer.Display.drawString(("Connected: " + String(clients)).c_str(), 10, 80);
+  canvas.setTextColor(TFT_GREEN);
+  canvas.drawString(("Connected: " + String(clients)).c_str(), 10, 80);
 
   // Show visitor count
-  M5Cardputer.Display.setTextColor(TFT_YELLOW);
-  M5Cardputer.Display.drawString(("Visitors: " + String(portalGamesPlayers)).c_str(), 10, 95);
+  canvas.setTextColor(TFT_YELLOW);
+  canvas.drawString(("Visitors: " + String(portalGamesPlayers)).c_str(), 10, 95);
 
   // Show uptime
   unsigned long uptime = (millis() - gamesStartTime) / 1000;
@@ -2069,12 +2098,14 @@ void drawPortalGames() {
   int seconds = uptime % 60;
   char timeStr[20];
   sprintf(timeStr, "Uptime: %02d:%02d", minutes, seconds);
-  M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
-  M5Cardputer.Display.drawString(timeStr, 10, 110);
+  canvas.setTextColor(TFT_LIGHTGREY);
+  canvas.drawString(timeStr, 10, 110);
 
   // Instructions
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Press ` to stop", 70, 122);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Press ` to stop", 70, 122);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void handlePortalGamesLoop() {
@@ -2124,11 +2155,11 @@ void savePartyTimeSet(int slot) {
   }
 
   // Show brief confirmation
-  M5Cardputer.Display.fillRect(50, 55, 140, 20, TFT_BLACK);
-  M5Cardputer.Display.drawRect(50, 55, 140, 20, TFT_GREEN);
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_GREEN);
-  M5Cardputer.Display.drawString("Saved to Set " + String(slot) + "!", 65, 60);
+  canvas.fillRect(50, 55, 140, 20, TFT_BLACK);
+  canvas.drawRect(50, 55, 140, 20, TFT_GREEN);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_GREEN);
+  canvas.drawString("Saved to Set " + String(slot) + "!", 65, 60);
   delay(1000);
 
   drawPartyTimeRunning();
@@ -2152,11 +2183,11 @@ void loadPartyTimeSet(int slot) {
     if (settings.soundEnabled) M5Cardputer.Speaker.tone(400, 100);
 
     // Show "empty" message
-    M5Cardputer.Display.fillRect(50, 55, 140, 20, TFT_BLACK);
-    M5Cardputer.Display.drawRect(50, 55, 140, 20, TFT_RED);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Set " + String(slot) + " is empty!", 70, 60);
+    canvas.fillRect(50, 55, 140, 20, TFT_BLACK);
+    canvas.drawRect(50, 55, 140, 20, TFT_RED);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Set " + String(slot) + " is empty!", 70, 60);
     delay(1000);
     drawPartyTimeRunning();
     return;
@@ -2178,59 +2209,63 @@ void loadPartyTimeSet(int slot) {
   }
 
   // Show brief confirmation
-  M5Cardputer.Display.fillRect(50, 55, 140, 20, TFT_BLACK);
-  M5Cardputer.Display.drawRect(50, 55, 140, 20, TFT_CYAN);
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("Loaded Set " + String(slot) + "!", 65, 60);
+  canvas.fillRect(50, 55, 140, 20, TFT_BLACK);
+  canvas.drawRect(50, 55, 140, 20, TFT_CYAN);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("Loaded Set " + String(slot) + "!", 65, 60);
   delay(1000);
 
   drawPartyTimeRunning();
 }
 
 void showPartyTimeSaveMenu() {
-  M5Cardputer.Display.fillRect(30, 45, 180, 50, TFT_BLACK);
-  M5Cardputer.Display.drawRect(30, 45, 180, 50, TFT_GREEN);
-  M5Cardputer.Display.fillRect(31, 46, 178, 12, TFT_GREEN);
+  canvas.fillRect(30, 45, 180, 50, TFT_BLACK);
+  canvas.drawRect(30, 45, 180, 50, TFT_GREEN);
+  canvas.fillRect(31, 46, 178, 12, TFT_GREEN);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Save to Slot:", 70, 48);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("Save to Slot:", 70, 48);
 
-  M5Cardputer.Display.setTextColor(TFT_GREEN);
-  M5Cardputer.Display.drawString("Press 1-5", 80, 65);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("(or any key to cancel)", 55, 78);
+  canvas.setTextColor(TFT_GREEN);
+  canvas.drawString("Press 1-5", 80, 65);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("(or any key to cancel)", 55, 78);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void showPartyTimeLoadMenu() {
-  M5Cardputer.Display.fillRect(30, 45, 180, 50, TFT_BLACK);
-  M5Cardputer.Display.drawRect(30, 45, 180, 50, TFT_CYAN);
-  M5Cardputer.Display.fillRect(31, 46, 178, 12, TFT_CYAN);
+  canvas.fillRect(30, 45, 180, 50, TFT_BLACK);
+  canvas.drawRect(30, 45, 180, 50, TFT_CYAN);
+  canvas.fillRect(31, 46, 178, 12, TFT_CYAN);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Load from Slot:", 65, 48);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("Load from Slot:", 65, 48);
 
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("Press 1-5", 80, 65);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("(or any key to cancel)", 55, 78);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("Press 1-5", 80, 65);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("(or any key to cancel)", 55, 78);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void showPartyTimeManageMenu() {
   Preferences prefs;
   prefs.begin("partysets", true);
 
-  M5Cardputer.Display.fillRect(15, 30, 210, 80, TFT_BLACK);
-  M5Cardputer.Display.drawRect(15, 30, 210, 80, TFT_YELLOW);
-  M5Cardputer.Display.fillRect(16, 31, 208, 12, TFT_YELLOW);
+  canvas.fillRect(15, 30, 210, 80, TFT_BLACK);
+  canvas.drawRect(15, 30, 210, 80, TFT_YELLOW);
+  canvas.fillRect(16, 31, 208, 12, TFT_YELLOW);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Saved Sets:", 80, 33);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("Saved Sets:", 80, 33);
 
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
+  canvas.setTextColor(TFT_WHITE);
   for (int i = 1; i <= 5; i++) {
     String countKey = "set" + String(i) + "_cnt";
     int count = prefs.getInt(countKey.c_str(), 0);
@@ -2246,19 +2281,21 @@ void showPartyTimeManageMenu() {
         firstSSID = firstSSID.substring(0, 17) + "...";
       }
 
-      M5Cardputer.Display.setTextColor(TFT_GREEN);
-      M5Cardputer.Display.drawString("Set " + String(i) + ": " + firstSSID, 30, yPos);
+      canvas.setTextColor(TFT_GREEN);
+      canvas.drawString("Set " + String(i) + ": " + firstSSID, 30, yPos);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("Set " + String(i) + ": Empty", 30, yPos);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString("Set " + String(i) + ": Empty", 30, yPos);
     }
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Press any key to close", 50, 100);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Press any key to close", 50, 100);
 
   prefs.end();
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // ========== TV-B-GONE (IR) FUNCTIONS ==========
@@ -2512,18 +2549,18 @@ void stopTVBGone() {
 }
 
 void drawTVBGone() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_RED);
-  M5Cardputer.Display.drawString("TURN THIS TV OFF", 15, 25);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_RED);
+  canvas.drawString("TURN THIS TV OFF", 15, 25);
 
   // Progress indicator
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_WHITE);
   String progressText = "Sending: " + String(tvbgoneProgress) + "/" + String(tvbgoneTotalCodes);
-  M5Cardputer.Display.drawString(progressText.c_str(), 70, 55);
+  canvas.drawString(progressText.c_str(), 70, 55);
 
   // Progress bar
   int barWidth = 200;
@@ -2531,25 +2568,27 @@ void drawTVBGone() {
   int barX = 20;
   int barY = 70;
 
-  M5Cardputer.Display.drawRect(barX, barY, barWidth, barHeight, TFT_WHITE);
+  canvas.drawRect(barX, barY, barWidth, barHeight, TFT_WHITE);
 
   if (tvbgoneTotalCodes > 0) {
     int fillWidth = (tvbgoneProgress * barWidth) / tvbgoneTotalCodes;
-    M5Cardputer.Display.fillRect(barX + 1, barY + 1, fillWidth, barHeight - 2, TFT_RED);
+    canvas.fillRect(barX + 1, barY + 1, fillWidth, barHeight - 2, TFT_RED);
   }
 
   // Current brand being sent
   if (tvbgoneProgress < tvbgoneTotalCodes) {
-    M5Cardputer.Display.setTextColor(TFT_YELLOW);
+    canvas.setTextColor(TFT_YELLOW);
     String brandText = "Trying: " + String(tvPowerCodes[tvbgoneProgress].brand);
-    M5Cardputer.Display.drawString(brandText.c_str(), 70, 95);
+    canvas.drawString(brandText.c_str(), 70, 95);
   } else {
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.drawString("Complete!", 85, 95);
+    canvas.setTextColor(TFT_GREEN);
+    canvas.drawString("Complete!", 85, 95);
   }
 
   // Instructions
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("ESC to cancel", 80, 120);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("ESC to cancel", 80, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }

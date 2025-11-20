@@ -2,6 +2,22 @@
 #define UI_H
 
 #include "config.h"
+#include <M5GFX.h>
+
+// Global canvas for double-buffered rendering
+extern M5Canvas canvas;
+
+// Theme state (defined in main.cpp)
+extern bool uiInverted;
+
+// Theme helper functions - use these instead of hardcoded TFT_WHITE/TFT_BLACK
+inline uint16_t getThemeBgColor() {
+    return uiInverted ? TFT_BLACK : TFT_WHITE;
+}
+
+inline uint16_t getThemeFgColor() {
+    return uiInverted ? TFT_WHITE : TFT_BLACK;
+}
 
 // Utility functions
 String getCurrentTime();

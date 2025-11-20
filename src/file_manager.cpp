@@ -64,28 +64,28 @@ String showTextInputDialog(String title, String defaultValue, String okLabel = "
 
   while (true) {
     // Draw dialog box
-    M5Cardputer.Display.fillRect(10, 35, 220, 70, TFT_WHITE);
-    M5Cardputer.Display.drawRect(10, 35, 220, 70, TFT_BLACK);
-    M5Cardputer.Display.drawRect(11, 36, 218, 68, TFT_BLACK);
+    canvas.fillRect(10, 35, 220, 70, TFT_WHITE);
+    canvas.drawRect(10, 35, 220, 70, TFT_BLACK);
+    canvas.drawRect(11, 36, 218, 68, TFT_BLACK);
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString(title.c_str(), 20, 45);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString(title.c_str(), 20, 45);
 
     // Draw input field with cursor
-    M5Cardputer.Display.fillRect(20, 60, 200, 12, TFT_WHITE);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
+    canvas.fillRect(20, 60, 200, 12, TFT_WHITE);
+    canvas.setTextColor(TFT_BLACK);
 
     String displayName = input;
     if (displayName.length() > 28) {
       displayName = displayName.substring(displayName.length() - 28);
     }
-    M5Cardputer.Display.drawString(displayName.c_str(), 20, 60);
+    canvas.drawString(displayName.c_str(), 20, 60);
 
     // Draw blinking cursor
     if (cursorVisible) {
       int cursorX = 20 + (displayName.length() * 6);
-      M5Cardputer.Display.drawLine(cursorX, 60, cursorX, 70, TFT_BLACK);
+      canvas.drawLine(cursorX, 60, cursorX, 70, TFT_BLACK);
     }
 
     // Cursor blinking
@@ -95,8 +95,8 @@ String showTextInputDialog(String title, String defaultValue, String okLabel = "
     }
 
     // Footer
-    M5Cardputer.Display.fillRect(20, 85, 200, 10, TFT_WHITE);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+    canvas.fillRect(20, 85, 200, 10, TFT_WHITE);
+    canvas.setTextColor(TFT_DARKGREY);
     String footerText = "Enter=" + okLabel + "  `=" + cancelLabel;
     drawNavHint(footerText.c_str(), 40, 85);
 
@@ -131,26 +131,28 @@ String showTextInputDialog(String title, String defaultValue, String okLabel = "
 
     delay(10);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // Generic confirmation dialog - used for delete, etc.
 bool showConfirmDialog(String title, String message, String okLabel = "Yes", String cancelLabel = "No") {
   // Draw confirmation dialog
-  M5Cardputer.Display.fillRect(20, 40, 200, 60, TFT_WHITE);
-  M5Cardputer.Display.drawRect(20, 40, 200, 60, TFT_BLACK);
-  M5Cardputer.Display.drawRect(21, 41, 198, 58, TFT_BLACK);
+  canvas.fillRect(20, 40, 200, 60, TFT_WHITE);
+  canvas.drawRect(20, 40, 200, 60, TFT_BLACK);
+  canvas.drawRect(21, 41, 198, 58, TFT_BLACK);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString(title.c_str(), 30, 50);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString(title.c_str(), 30, 50);
 
   // Show message (truncate if needed)
   if (message.length() > 28) {
     message = message.substring(0, 25) + "...";
   }
-  M5Cardputer.Display.drawString(message.c_str(), 30, 65);
+  canvas.drawString(message.c_str(), 30, 65);
 
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+  canvas.setTextColor(TFT_DARKGREY);
   String footerText = "Enter=" + okLabel + "  `=" + cancelLabel;
   drawNavHint(footerText.c_str(), 60, 82);
 
@@ -178,17 +180,19 @@ bool showConfirmDialog(String title, String message, String okLabel = "Yes", Str
 // Helper function to draw navigation hints with yellow rounded rectangle background
 void drawNavHint(const char* text, int x, int y) {
   // Measure text width
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  int textWidth = M5Cardputer.Display.textWidth(text);
+  canvas.setTextColor(TFT_BLACK);
+  int textWidth = canvas.textWidth(text);
   int padding = 4;
 
   // Draw yellow rounded rectangle background
-  M5Cardputer.Display.fillRoundRect(x - padding, y - 2, textWidth + (padding * 2), 12, 3, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(x - padding, y - 2, textWidth + (padding * 2), 12, 3, TFT_BLACK);
+  canvas.fillRoundRect(x - padding, y - 2, textWidth + (padding * 2), 12, 3, TFT_WHITE);
+  canvas.drawRoundRect(x - padding, y - 2, textWidth + (padding * 2), 12, 3, TFT_BLACK);
 
   // Draw black text on yellow background
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString(text, x, y);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString(text, x, y);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // Draw star icon (matches WiFi Transfer style!)
@@ -211,9 +215,11 @@ void drawStar(int x, int y, int size, uint16_t color) {
     int x3 = x + outerR * cos(a3);
     int y3 = y + outerR * sin(a3);
 
-    M5Cardputer.Display.fillTriangle(x, y, x1, y1, x2, y2, color);
-    M5Cardputer.Display.fillTriangle(x, y, x2, y2, x3, y3, color);
+    canvas.fillTriangle(x, y, x1, y1, x2, y2, color);
+    canvas.fillTriangle(x, y, x2, y2, x3, y3, color);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // Custom header for file manager - matches WiFi Transfer style!
@@ -229,72 +235,74 @@ void drawFileManagerHeader() {
   int totalWidth = 12 + 30 + 12 + pathWidth + 30;
 
   // Left-aligned header rectangle with dynamic width - aligned with file list at x=18
-  M5Cardputer.Display.fillRoundRect(18, 8, totalWidth, 20, 10, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(18, 8, totalWidth, 20, 10, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(19, 9, totalWidth - 2, 18, 9, TFT_BLACK);
+  canvas.fillRoundRect(18, 8, totalWidth, 20, 10, TFT_WHITE);
+  canvas.drawRoundRect(18, 8, totalWidth, 20, 10, TFT_BLACK);
+  canvas.drawRoundRect(19, 9, totalWidth - 2, 18, 9, TFT_BLACK);
 
   // Draw golden/yellow star icon (TFT_GOLD = 0xFEA0, or use TFT_YELLOW)
   drawStar(30, 18, 6, 0xFEA0);
 
   // "FILES" text in black
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("FILES", 48, 14);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("FILES", 48, 14);
 
   // Show current path after FILES
-  M5Cardputer.Display.drawString("-", 83, 14);
-  M5Cardputer.Display.drawString(displayPath.c_str(), 93, 14);
+  canvas.drawString("-", 83, 14);
+  canvas.drawString(displayPath.c_str(), 93, 14);
 
   // Message notification indicator (heart icon in top right)
   extern bool hasUnreadMessages;
   if (hasUnreadMessages) {
     int heartX = 205;
     int heartY = 12;
-    M5Cardputer.Display.fillCircle(heartX, heartY + 2, 2, TFT_BLUE);
-    M5Cardputer.Display.fillCircle(heartX + 4, heartY + 2, 2, TFT_BLUE);
-    M5Cardputer.Display.fillTriangle(
+    canvas.fillCircle(heartX, heartY + 2, 2, TFT_BLUE);
+    canvas.fillCircle(heartX + 4, heartY + 2, 2, TFT_BLUE);
+    canvas.fillTriangle(
       heartX - 2, heartY + 3,
       heartX + 6, heartY + 3,
       heartX + 2, heartY + 9,
       TFT_BLUE
     );
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 
 void enterFileManager() {
   // Light gray background
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawFileManagerHeader();
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Initializing SD...", 70, 60);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("Initializing SD...", 70, 60);
 
   // SD card is already initialized in setup() - just check if it's mounted
   sdCardMounted = (SD.cardType() != CARD_NONE);
 
   if (!sdCardMounted) {
-    M5Cardputer.Display.fillScreen(TFT_WHITE);
+    canvas.fillScreen(TFT_WHITE);
     drawFileManagerHeader();
 
     // Error panel (white rounded rect like WiFi Transfer)
-    M5Cardputer.Display.fillRoundRect(20, 50, 200, 60, 12, TFT_WHITE);
-    M5Cardputer.Display.drawRoundRect(20, 50, 200, 60, 12, TFT_BLACK);
-    M5Cardputer.Display.drawRoundRect(21, 51, 198, 58, 11, TFT_BLACK);
+    canvas.fillRoundRect(20, 50, 200, 60, 12, TFT_WHITE);
+    canvas.drawRoundRect(20, 50, 200, 60, 12, TFT_BLACK);
+    canvas.drawRoundRect(21, 51, 198, 58, 11, TFT_BLACK);
 
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("SD Error!", 70, 60);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("Insert SD card", 75, 85);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("SD Error!", 70, 60);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("Insert SD card", 75, 85);
 
     // Back button
-    M5Cardputer.Display.fillRoundRect(85, 118, 70, 12, 6, TFT_WHITE);
-    M5Cardputer.Display.drawRoundRect(85, 118, 70, 12, 6, TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("`=Back", 95, 120);
+    canvas.fillRoundRect(85, 118, 70, 12, 6, TFT_WHITE);
+    canvas.drawRoundRect(85, 118, 70, 12, 6, TFT_BLACK);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("`=Back", 95, 120);
 
     fileCount = 0;
     return;
@@ -320,14 +328,14 @@ void loadFolder(String path) {
   // Check SD card is still mounted before trying to open
   if (SD.cardType() == CARD_NONE) {
     sdCardMounted = false;
-    M5Cardputer.Display.fillScreen(TFT_WHITE);
+    canvas.fillScreen(TFT_WHITE);
     drawFileManagerHeader();
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("SD Error!", 70, 60);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("SD card not found", 70, 85);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("SD Error!", 70, 60);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("SD card not found", 70, 85);
     delay(1500);
     return;
   }
@@ -339,22 +347,22 @@ void loadFolder(String path) {
   }
 
   // Loading message with WiFi Transfer style
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawFileManagerHeader();
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
   String loadMsg = "Opening: " + path;
   if (loadMsg.length() > 30) {
     loadMsg = loadMsg.substring(0, 27) + "...";
   }
-  M5Cardputer.Display.drawString(loadMsg.c_str(), 20, 65);
+  canvas.drawString(loadMsg.c_str(), 20, 65);
   delay(300);
 
   File root = SD.open(normalizedPath);
 
   if (!root) {
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Failed to open!", 75, 85);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Failed to open!", 75, 85);
     delay(1500);
     // Try to recover by going to root
     if (path != "/") {
@@ -366,8 +374,8 @@ void loadFolder(String path) {
   }
 
   if (!root.isDirectory()) {
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Not a directory!", 70, 85);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Not a directory!", 70, 85);
     delay(1500);
     root.close();
     // Try to recover by going to root
@@ -446,28 +454,28 @@ String formatFileSize(size_t bytes) {
 
 void drawFolderView() {
   // White background
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
 
   // Draw header with star
   drawFileManagerHeader();
 
   // Show search box if searching
   if (searchActive) {
-    M5Cardputer.Display.fillRoundRect(5, 31, 230, 12, 6, TFT_WHITE);
-    M5Cardputer.Display.drawRoundRect(5, 31, 230, 12, 6, TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
+    canvas.fillRoundRect(5, 31, 230, 12, 6, TFT_WHITE);
+    canvas.drawRoundRect(5, 31, 230, 12, 6, TFT_BLACK);
+    canvas.setTextColor(TFT_BLACK);
     String displaySearch = "Search: " + searchQuery;
     if (displaySearch.length() > 35) {
       displaySearch = displaySearch.substring(0, 32) + "...";
     }
-    M5Cardputer.Display.drawString(displaySearch.c_str(), 10, 34);
+    canvas.drawString(displaySearch.c_str(), 10, 34);
   }
 
   // Main content panel - narrower, rounder, higher up
-  M5Cardputer.Display.fillRoundRect(15, 38, 210, 72, 15, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(15, 38, 210, 72, 15, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(16, 39, 208, 70, 14, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(17, 40, 206, 68, 13, TFT_BLACK);
+  canvas.fillRoundRect(15, 38, 210, 72, 15, TFT_WHITE);
+  canvas.drawRoundRect(15, 38, 210, 72, 15, TFT_BLACK);
+  canvas.drawRoundRect(16, 39, 208, 70, 14, TFT_BLACK);
+  canvas.drawRoundRect(17, 40, 206, 68, 13, TFT_BLACK);
 
   // Build filtered file list if searching
   int filteredIndices[50];
@@ -492,9 +500,9 @@ void drawFolderView() {
   }
 
   if (filteredCount == 0) {
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString(searchActive ? "No matches" : "Empty folder", 70, 75);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString(searchActive ? "No matches" : "Empty folder", 70, 75);
   } else {
     // Show up to 5 items from filtered list
     int startIdx = max(0, selectedFileIndex - 2);
@@ -512,7 +520,7 @@ void drawFolderView() {
                        fullPath.endsWith(".mp3") &&
                        fullPath.equalsIgnoreCase(getCurrentMusicPath()));
 
-      M5Cardputer.Display.setTextSize(1);
+      canvas.setTextSize(1);
 
       // Prepare display text first to calculate highlight width
       String displayName = fileInfoList[fileIdx].name;
@@ -536,48 +544,48 @@ void drawFolderView() {
       // Blue if playing, yellow if just selected
       if (selected) {
         uint16_t highlightColor = isPlaying ? TFT_BLUE : TFT_YELLOW;
-        M5Cardputer.Display.fillRoundRect(20, yPos - 2, totalWidth, 11, 5, highlightColor);
+        canvas.fillRoundRect(20, yPos - 2, totalWidth, 11, 5, highlightColor);
       }
 
       // Red arrow for folders - white if playing (blue highlight), red otherwise
       if (fileInfoList[fileIdx].isDirectory) {
         uint16_t arrowColor = (selected && isPlaying) ? TFT_WHITE : TFT_RED;
-        M5Cardputer.Display.setTextColor(arrowColor);
-        M5Cardputer.Display.drawString(">", 22, yPos);
+        canvas.setTextColor(arrowColor);
+        canvas.drawString(">", 22, yPos);
       }
 
       // Filename - white if playing (blue highlight), black otherwise
       uint16_t textColor = (selected && isPlaying) ? TFT_WHITE : TFT_BLACK;
-      M5Cardputer.Display.setTextColor(textColor);
-      M5Cardputer.Display.drawString(displayName.c_str(), xStart, yPos);
+      canvas.setTextColor(textColor);
+      canvas.drawString(displayName.c_str(), xStart, yPos);
 
       // File size (right side) - white if playing, gray otherwise
       if (!fileInfoList[fileIdx].isDirectory) {
         String sizeStr = formatFileSize(fileInfoList[fileIdx].size);
         uint16_t sizeColor = (selected && isPlaying) ? TFT_WHITE : 0x7BEF;
-        M5Cardputer.Display.setTextColor(sizeColor);
+        canvas.setTextColor(sizeColor);
         int sizeWidth = sizeStr.length() * 6;
-        M5Cardputer.Display.drawString(sizeStr.c_str(), 218 - sizeWidth, yPos);
+        canvas.drawString(sizeStr.c_str(), 218 - sizeWidth, yPos);
       }
     }
 
     // Scroll indicators (small triangles)
     if (startIdx > 0) {
-      M5Cardputer.Display.fillTriangle(230, 40, 227, 44, 233, 44, TFT_BLACK);
+      canvas.fillTriangle(230, 40, 227, 44, 233, 44, TFT_BLACK);
     }
     if (endIdx < filteredCount) {
-      M5Cardputer.Display.fillTriangle(230, 108, 227, 104, 233, 104, TFT_BLACK);
+      canvas.fillTriangle(230, 108, 227, 104, 233, 104, TFT_BLACK);
     }
   }
 
   // Bottom navigation hints (WiFi Transfer style white rounded buttons)
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
 
   // Show selection count if files are selected for batch operations
   if (selectedCount > 0) {
     String selectionMsg = String(selectedCount) + " selected";
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.drawString(selectionMsg.c_str(), 8, 125);
+    canvas.setTextColor(TFT_GREEN);
+    canvas.drawString(selectionMsg.c_str(), 8, 125);
   }
   // Show clipboard status if file is cut/copied
   else if (clipboardPath.length() > 0) {
@@ -586,48 +594,52 @@ void drawFolderView() {
     if (clipboardMsg.length() > 25) {
       clipboardMsg = clipboardMsg.substring(0, 22) + "...";
     }
-    M5Cardputer.Display.setTextColor(clipboardIsCut ? TFT_RED : TFT_BLUE);
-    M5Cardputer.Display.drawString(clipboardMsg.c_str(), 8, 125);
+    canvas.setTextColor(clipboardIsCut ? TFT_RED : TFT_BLUE);
+    canvas.drawString(clipboardMsg.c_str(), 8, 125);
   }
   // Otherwise show navigation hints - no rectangle, just text
   else {
     if (searchActive) {
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("Esc=Clear", 85, 125);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString("Esc=Clear", 85, 125);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("Space=Select", 82, 125);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString("Space=Select", 82, 125);
     }
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawFileViewer() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawFileManagerHeader();
   
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("File Viewer", 55, 30);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("File Viewer", 55, 30);
   
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("Coming soon!", 75, 70);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("Coming soon!", 75, 70);
   
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
   drawNavHint("Press ` to go back", 60, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawTextViewer(const String& path) {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawFileManagerHeader();
   
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
   
   // Title
   String title = "Text: " + path;
   if (title.length() > 36) title = title.substring(0, 36) + "...";
-  M5Cardputer.Display.drawString(title.c_str(), 6, 26);
+  canvas.drawString(title.c_str(), 6, 26);
   
   // Open file
   File f = SD.open(path.c_str(), FILE_READ);
@@ -636,15 +648,15 @@ void drawTextViewer(const String& path) {
   const int16_t maxWChars = 38;
   
   if (!f) {
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Failed to open file", 6, y);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Failed to open file", 6, y);
   } else {
     String line;
     while (f.available() && y < 115) {
       line = f.readStringUntil('\n');
       line.replace("\r", "");
       if ((int)line.length() > maxWChars) line = line.substring(0, maxWChars);
-      M5Cardputer.Display.drawString(line.c_str(), 6, y);
+      canvas.drawString(line.c_str(), 6, y);
       y += lineH;
     }
     f.close();
@@ -652,16 +664,18 @@ void drawTextViewer(const String& path) {
   
   // Footer
   drawNavHint("Press ` to go back", 60, 122);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawImageViewer(const String& path) {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_WHITE);
 
   // Check file exists
   if (!SD.exists(path.c_str())) {
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString("File not found", 60, 55);
+    canvas.setTextColor(TFT_RED);
+    canvas.setTextSize(1);
+    canvas.drawString("File not found", 60, 55);
     drawNavHint("Press ` to return", 65, 122);
     return;
   }
@@ -669,10 +683,10 @@ void drawImageViewer(const String& path) {
   // Open file and display
   File imgFile = SD.open(path.c_str());
   if (!imgFile) {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString("Cannot open file", 55, 50);
+    canvas.fillScreen(TFT_WHITE);
+    canvas.setTextColor(TFT_RED);
+    canvas.setTextSize(1);
+    canvas.drawString("Cannot open file", 55, 50);
     drawNavHint("Press ` to return", 65, 122);
     return;
   }
@@ -682,46 +696,48 @@ void drawImageViewer(const String& path) {
   lowerPath.toLowerCase();
 
   if (lowerPath.endsWith(".jpg") || lowerPath.endsWith(".jpeg")) {
-    success = M5Cardputer.Display.drawJpg(&imgFile, 0, 0, 240, 135);
+    success = canvas.drawJpg(&imgFile, 0, 0, 240, 135);
     imgFile.close();
   } else if (lowerPath.endsWith(".png")) {
     // PNG SUPPORT REMOVED - show helpful message
     imgFile.close();
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("PNG not supported", 55, 40);
+    canvas.fillScreen(TFT_WHITE);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("PNG not supported", 55, 40);
 
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("Use WiFi Transfer to", 50, 60);
-    M5Cardputer.Display.drawString("upload this file - it will", 40, 72);
-    M5Cardputer.Display.drawString("auto-convert to JPG!", 50, 84);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("Use WiFi Transfer to", 50, 60);
+    canvas.drawString("upload this file - it will", 40, 72);
+    canvas.drawString("auto-convert to JPG!", 50, 84);
 
-    M5Cardputer.Display.setTextColor(TFT_CYAN);
-    M5Cardputer.Display.drawString("Or convert manually to", 45, 100);
-    M5Cardputer.Display.drawString("JPG before uploading", 50, 112);
+    canvas.setTextColor(TFT_CYAN);
+    canvas.drawString("Or convert manually to", 45, 100);
+    canvas.drawString("JPG before uploading", 50, 112);
 
     drawNavHint("` Back", 95, 127);
     Serial.println("PNG support removed - use JPG instead");
     success = false;
   } else if (lowerPath.endsWith(".bmp")) {
-    success = M5Cardputer.Display.drawBmp(&imgFile, 0, 0, 240, 135);
+    success = canvas.drawBmp(&imgFile, 0, 0, 240, 135);
     imgFile.close();
   }
 
   if (!success) {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString("Failed to display", 55, 50);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString("Image may be corrupted", 40, 65);
-    M5Cardputer.Display.drawString("or unsupported format", 40, 75);
+    canvas.fillScreen(TFT_WHITE);
+    canvas.setTextColor(TFT_RED);
+    canvas.setTextSize(1);
+    canvas.drawString("Failed to display", 55, 50);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.setTextSize(1);
+    canvas.drawString("Image may be corrupted", 40, 65);
+    canvas.drawString("or unsupported format", 40, 75);
   }
 
   // Show footer
   drawNavHint("Press ` to return", 65, 122);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // GIF callback functions
@@ -793,7 +809,7 @@ void GIFDraw(GIFDRAW *pDraw) {
         usTemp[iCount] = usPalette[c];
         iCount++;
       }
-      M5Cardputer.Display.pushImage(pDraw->iX + x, y, iCount, 1, usTemp);
+      canvas.pushImage(pDraw->iX + x, y, iCount, 1, usTemp);
       x += (iCount - 1);
     }
   } else {
@@ -801,7 +817,7 @@ void GIFDraw(GIFDRAW *pDraw) {
     for (x = 0; x < iWidth; x++) {
       usTemp[x] = usPalette[s[x]];
     }
-    M5Cardputer.Display.pushImage(pDraw->iX, y, iWidth, 1, usTemp);
+    canvas.pushImage(pDraw->iX, y, iWidth, 1, usTemp);
   }
 }
 
@@ -811,7 +827,7 @@ void drawGifViewer(const String& path) {
   gifPlaying = true;
   currentGifPath = path;
   
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_WHITE);
   
   gif.begin(GIF_PALETTE_RGB565_BE);
   
@@ -824,13 +840,15 @@ void drawGifViewer(const String& path) {
     gifYOffset = (135 - gifHeight) / 2;
     if (gifYOffset < 0) gifYOffset = 0;
     
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    canvas.fillScreen(TFT_WHITE);
   } else {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Failed to load GIF", 50, 60);
+    canvas.fillScreen(TFT_WHITE);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Failed to load GIF", 50, 60);
     gifPlaying = false;
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void updateGifPlayback() {
@@ -847,8 +865,8 @@ void updateGifPlayback() {
   }
   
   // Redraw footer to keep it visible
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
   drawNavHint("Press ` to stop", 70, 122);
 }
 
@@ -865,20 +883,22 @@ bool isGifPlaying() {
 }
 
 void drawPDFViewer(const String& path) {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawFileManagerHeader();
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("PDF Viewer", 55, 50);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("PDF Viewer", 55, 50);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("PDF rendering not yet", 45, 75);
-  M5Cardputer.Display.drawString("implemented", 75, 90);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("PDF rendering not yet", 45, 75);
+  canvas.drawString("implemented", 75, 90);
 
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+  canvas.setTextColor(TFT_DARKGREY);
   drawNavHint("Press ` to go back", 60, 122);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // Audio player functions (now use centralized audio_manager)
@@ -921,16 +941,16 @@ void updateAudioPlayback() {
 }
 
 void drawAudioPlayer(const String& path) {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawFileManagerHeader();
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_ORANGE);
-  M5Cardputer.Display.drawString("Audio Player", 50, 30);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_ORANGE);
+  canvas.drawString("Audio Player", 50, 30);
 
   // Show filename
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
   String filename = path;
   int lastSlash = filename.lastIndexOf('/');
   if (lastSlash >= 0) {
@@ -939,19 +959,19 @@ void drawAudioPlayer(const String& path) {
   if (filename.length() > 35) {
     filename = filename.substring(0, 35) + "...";
   }
-  M5Cardputer.Display.drawString(filename.c_str(), 10, 55);
+  canvas.drawString(filename.c_str(), 10, 55);
 
   // Play status
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
   if (isAudioPlaying()) {
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.drawString("Playing...", 85, 70);
+    canvas.setTextColor(TFT_GREEN);
+    canvas.drawString("Playing...", 85, 70);
 
     // Animated equalizer bars
     int barHeight[] = {3, 5, 7, 5, 3};
     for (int i = 0; i < 5; i++) {
       int animHeight = barHeight[i] + ((millis() / 100 + i) % 4);
-      M5Cardputer.Display.fillRect(80 + (i * 6), 85 - animHeight, 4, animHeight, TFT_GREEN);
+      canvas.fillRect(80 + (i * 6), 85 - animHeight, 4, animHeight, TFT_GREEN);
     }
 
     // Playback time
@@ -960,16 +980,18 @@ void drawAudioPlayer(const String& path) {
     int seconds = playTime % 60;
     char timeStr[10];
     sprintf(timeStr, "%02d:%02d", minutes, seconds);
-    M5Cardputer.Display.drawString(timeStr, 95, 95);
+    canvas.drawString(timeStr, 95, 95);
   } else {
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Stopped", 90, 75);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Stopped", 90, 75);
   }
 
   // Controls
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+  canvas.setTextColor(TFT_DARKGREY);
   drawNavHint(";/.=Prev/Next `=Back", 50, 110);
   drawNavHint("Enter=Play/Stop", 65, 122);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void showDeleteConfirmation() {
@@ -981,6 +1003,8 @@ void showDeleteConfirmation() {
   } else {
     drawFolderView();
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void cutFile() {
@@ -1028,9 +1052,9 @@ void pasteFile() {
 
   // Check if source and destination are the same
   if (clipboardPath == destPath) {
-    M5Cardputer.Display.fillRect(0, 110, 240, 15, TFT_WHITE);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("Already here!", 75, 112);
+    canvas.fillRect(0, 110, 240, 15, TFT_WHITE);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("Already here!", 75, 112);
     delay(1000);
     drawFolderView();
     return;
@@ -1067,9 +1091,9 @@ void pasteFile() {
     if (settings.soundEnabled) M5Cardputer.Speaker.tone(1500, 100);
     loadFolder(currentPath);
   } else {
-    M5Cardputer.Display.fillRect(0, 110, 240, 15, TFT_WHITE);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Paste failed!", 75, 112);
+    canvas.fillRect(0, 110, 240, 15, TFT_WHITE);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Paste failed!", 75, 112);
     delay(1000);
     drawFolderView();
   }
@@ -1100,9 +1124,9 @@ void deleteCurrentFile() {
     loadFolder(currentPath);
   } else {
     // Show error briefly
-    M5Cardputer.Display.fillRect(0, 110, 240, 15, TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("Delete failed!", 70, 112);
+    canvas.fillRect(0, 110, 240, 15, TFT_BLACK);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("Delete failed!", 70, 112);
     delay(1000);
     drawFolderView();
   }
@@ -1118,6 +1142,8 @@ void showBatchDeleteConfirmation() {
   } else {
     drawFolderView();
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void batchDeleteFiles() {
@@ -1162,10 +1188,10 @@ void batchDeleteFiles() {
 
   // Show brief summary if there were failures
   if (failedCount > 0) {
-    M5Cardputer.Display.fillRect(0, 110, 240, 15, TFT_WHITE);
-    M5Cardputer.Display.setTextColor(TFT_RED);
+    canvas.fillRect(0, 110, 240, 15, TFT_WHITE);
+    canvas.setTextColor(TFT_RED);
     String failMsg = String(failedCount) + " failed to delete";
-    M5Cardputer.Display.drawString(failMsg.c_str(), 55, 112);
+    canvas.drawString(failMsg.c_str(), 55, 112);
     delay(1500);
     drawFolderView();
   }
@@ -1196,9 +1222,9 @@ void renameFile() {
       if (settings.soundEnabled) M5Cardputer.Speaker.tone(1500, 100);
       loadFolder(currentPath);
     } else {
-      M5Cardputer.Display.fillRect(0, 110, 240, 15, TFT_WHITE);
-      M5Cardputer.Display.setTextColor(TFT_RED);
-      M5Cardputer.Display.drawString("Rename failed!", 70, 112);
+      canvas.fillRect(0, 110, 240, 15, TFT_WHITE);
+      canvas.setTextColor(TFT_RED);
+      canvas.drawString("Rename failed!", 70, 112);
       delay(1000);
       drawFolderView();
     }
@@ -1224,9 +1250,9 @@ void createFolder() {
       if (settings.soundEnabled) M5Cardputer.Speaker.tone(1500, 100);
       loadFolder(currentPath);
     } else {
-      M5Cardputer.Display.fillRect(0, 110, 240, 15, TFT_WHITE);
-      M5Cardputer.Display.setTextColor(TFT_RED);
-      M5Cardputer.Display.drawString("Create failed!", 70, 112);
+      canvas.fillRect(0, 110, 240, 15, TFT_WHITE);
+      canvas.setTextColor(TFT_RED);
+      canvas.drawString("Create failed!", 70, 112);
       delay(1000);
       drawFolderView();
     }

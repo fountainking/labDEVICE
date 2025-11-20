@@ -136,12 +136,26 @@ const char DEFAULT_PORTAL_HTML[] PROGMEM = R"rawliteral(
             background: #fff;
             border: 3px solid #000;
             border-radius: 40px;
-            padding: 20px;
+            padding: 30px;
             text-align: center;
         }
-        .video-frame video {
-            max-width: 100%;
-            height: auto;
+        .video-frame button.external-link {
+            display: inline-block;
+            background: #000;
+            color: #fff;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .video-frame button.external-link:hover {
+            background: #333;
+        }
+        .video-frame button.external-link:active {
+            background: #555;
         }
     </style>
 </head>
@@ -181,36 +195,21 @@ const char DEFAULT_PORTAL_HTML[] PROGMEM = R"rawliteral(
             If you know anything about<br>
             being an entreprenuer:
         </div>
-        <a href="mailto:info@laboratory.mx?subject=Expert Committee Inquiry" class="cta-button">CONNECT WITH US!</a>
-    </div>
-
-    <div class="video-section">
-        <div class="video-title">News Clip of Karen Bass and Me!</div>
-        <div class="video-frame">
-            <video width="100%" controls style="border-radius: 20px;">
-                <source src="/demo.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-        </div>
+        <a href="mailto:info@laboratory.mx?subject=Expert%20Committee%20Inquiry&body=Hi%20Laboratory%20Team%2C%0A%0AI'm%20interested%20in%20joining%20the%20Expert%20Committee.%20Here's%20a%20bit%20about%20my%20background%3A%0A%0A%5BYour%20experience%20here%5D%0A%0ABest%2C%0A%5BYour%20name%5D%0A%0A---%0AVisit%3A%20https%3A%2F%2Flaboratory.mx" class="cta-button">CONNECT WITH US!</a>
     </div>
 
     <script>
-        // Force external links to open in default browser (uses cellular data)
+
+        // Handle mailto links (existing functionality)
         document.addEventListener('DOMContentLoaded', function() {
-            var links = document.querySelectorAll('a[target="_blank"]');
-            links.forEach(function(link) {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    var url = this.getAttribute('href');
-                    // Try multiple methods to open in default browser
-                    window.open(url, '_blank');
-                    window.open(url, '_system');
-                    // Fallback: direct navigation
+            var mailtoLink = document.querySelector('a[href^="mailto"]');
+            if (mailtoLink) {
+                mailtoLink.addEventListener('click', function() {
                     setTimeout(function() {
-                        window.location.href = url;
-                    }, 100);
+                        window.location.href = '/connected';
+                    }, 2000);
                 });
-            });
+            }
         });
     </script>
 </body>
@@ -300,19 +299,19 @@ void enterPortalManager() {
 }
 
 void drawPortalList() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("portalDECK", 60, 25);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("portalDECK", 60, 25);
 
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
 
   if (numSavedPortals == 0) {
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("No saved portals", 70, 60);
-    M5Cardputer.Display.drawString("Press Enter to create", 55, 75);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("No saved portals", 70, 60);
+    canvas.drawString("Press Enter to create", 55, 75);
   } else {
     // Show up to 5 portals
     int startIdx = max(0, selectedPortalIndex - 2);
@@ -322,142 +321,148 @@ void drawPortalList() {
       int yPos = 45 + ((i - startIdx) * 15);
 
       if (i == selectedPortalIndex) {
-        M5Cardputer.Display.fillRoundRect(5, yPos - 2, 230, 14, 3, TFT_BLUE);
-        M5Cardputer.Display.setTextColor(TFT_WHITE);
+        canvas.fillRoundRect(5, yPos - 2, 230, 14, 3, TFT_BLUE);
+        canvas.setTextColor(TFT_WHITE);
       } else {
-        M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
+        canvas.setTextColor(TFT_LIGHTGREY);
       }
 
       String display = savedPortals[i].name;
       if (display.length() > 25) {
         display = display.substring(0, 25) + "...";
       }
-      M5Cardputer.Display.drawString(display.c_str(), 10, yPos);
+      canvas.drawString(display.c_str(), 10, yPos);
     }
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString(",/=Nav Enter=Launch Del=Del", 20, 110);
-  M5Cardputer.Display.drawString("n=New d=Demo u=Upload `=Back", 28, 120);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString(",/=Nav Enter=Launch Del=Del", 20, 110);
+  canvas.drawString("n=New d=Demo u=Upload `=Back", 28, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawPortalCreate() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("New Portal", 65, 25);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("New Portal", 65, 25);
 
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
 
   if (pmState == PM_CREATE_NAME) {
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("Portal Name:", 10, 50);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString("Portal Name:", 10, 50);
 
     // Input box
-    M5Cardputer.Display.drawRect(5, 65, 230, 20, TFT_WHITE);
+    canvas.drawRect(5, 65, 230, 20, TFT_WHITE);
 
     if (portalInputBuffer.length() == 0) {
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("Type portal name...", 10, 70);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString("Type portal name...", 10, 70);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
+      canvas.setTextColor(TFT_WHITE);
       String display = portalInputBuffer;
       if (display.length() > 30) {
         display = display.substring(display.length() - 30);
       }
-      M5Cardputer.Display.drawString(display.c_str(), 10, 70);
+      canvas.drawString(display.c_str(), 10, 70);
     }
 
     // Cursor
     if ((millis() / 500) % 2 == 0) {
       int cursorX = 10 + (min((int)portalInputBuffer.length(), 30) * 6);
-      M5Cardputer.Display.drawLine(cursorX, 70, cursorX, 80, TFT_WHITE);
+      canvas.drawLine(cursorX, 70, cursorX, 80, TFT_WHITE);
     }
 
   } else if (pmState == PM_CREATE_SSID) {
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.drawString("Name: " + currentPortal.name, 10, 45);
+    canvas.setTextColor(TFT_GREEN);
+    canvas.drawString("Name: " + currentPortal.name, 10, 45);
 
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("WiFi SSID:", 10, 60);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString("WiFi SSID:", 10, 60);
 
     // Input box
-    M5Cardputer.Display.drawRect(5, 75, 230, 20, TFT_WHITE);
+    canvas.drawRect(5, 75, 230, 20, TFT_WHITE);
 
     if (portalInputBuffer.length() == 0) {
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("Type WiFi name...", 10, 80);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString("Type WiFi name...", 10, 80);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
+      canvas.setTextColor(TFT_WHITE);
       String display = portalInputBuffer;
       if (display.length() > 30) {
         display = display.substring(display.length() - 30);
       }
-      M5Cardputer.Display.drawString(display.c_str(), 10, 80);
+      canvas.drawString(display.c_str(), 10, 80);
     }
 
     // Cursor
     if ((millis() / 500) % 2 == 0) {
       int cursorX = 10 + (min((int)portalInputBuffer.length(), 30) * 6);
-      M5Cardputer.Display.drawLine(cursorX, 80, cursorX, 90, TFT_WHITE);
+      canvas.drawLine(cursorX, 80, cursorX, 90, TFT_WHITE);
     }
 
   } else if (pmState == PM_CREATE_FILE) {
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.drawString("Name: " + currentPortal.name, 10, 40);
-    M5Cardputer.Display.drawString("SSID: " + currentPortal.ssid, 10, 52);
+    canvas.setTextColor(TFT_GREEN);
+    canvas.drawString("Name: " + currentPortal.name, 10, 40);
+    canvas.drawString("SSID: " + currentPortal.ssid, 10, 52);
 
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("HTML File Path:", 10, 67);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString("HTML File Path:", 10, 67);
 
     // Input box
-    M5Cardputer.Display.drawRect(5, 82, 230, 20, TFT_WHITE);
+    canvas.drawRect(5, 82, 230, 20, TFT_WHITE);
 
     if (portalInputBuffer.length() == 0) {
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("/portals/...", 10, 87);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString("/portals/...", 10, 87);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
+      canvas.setTextColor(TFT_WHITE);
       String display = portalInputBuffer;
       if (display.length() > 30) {
         display = display.substring(display.length() - 30);
       }
-      M5Cardputer.Display.drawString(display.c_str(), 10, 87);
+      canvas.drawString(display.c_str(), 10, 87);
     }
 
     // Cursor
     if ((millis() / 500) % 2 == 0) {
       int cursorX = 10 + (min((int)portalInputBuffer.length(), 30) * 6);
-      M5Cardputer.Display.drawLine(cursorX, 87, cursorX, 97, TFT_WHITE);
+      canvas.drawLine(cursorX, 87, cursorX, 97, TFT_WHITE);
     }
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Enter=Next Del=Backspace `=Cancel", 15, 120);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Enter=Next Del=Backspace `=Cancel", 15, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawPortalUploadHelp() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_YELLOW);
-  M5Cardputer.Display.drawString("Upload HTML", 55, 20);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_YELLOW);
+  canvas.drawString("Upload HTML", 55, 20);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString("1. Connect to saved WiFi", 10, 45);
-  M5Cardputer.Display.drawString("2. Go to Transfer app", 10, 60);
-  M5Cardputer.Display.drawString("3. Note IP address shown", 10, 75);
-  M5Cardputer.Display.drawString("4. Upload HTML files to", 10, 90);
-  M5Cardputer.Display.drawString("   /portals/ folder", 10, 100);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString("1. Connect to saved WiFi", 10, 45);
+  canvas.drawString("2. Go to Transfer app", 10, 60);
+  canvas.drawString("3. Note IP address shown", 10, 75);
+  canvas.drawString("4. Upload HTML files to", 10, 90);
+  canvas.drawString("   /portals/ folder", 10, 100);
 
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Press ` to go back", 60, 120);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Press ` to go back", 60, 120);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 String loadPortalHTML(const PortalProfile& portal) {

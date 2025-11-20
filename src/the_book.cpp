@@ -73,35 +73,35 @@ void exitTheBook() {
 }
 
 void drawBookSearch() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
 
   // "Offline Knowledge Base" title (black, moved down)
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Offline Knowledge Base", 50, 15);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("Offline Knowledge Base", 50, 15);
 
   // Large rounded search bar
-  M5Cardputer.Display.drawRoundRect(15, 30, 210, 30, 15, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(16, 31, 208, 28, 14, TFT_BLACK);  // Double outline
+  canvas.drawRoundRect(15, 30, 210, 30, 15, TFT_BLACK);
+  canvas.drawRoundRect(16, 31, 208, 28, 14, TFT_BLACK);  // Double outline
 
   // "Search:" label - black text
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Search:", 25, 40);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("Search:", 25, 40);
 
   // Show search input with blinking cursor - black text
   String displayInput = searchInput;
   if (millis() % 1000 < 500) {
     displayInput += "_";
   }
-  M5Cardputer.Display.drawString(displayInput, 75, 40);
+  canvas.drawString(displayInput, 75, 40);
 
   // Show live search results preview under search bar
   if (searchResults.size() > 0 && searchInput.length() >= 1) {
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_BLACK);
     String preview = String(searchResults.size()) + " results - UP/DOWN to select";
-    M5Cardputer.Display.drawString(preview, 20, 70);
+    canvas.drawString(preview, 20, 70);
 
     // Calculate scroll window to keep selected result visible
     const int maxVisible = 5;  // Max results visible at once
@@ -115,18 +115,20 @@ void drawBookSearch() {
     for (int i = startIdx; i < endIdx; i++) {
       // Yellow highlight for selected result
       if (i == selectedResultIndex) {
-        M5Cardputer.Display.fillRect(18, yPos - 2, 204, 11, TFT_YELLOW);
+        canvas.fillRect(18, yPos - 2, 204, 11, TFT_YELLOW);
       }
 
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      canvas.setTextColor(TFT_BLACK);
       String title = "> " + searchResults[i].title;
       if (title.length() > 35) {
         title = title.substring(0, 32) + "...";
       }
-      M5Cardputer.Display.drawString(title, 20, yPos);
+      canvas.drawString(title, 20, yPos);
       yPos += 11;
     }
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawTableOfContents() {
@@ -140,46 +142,48 @@ void drawTableOfContents() {
   int popupH = 100;
 
   // Popup background (white with black border)
-  M5Cardputer.Display.fillRoundRect(popupX, popupY, popupW, popupH, 8, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(popupX, popupY, popupW, popupH, 8, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(popupX + 1, popupY + 1, popupW - 2, popupH - 2, 7, TFT_BLACK);
+  canvas.fillRoundRect(popupX, popupY, popupW, popupH, 8, TFT_WHITE);
+  canvas.drawRoundRect(popupX, popupY, popupW, popupH, 8, TFT_BLACK);
+  canvas.drawRoundRect(popupX + 1, popupY + 1, popupW - 2, popupH - 2, 7, TFT_BLACK);
 
   // Title
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_RED);
-  M5Cardputer.Display.drawString("Table of Contents", popupX + 30, popupY + 8);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_RED);
+  canvas.drawString("Table of Contents", popupX + 30, popupY + 8);
 
   // Draw categories list
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
   int yPos = popupY + 22;
   for (int i = 0; i < totalCategories; i++) {
-    M5Cardputer.Display.setTextColor(categories[i].color);
+    canvas.setTextColor(categories[i].color);
     String categoryText = "> " + categories[i].name;
-    M5Cardputer.Display.drawString(categoryText, popupX + 10, yPos);
+    canvas.drawString(categoryText, popupX + 10, yPos);
     yPos += 11;
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawBookResults() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.setTextSize(1);
+  canvas.fillScreen(TFT_WHITE);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.setTextSize(1);
 
   // Title
-  M5Cardputer.Display.setTextColor(TFT_RED);
-  M5Cardputer.Display.drawString("Search Results", 10, 5);
+  canvas.setTextColor(TFT_RED);
+  canvas.drawString("Search Results", 10, 5);
 
   // Results count
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
+  canvas.setTextColor(TFT_BLACK);
   String countStr = "Found: " + String(searchResults.size()) + " results";
-  M5Cardputer.Display.drawString(countStr, 10, 15);
+  canvas.drawString(countStr, 10, 15);
 
   if (searchResults.size() == 0) {
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("No results found", 10, 50);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("Try a different search term", 10, 65);
-    M5Cardputer.Display.drawString("` Back", 5, 120);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("No results found", 10, 50);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("Try a different search term", 10, 65);
+    canvas.drawString("` Back", 5, 120);
     return;
   }
 
@@ -191,7 +195,7 @@ void drawBookResults() {
   int y = 30;
   for (int i = startIdx; i < endIdx; i++) {
     if (i == selectedResultIndex) {
-      M5Cardputer.Display.fillRect(5, y - 2, 230, 13, TFT_YELLOW);
+      canvas.fillRect(5, y - 2, 230, 13, TFT_YELLOW);
     }
 
     // Truncate title if too long
@@ -200,50 +204,52 @@ void drawBookResults() {
       title = title.substring(0, 32) + "...";
     }
 
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("> " + title, 8, y);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("> " + title, 8, y);
 
     // Category tag
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("[" + searchResults[i].category + "]", 200, y);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("[" + searchResults[i].category + "]", 200, y);
 
     y += 13;
   }
 
   // Instructions
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("UP/DOWN: Navigate | ENTER: Open", 5, 120);
-  M5Cardputer.Display.drawString("` Back", 5, 130);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("UP/DOWN: Navigate | ENTER: Open", 5, 120);
+  canvas.drawString("` Back", 5, 130);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawBookArticle() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.setTextSize(1);
+  canvas.fillScreen(TFT_WHITE);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.setTextSize(1);
 
   // Title bar
-  M5Cardputer.Display.fillRect(0, 0, 240, 18, TFT_YELLOW);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
+  canvas.fillRect(0, 0, 240, 18, TFT_YELLOW);
+  canvas.setTextColor(TFT_BLACK);
   String truncTitle = currentArticleTitle;
   if (truncTitle.length() > 35) {
     truncTitle = truncTitle.substring(0, 32) + "...";
   }
-  M5Cardputer.Display.drawString(truncTitle, 5, 5);
+  canvas.drawString(truncTitle, 5, 5);
 
   // Article content - SIZE 2 for readability!
   int y = 22;
   int startLine = articleScrollOffset;
   int endLine = min((int)articleLines.size(), startLine + LINES_PER_PAGE);
 
-  M5Cardputer.Display.setTextSize(2);  // BIGGER FONT
+  canvas.setTextSize(2);  // BIGGER FONT
   for (int i = startLine; i < endLine; i++) {
     String line = articleLines[i];
 
     // Highlight markdown links/bold in red
     if (line.indexOf("**") >= 0 || line.indexOf("http") >= 0) {
-      M5Cardputer.Display.setTextColor(TFT_RED);
+      canvas.setTextColor(TFT_RED);
     } else {
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      canvas.setTextColor(TFT_BLACK);
     }
 
     // Word wrap for long lines (size 2 = ~19 chars fit)
@@ -251,21 +257,23 @@ void drawBookArticle() {
       line = line.substring(0, 19);
     }
 
-    M5Cardputer.Display.drawString(line, 5, y);
+    canvas.drawString(line, 5, y);
     y += 14;  // Better spacing for size 2
   }
 
   // Scroll indicator (size 1 for compactness)
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
   if (articleLines.size() > LINES_PER_PAGE) {
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
+    canvas.setTextColor(TFT_BLACK);
     String scrollInfo = String(startLine + 1) + "-" + String(endLine) + "/" + String(articleLines.size());
-    M5Cardputer.Display.drawString(scrollInfo, 190, 5);
+    canvas.drawString(scrollInfo, 190, 5);
   }
 
   // Instructions
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("UP/DOWN: Scroll | ` Back", 5, 118);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("UP/DOWN: Scroll | ` Back", 5, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void handleBookNavigation(char key) {

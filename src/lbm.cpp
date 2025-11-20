@@ -1,5 +1,6 @@
 #include "lbm.h"
 #include <M5Cardputer.h>
+#include "ui.h"
 #include <AudioOutputI2S.h>
 #include <AudioGeneratorMP3.h>
 #include <AudioFileSourceSD.h>
@@ -114,14 +115,14 @@ void enterLBM() {
   cursorX = 0;
   cursorY = 0;
 
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLBM();
 }
 
 void exitLBM() {
   lbmActive = false;
   isPlaying = false;
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
 }
 
 void clearPattern() {
@@ -141,9 +142,9 @@ void clearPattern() {
 
 void drawTrackHeader() {
   // Clear header area (up to steps)
-  M5Cardputer.Display.fillRect(0, 0, 240, 55, TFT_WHITE);
+  canvas.fillRect(0, 0, 240, 55, TFT_WHITE);
 
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
   int startX = 30;  // Left-align with steps
 
   // ROW 1: Track, BPM, TAP (Y=18) - 2px margin from row 2
@@ -153,26 +154,26 @@ void drawTrackHeader() {
   // Track (with box, enter to engage)
   String trackLabel = "track: " + String(currentTrack + 1);
   int trackWidth = trackLabel.length() * 6 + 8;
-  M5Cardputer.Display.fillRoundRect(startX, boxY1, trackWidth, 18, 7, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(startX, boxY1, trackWidth, 18, 7, TFT_BLACK);
+  canvas.fillRoundRect(startX, boxY1, trackWidth, 18, 7, TFT_WHITE);
+  canvas.drawRoundRect(startX, boxY1, trackWidth, 18, 7, TFT_BLACK);
   if (selectedItem == NAV_TRACK) {
-    M5Cardputer.Display.drawRoundRect(startX-1, boxY1-1, trackWidth+2, 20, 7, trackColors[currentTrack]);
-    M5Cardputer.Display.drawRoundRect(startX-2, boxY1-2, trackWidth+4, 22, 7, trackColors[currentTrack]);
+    canvas.drawRoundRect(startX-1, boxY1-1, trackWidth+2, 20, 7, trackColors[currentTrack]);
+    canvas.drawRoundRect(startX-2, boxY1-2, trackWidth+4, 22, 7, trackColors[currentTrack]);
   }
-  M5Cardputer.Display.setTextColor(editMode && selectedItem == NAV_TRACK ? trackColors[currentTrack] : TFT_BLACK);
-  M5Cardputer.Display.drawString(trackLabel.c_str(), startX+4, row1Y);
+  canvas.setTextColor(editMode && selectedItem == NAV_TRACK ? trackColors[currentTrack] : TFT_BLACK);
+  canvas.drawString(trackLabel.c_str(), startX+4, row1Y);
 
   // BPM (show input buffer when editing)
   int bpmX = startX + trackWidth + 8;
   String bpmLabel;
   if (bpmEditMode) {
     bpmLabel = bpmInput + "_";  // Show typing cursor
-    M5Cardputer.Display.setTextColor(TFT_RED);  // Red when editing
+    canvas.setTextColor(TFT_RED);  // Red when editing
   } else {
     bpmLabel = String(currentPattern.bpm) + " BPM";
-    M5Cardputer.Display.setTextColor(selectedItem == NAV_BPM ? trackColors[currentTrack] : TFT_BLACK);
+    canvas.setTextColor(selectedItem == NAV_BPM ? trackColors[currentTrack] : TFT_BLACK);
   }
-  M5Cardputer.Display.drawString(bpmLabel.c_str(), bpmX, row1Y);
+  canvas.drawString(bpmLabel.c_str(), bpmX, row1Y);
 
   // ROW 2: Sound, Nudge, Speed (Y=38) - 2px margin to steps
   int row2Y = 38;
@@ -181,44 +182,46 @@ void drawTrackHeader() {
   // Sound pill - show current sample variant
   String sampleLabel = "< " + String(getCurrentSampleName(currentTrack)) + " >";
   int labelWidth = sampleLabel.length() * 6 + 10;
-  M5Cardputer.Display.fillRoundRect(startX, boxY, labelWidth, 18, 9, trackColors[currentTrack]);
+  canvas.fillRoundRect(startX, boxY, labelWidth, 18, 9, trackColors[currentTrack]);
   if (selectedItem == NAV_SOUND) {
-    M5Cardputer.Display.drawRoundRect(startX-1, boxY-1, labelWidth+2, 20, 9, TFT_BLACK);
-    M5Cardputer.Display.drawRoundRect(startX-2, boxY-2, labelWidth+4, 22, 9, TFT_BLACK);
+    canvas.drawRoundRect(startX-1, boxY-1, labelWidth+2, 20, 9, TFT_BLACK);
+    canvas.drawRoundRect(startX-2, boxY-2, labelWidth+4, 22, 9, TFT_BLACK);
   }
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString(sampleLabel.c_str(), startX+5, row2Y);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString(sampleLabel.c_str(), startX+5, row2Y);
 
   // Nudge
   int nudgeX = startX + labelWidth + 8;
   String nudgeLabel = "nudge:" + String(currentPattern.nudge[currentTrack]);
   int nudgeWidth = nudgeLabel.length() * 6 + 8;
-  M5Cardputer.Display.fillRoundRect(nudgeX, boxY, nudgeWidth, 18, 7, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(nudgeX, boxY, nudgeWidth, 18, 7, TFT_BLACK);
+  canvas.fillRoundRect(nudgeX, boxY, nudgeWidth, 18, 7, TFT_WHITE);
+  canvas.drawRoundRect(nudgeX, boxY, nudgeWidth, 18, 7, TFT_BLACK);
   if (selectedItem == NAV_NUDGE) {
-    M5Cardputer.Display.drawRoundRect(nudgeX-1, boxY-1, nudgeWidth+2, 20, 7, trackColors[currentTrack]);
-    M5Cardputer.Display.drawRoundRect(nudgeX-2, boxY-2, nudgeWidth+4, 22, 7, trackColors[currentTrack]);
+    canvas.drawRoundRect(nudgeX-1, boxY-1, nudgeWidth+2, 20, 7, trackColors[currentTrack]);
+    canvas.drawRoundRect(nudgeX-2, boxY-2, nudgeWidth+4, 22, 7, trackColors[currentTrack]);
   }
-  M5Cardputer.Display.setTextColor(editMode && selectedItem == NAV_NUDGE ? trackColors[currentTrack] : TFT_BLACK);
-  M5Cardputer.Display.drawString(nudgeLabel.c_str(), nudgeX+4, row2Y);
+  canvas.setTextColor(editMode && selectedItem == NAV_NUDGE ? trackColors[currentTrack] : TFT_BLACK);
+  canvas.drawString(nudgeLabel.c_str(), nudgeX+4, row2Y);
 
   // Speed
   int speedX = nudgeX + nudgeWidth + 8;
   String speedLabel = String(currentPattern.speed[currentTrack], 1) + "x";
   int speedWidth = speedLabel.length() * 6 + 8;
-  M5Cardputer.Display.fillRoundRect(speedX, boxY, speedWidth, 18, 7, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(speedX, boxY, speedWidth, 18, 7, TFT_BLACK);
+  canvas.fillRoundRect(speedX, boxY, speedWidth, 18, 7, TFT_WHITE);
+  canvas.drawRoundRect(speedX, boxY, speedWidth, 18, 7, TFT_BLACK);
   if (selectedItem == NAV_SPEED) {
-    M5Cardputer.Display.drawRoundRect(speedX-1, boxY-1, speedWidth+2, 20, 7, trackColors[currentTrack]);
-    M5Cardputer.Display.drawRoundRect(speedX-2, boxY-2, speedWidth+4, 22, 7, trackColors[currentTrack]);
+    canvas.drawRoundRect(speedX-1, boxY-1, speedWidth+2, 20, 7, trackColors[currentTrack]);
+    canvas.drawRoundRect(speedX-2, boxY-2, speedWidth+4, 22, 7, trackColors[currentTrack]);
   }
-  M5Cardputer.Display.setTextColor(editMode && selectedItem == NAV_SPEED ? trackColors[currentTrack] : TFT_BLACK);
-  M5Cardputer.Display.drawString(speedLabel.c_str(), speedX+4, row2Y);
+  canvas.setTextColor(editMode && selectedItem == NAV_SPEED ? trackColors[currentTrack] : TFT_BLACK);
+  canvas.drawString(speedLabel.c_str(), speedX+4, row2Y);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawStepGrid() {
   // Clear step area (start after sound row boxes, end before MODE button)
-  M5Cardputer.Display.fillRect(0, 54, 240, 33, TFT_WHITE);
+  canvas.fillRect(0, 54, 240, 33, TFT_WHITE);
 
   // Draw 8x2 grid of steps (16 total)
   int startX = 30;  // Left-aligned with sound
@@ -242,36 +245,38 @@ void drawStepGrid() {
       }
 
       // Draw step (rounder corners)
-      M5Cardputer.Display.fillRoundRect(x, y, stepWidth, stepHeight, 7, fillColor);
+      canvas.fillRoundRect(x, y, stepWidth, stepHeight, 7, fillColor);
 
       // Draw outline (black)
-      M5Cardputer.Display.drawRoundRect(x, y, stepWidth, stepHeight, 7, TFT_BLACK);
+      canvas.drawRoundRect(x, y, stepWidth, stepHeight, 7, TFT_BLACK);
 
       // Draw selection indicator with track color outline
       if (isSelected) {
-        M5Cardputer.Display.drawRoundRect(x-1, y-1, stepWidth+2, stepHeight+2, 7, trackColors[currentTrack]);
-        M5Cardputer.Display.drawRoundRect(x-2, y-2, stepWidth+4, stepHeight+4, 7, trackColors[currentTrack]);
+        canvas.drawRoundRect(x-1, y-1, stepWidth+2, stepHeight+2, 7, trackColors[currentTrack]);
+        canvas.drawRoundRect(x-2, y-2, stepWidth+4, stepHeight+4, 7, trackColors[currentTrack]);
       }
 
       // Draw step number (1-16) in white text
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
+      canvas.setTextSize(1);
+      canvas.setTextColor(TFT_BLACK);
       String stepNum = String(stepIndex + 1);
       int textX = x + (stepWidth / 2) - (stepNum.length() * 3);
       int textY = y + (stepHeight / 2) - 4;
-      M5Cardputer.Display.drawString(stepNum.c_str(), textX, textY);
+      canvas.drawString(stepNum.c_str(), textX, textY);
 
       // Draw playback indicator if playing
       if (isPlaying && stepIndex == playbackStep) {
-        M5Cardputer.Display.drawRoundRect(x+1, y+1, stepWidth-2, stepHeight-2, 5, TFT_RED);
+        canvas.drawRoundRect(x+1, y+1, stepWidth-2, stepHeight-2, 5, TFT_RED);
       }
     }
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawSoundBanks() {
   // Mode button left-aligned with steps (Y=88) - 2px margin from steps
-  M5Cardputer.Display.fillRect(0, 88, 240, 22, TFT_WHITE);
+  canvas.fillRect(0, 88, 240, 22, TFT_WHITE);
 
   int btnY = 88;
   int btnW = 45;
@@ -281,29 +286,33 @@ void drawSoundBanks() {
   // Determine mode label
   const char* modeLabel = (currentPattern.mode == MODE_808) ? "808" : "USER";
 
-  M5Cardputer.Display.fillRoundRect(startX, btnY, btnW, btnH, 8, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(startX, btnY, btnW, btnH, 8, TFT_BLACK);
+  canvas.fillRoundRect(startX, btnY, btnW, btnH, 8, TFT_WHITE);
+  canvas.drawRoundRect(startX, btnY, btnW, btnH, 8, TFT_BLACK);
 
   // Highlight if selected
   if (selectedItem == NAV_MODE) {
-    M5Cardputer.Display.drawRoundRect(startX-1, btnY-1, btnW+2, btnH+2, 8, trackColors[currentTrack]);
-    M5Cardputer.Display.drawRoundRect(startX-2, btnY-2, btnW+4, btnH+4, 8, trackColors[currentTrack]);
+    canvas.drawRoundRect(startX-1, btnY-1, btnW+2, btnH+2, 8, trackColors[currentTrack]);
+    canvas.drawRoundRect(startX-2, btnY-2, btnW+4, btnH+4, 8, trackColors[currentTrack]);
   }
 
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.drawString(modeLabel, startX+10, btnY + 5);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.setTextSize(1);
+  canvas.drawString(modeLabel, startX+10, btnY + 5);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawControls() {
   // Help text at bottom, centered (Y=115)
-  M5Cardputer.Display.fillRect(0, 115, 240, 15, TFT_WHITE);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.setTextSize(1);
+  canvas.fillRect(0, 115, 240, 15, TFT_WHITE);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.setTextSize(1);
   String helpText = "SPACE=play s=save l=load c=chain";
   int textWidth = helpText.length() * 6;
   int centerX = (240 - textWidth) / 2;
-  M5Cardputer.Display.drawString(helpText.c_str(), centerX, 117);
+  canvas.drawString(helpText.c_str(), centerX, 117);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 
@@ -314,6 +323,8 @@ void drawLBM() {
     drawSoundBanks();
     drawControls();
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // ============================================================================
@@ -888,16 +899,16 @@ void handleLBMNavigation(char key) {
       patternChain.currentIndex = 0;
 
       // Visual feedback
-      M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_MAGENTA);
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.drawString("CHAIN ON: Pattern1->Pattern2", 10, 5);
+      canvas.fillRect(0, 0, 240, 20, TFT_MAGENTA);
+      canvas.setTextColor(TFT_BLACK);
+      canvas.setTextSize(1);
+      canvas.drawString("CHAIN ON: Pattern1->Pattern2", 10, 5);
     } else {
       // Visual feedback
-      M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_DARKGREY);
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.drawString("CHAIN OFF", 10, 5);
+      canvas.fillRect(0, 0, 240, 20, TFT_DARKGREY);
+      canvas.setTextColor(TFT_BLACK);
+      canvas.setTextSize(1);
+      canvas.drawString("CHAIN OFF", 10, 5);
     }
 
     delay(1000);
@@ -908,10 +919,10 @@ void handleLBMNavigation(char key) {
     if (currentPattern.volume < 10) {
       currentPattern.volume++;
       // Show volume indicator
-      M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_BLACK);
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.drawString("VOL: " + String(currentPattern.volume), 10, 5);
+      canvas.fillRect(0, 0, 240, 20, TFT_BLACK);
+      canvas.setTextColor(TFT_BLACK);
+      canvas.setTextSize(1);
+      canvas.drawString("VOL: " + String(currentPattern.volume), 10, 5);
     }
   }
   else if (key == '-' || key == '_') {
@@ -919,10 +930,10 @@ void handleLBMNavigation(char key) {
     if (currentPattern.volume > 0) {
       currentPattern.volume--;
       // Show volume indicator
-      M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_BLACK);
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.drawString("VOL: " + String(currentPattern.volume), 10, 5);
+      canvas.fillRect(0, 0, 240, 20, TFT_BLACK);
+      canvas.setTextColor(TFT_BLACK);
+      canvas.setTextSize(1);
+      canvas.drawString("VOL: " + String(currentPattern.volume), 10, 5);
     }
   }
   else if (key >= '1' && key <= '8') {
@@ -958,10 +969,10 @@ void savePattern(const char* filename) {
   Serial.println("Pattern saved: " + fullPath);
 
   // Show confirmation on screen
-  M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_GREEN);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.drawString("SAVED: " + String(filename), 10, 5);
+  canvas.fillRect(0, 0, 240, 20, TFT_GREEN);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.setTextSize(1);
+  canvas.drawString("SAVED: " + String(filename), 10, 5);
   delay(1000);
   drawLBM();
 }
@@ -974,10 +985,10 @@ void loadPattern(const char* filename) {
     Serial.println("Pattern not found: " + fullPath);
 
     // Show error
-    M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_RED);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.drawString("NOT FOUND: " + String(filename), 10, 5);
+    canvas.fillRect(0, 0, 240, 20, TFT_RED);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.setTextSize(1);
+    canvas.drawString("NOT FOUND: " + String(filename), 10, 5);
     delay(1000);
     drawLBM();
     return;
@@ -996,10 +1007,10 @@ void loadPattern(const char* filename) {
   Serial.println("Pattern loaded: " + fullPath);
 
   // Show confirmation
-  M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_CYAN);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.drawString("LOADED: " + String(filename), 10, 5);
+  canvas.fillRect(0, 0, 240, 20, TFT_CYAN);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.setTextSize(1);
+  canvas.drawString("LOADED: " + String(filename), 10, 5);
   delay(1000);
   drawLBM();
 }

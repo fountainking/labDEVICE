@@ -56,12 +56,12 @@ void StarGIFDraw(GIFDRAW *pDraw) {
         continue;
       }
       c = s[px];
-      M5Cardputer.Display.drawPixel(x + (px / 2), y, usPalette[c]);
+      canvas.drawPixel(x + (px / 2), y, usPalette[c]);
     }
   } else {
     // No transparency - draw every other pixel
     for (int px = 0; px < iWidth; px += 2) {
-      M5Cardputer.Display.drawPixel(x + (px / 2), y, usPalette[s[px]]);
+      canvas.drawPixel(x + (px / 2), y, usPalette[s[px]]);
     }
   }
 }
@@ -85,6 +85,8 @@ void drawStillStar() {
     starGif.playFrame(false, NULL);
     starGif.close();
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void startStarGif(bool isLeft) {
@@ -138,7 +140,7 @@ void updateStarGifPlayback() {
     uint16_t bgColor = uiInverted ? TFT_BLACK : TFT_WHITE;
 
     // Clear star area before drawing next frame to prevent layering
-    M5Cardputer.Display.fillRect(starGifXOffset, starGifYOffset, 18, 18, bgColor);
+    canvas.fillRect(starGifXOffset, starGifYOffset, 18, 18, bgColor);
 
     if (!starGif.playFrame(true, NULL)) {
       // Animation finished

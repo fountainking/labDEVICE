@@ -40,13 +40,13 @@ void enterSlotMachine() {
   // Grant daily bonus if eligible
   if (grantDailyBonus()) {
     Serial.println("[SLOT] Granting daily bonus...");
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_YELLOW);
-    M5Cardputer.Display.drawString("DAILY BONUS!", 45, 50);
-    M5Cardputer.Display.setTextSize(3);
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.drawString("+" + String(DAILY_BONUS), 80, 75);
+    canvas.fillScreen(TFT_BLACK);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_YELLOW);
+    canvas.drawString("DAILY BONUS!", 45, 50);
+    canvas.setTextSize(3);
+    canvas.setTextColor(TFT_GREEN);
+    canvas.drawString("+" + String(DAILY_BONUS), 80, 75);
     if (settings.soundEnabled) {
       M5Cardputer.Speaker.tone(1000, 100);
       delay(150);
@@ -68,16 +68,16 @@ void enterSlotMachine() {
   // Check if emojis loaded
   if (slotState.numLoadedEmojis == 0) {
     Serial.println("[SLOT] ERROR: No emojis found!");
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("ERROR!", 80, 40);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("No emojis found in", 50, 70);
-    M5Cardputer.Display.drawString("/labchat/emojis/", 50, 85);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Press ` to exit", 65, 110);
+    canvas.fillScreen(TFT_BLACK);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("ERROR!", 80, 40);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString("No emojis found in", 50, 70);
+    canvas.drawString("/labchat/emojis/", 50, 85);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("Press ` to exit", 65, 110);
     slotMachineActive = false;
     return;
   }
@@ -100,7 +100,7 @@ void enterSlotMachine() {
 
   Serial.println("[SLOT] Drawing initial screen...");
   // Draw initial screen
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawSlotMachine();
   Serial.println("[SLOT] Enter complete!");
 }
@@ -433,7 +433,7 @@ void checkWin() {
 void drawSlotMachine() {
   Serial.println("[SLOT] Drawing...");
 
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
 
   // Status bar
   Serial.println("[SLOT] Status bar...");
@@ -458,6 +458,8 @@ void drawSlotMachine() {
   }
 
   Serial.println("[SLOT] Draw complete!");
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawReels() {
@@ -472,8 +474,8 @@ void drawReels() {
     int reelX = startX + r * (reelWidth + reelSpacing);
 
     // Draw reel background
-    M5Cardputer.Display.fillRect(reelX, startY, reelWidth, 70, TFT_DARKGREY);
-    M5Cardputer.Display.drawRect(reelX, startY, reelWidth, 70, TFT_WHITE);
+    canvas.fillRect(reelX, startY, reelWidth, 70, TFT_DARKGREY);
+    canvas.drawRect(reelX, startY, reelWidth, 70, TFT_WHITE);
 
     // Draw emoji on this reel
     int currentEmojiIndex = (int)slotState.reelPositions[r];
@@ -489,7 +491,7 @@ void drawReels() {
         for (int px = 0; px < EMOJI_SIZE; px++) {
           uint16_t color = slotState.loadedEmojis[currentEmojiIndex][py][px];
           // Draw 2x2 block for each original pixel
-          M5Cardputer.Display.fillRect(emojiX + (px * 2), emojiY + (py * 2), 2, 2, color);
+          canvas.fillRect(emojiX + (px * 2), emojiY + (py * 2), 2, 2, color);
         }
       }
     }
@@ -498,7 +500,7 @@ void drawReels() {
     if (slotState.reelStates[r] == REEL_SPINNING) {
       for (int i = 0; i < 5; i++) {
         int lineY = startY + random(70);
-        M5Cardputer.Display.drawFastHLine(reelX, lineY, reelWidth, TFT_LIGHTGREY);
+        canvas.drawFastHLine(reelX, lineY, reelWidth, TFT_LIGHTGREY);
       }
     }
 
@@ -520,11 +522,13 @@ void drawReels() {
       }
 
       if (isWinningReel) {
-        M5Cardputer.Display.drawRect(reelX - 1, startY - 1, reelWidth + 2, 72, TFT_YELLOW);
-        M5Cardputer.Display.drawRect(reelX - 2, startY - 2, reelWidth + 4, 74, TFT_YELLOW);
+        canvas.drawRect(reelX - 1, startY - 1, reelWidth + 2, 72, TFT_YELLOW);
+        canvas.drawRect(reelX - 2, startY - 2, reelWidth + 4, 74, TFT_YELLOW);
       }
     }
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawUI() {
@@ -532,42 +536,48 @@ void drawUI() {
 
   // Result display (center bottom)
   if (slotState.showingResults && slotState.winAmount > 0) {
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
+    canvas.setTextSize(2);
+    canvas.setTextColor(TFT_GREEN);
     String winText = "WIN +" + String(slotState.winAmount);
     int textWidth = winText.length() * 12;
-    M5Cardputer.Display.drawString(winText.c_str(), (240 - textWidth) / 2, 115);
+    canvas.drawString(winText.c_str(), (240 - textWidth) / 2, 115);
   } else if (slotState.showingResults) {
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("No match", 90, 120);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("No match", 90, 120);
   }
 
   // Controls hint
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Enter=Spin  `=Exit", 70, 125);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Enter=Spin  `=Exit", 70, 125);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawCoinDisplay() {
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_YELLOW);
-  M5Cardputer.Display.drawString("Coins:", 180, 10);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString(String(slotState.coins).c_str(), 185, 20);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_YELLOW);
+  canvas.drawString("Coins:", 180, 10);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString(String(slotState.coins).c_str(), 185, 20);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawBetControls() {
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_CYAN);
-  M5Cardputer.Display.drawString("Bet:", 10, 100);
-  M5Cardputer.Display.setTextColor(TFT_WHITE);
-  M5Cardputer.Display.drawString(String(slotState.betAmount).c_str(), 40, 100);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_CYAN);
+  canvas.drawString("Bet:", 10, 100);
+  canvas.setTextColor(TFT_WHITE);
+  canvas.drawString(String(slotState.betAmount).c_str(), 40, 100);
 
   // Bet amount bar
   int barWidth = slotState.betAmount * 10;
-  M5Cardputer.Display.fillRect(10, 110, barWidth, 5, TFT_GREEN);
-  M5Cardputer.Display.drawRect(10, 110, 100, 5, TFT_DARKGREY);
+  canvas.fillRect(10, 110, barWidth, 5, TFT_GREEN);
+  canvas.drawRect(10, 110, 100, 5, TFT_DARKGREY);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // ============================================================================

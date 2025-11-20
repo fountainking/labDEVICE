@@ -195,6 +195,8 @@ bool wasEmojiSentToPeer(const String& shortcut, const String& peerDeviceID) {
     }
   }
   return false; // Not sent yet
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // Helper to mark emoji as sent to a peer
@@ -393,7 +395,7 @@ int drawTextWithEmojis(const char* text, int startX, int y, uint16_t textColor) 
                 for (int px = 0; px < 16; px++) {
                   uint16_t color = friendEmojis[e].pixels[py][px];
                   if (color != TRANSPARENCY_COLOR) {
-                    M5Cardputer.Display.drawPixel(xPos + px, y - 8 + py, color);
+                    canvas.drawPixel(xPos + px, y - 8 + py, color);
                   }
                 }
               }
@@ -415,9 +417,9 @@ int drawTextWithEmojis(const char* text, int startX, int y, uint16_t textColor) 
 
     // Regular ASCII character
     if (!handled) {
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.setTextColor(textColor);
-      M5Cardputer.Display.drawChar(text[i], xPos, y);
+      canvas.setTextSize(1);
+      canvas.setTextColor(textColor);
+      canvas.drawChar(text[i], xPos, y);
       xPos += 6;
       i++;
     }
@@ -442,41 +444,43 @@ void drawLabChatHeader(const char* subtitle) {
   int totalWidth = 20 + textWidth + 30; // Emoji + text + padding
 
   // Header rectangle (left aligned at x=5)
-  M5Cardputer.Display.fillRoundRect(5, 8, totalWidth, 20, 10, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(5, 8, totalWidth, 20, 10, TFT_BLACK);
+  canvas.fillRoundRect(5, 8, totalWidth, 20, 10, TFT_WHITE);
+  canvas.drawRoundRect(5, 8, totalWidth, 20, 10, TFT_BLACK);
 
   // Star emoji ⭐
   for (int y = 0; y < 16; y++) {
     for (int x = 0; x < 16; x++) {
       uint16_t color = STAR_ICON[y][x];
       if (color != 0x07E0) { // Skip transparent pixels
-        M5Cardputer.Display.drawPixel(11 + x, 10 + y, color);
+        canvas.drawPixel(11 + x, 10 + y, color);
       }
     }
   }
 
   // "LabCHAT" text
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("LabCHAT", 29, 14);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("LabCHAT", 29, 14);
 
   // Subtitle (no gradient on header)
   if (subtitle) {
-    M5Cardputer.Display.drawString(" - ", 29 + 42, 14);
-    M5Cardputer.Display.drawString(subtitle, 29 + 42 + 18, 14);
+    canvas.drawString(" - ", 29 + 42, 14);
+    canvas.drawString(subtitle, 29 + 42 + 18, 14);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawTextInputBox(const char* prompt, String& input, bool isPassword) {
   // Input box (Files aesthetic)
-  M5Cardputer.Display.fillRoundRect(20, 50, 200, 60, 12, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(20, 50, 200, 60, 12, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(21, 51, 198, 58, 11, TFT_BLACK);
+  canvas.fillRoundRect(20, 50, 200, 60, 12, TFT_WHITE);
+  canvas.drawRoundRect(20, 50, 200, 60, 12, TFT_BLACK);
+  canvas.drawRoundRect(21, 51, 198, 58, 11, TFT_BLACK);
 
   // Prompt
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString(prompt, 30, 60);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString(prompt, 30, 60);
 
   // Input field
   String displayText = input;
@@ -491,16 +495,18 @@ void drawTextInputBox(const char* prompt, String& input, bool isPassword) {
     displayText = displayText.substring(displayText.length() - 28);
   }
 
-  M5Cardputer.Display.drawString(displayText.c_str(), 30, 75);
+  canvas.drawString(displayText.c_str(), 30, 75);
 
   // Blinking cursor
   if (cursorVisible) {
     int cursorX = 30 + (displayText.length() * 6);
-    M5Cardputer.Display.drawLine(cursorX, 75, cursorX, 83, TFT_BLACK);
+    canvas.drawLine(cursorX, 75, cursorX, 83, TFT_BLACK);
   }
 
   // Nav hints
   drawNavHint("Enter=OK  Del=Erase  `=Back", 40, 95);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 // ============================================================================
@@ -508,52 +514,58 @@ void drawTextInputBox(const char* prompt, String& input, bool isPassword) {
 // ============================================================================
 
 void drawPinSetup() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Setup");
 
   drawTextInputBox("Create 4-char PIN:", pinInput, true);
 
   // Info
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Use 0-9, A-Z, !@#$%", 45, 118);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Use 0-9, A-Z, !@#$%", 45, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawPinEntry() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Unlock");
 
   drawTextInputBox("Enter PIN:", pinInput, true);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawNetworkMenu() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Network");
 
   // Menu box
-  M5Cardputer.Display.fillRoundRect(20, 40, 200, 70, 12, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(20, 40, 200, 70, 12, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(21, 41, 198, 68, 11, TFT_BLACK);
+  canvas.fillRoundRect(20, 40, 200, 70, 12, TFT_WHITE);
+  canvas.drawRoundRect(20, 40, 200, 70, 12, TFT_BLACK);
+  canvas.drawRoundRect(21, 41, 198, 68, 11, TFT_BLACK);
 
   const char* options[] = {"Create Network", "Join Network"};
 
   for (int i = 0; i < 2; i++) {
-    M5Cardputer.Display.setTextSize(1);
+    canvas.setTextSize(1);
     if (i == networkMenuIndex) {
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
-      M5Cardputer.Display.fillRect(30, 50 + (i * 25), 180, 18, TFT_BLACK);
-      M5Cardputer.Display.drawString(options[i], 40, 54 + (i * 25));
+      canvas.setTextColor(TFT_BLACK);
+      canvas.fillRect(30, 50 + (i * 25), 180, 18, TFT_BLACK);
+      canvas.drawString(options[i], 40, 54 + (i * 25));
     } else {
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
-      M5Cardputer.Display.drawString(options[i], 40, 54 + (i * 25));
+      canvas.setTextColor(TFT_BLACK);
+      canvas.drawString(options[i], 40, 54 + (i * 25));
     }
   }
 
   drawNavHint("Up/Down  Enter=Select  `=Exit", 30, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawCreateNetwork() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Create");
 
   if (networkNameInput.length() == 0) {
@@ -561,10 +573,12 @@ void drawCreateNetwork() {
   } else {
     drawTextInputBox("Password (8+ chars):", networkPasswordInput, true);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawJoinNetwork() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
 
   // If coming from Room Radar, show room name
   if (lobbyRoomName.length() > 0) {
@@ -575,13 +589,13 @@ void drawJoinNetwork() {
   }
 
   // Draw input box
-  M5Cardputer.Display.fillRoundRect(20, 50, 200, 60, 12, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(20, 50, 200, 60, 12, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(21, 51, 198, 58, 11, TFT_BLACK);
+  canvas.fillRoundRect(20, 50, 200, 60, 12, TFT_WHITE);
+  canvas.drawRoundRect(20, 50, 200, 60, 12, TFT_BLACK);
+  canvas.drawRoundRect(21, 51, 198, 58, 11, TFT_BLACK);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Room Key:", 30, 60);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("Room Key:", 30, 60);
 
   // Input field with password masking
   String displayText = networkPasswordInput;
@@ -596,20 +610,22 @@ void drawJoinNetwork() {
     displayText = displayText.substring(displayText.length() - 28);
   }
 
-  M5Cardputer.Display.drawString(displayText.c_str(), 30, 75);
+  canvas.drawString(displayText.c_str(), 30, 75);
 
   // Blinking cursor
   if (cursorVisible) {
     int cursorX = 30 + (displayText.length() * 6);
-    M5Cardputer.Display.drawLine(cursorX, 75, cursorX, 83, TFT_BLACK);
+    canvas.drawLine(cursorX, 75, cursorX, 83, TFT_BLACK);
   }
 
   // Simple hint - just Esc to Settings
   drawNavHint("Esc=Settings", 85, 95);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawMainChat() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
 
   // Header with channel name and DM indicator
   char subtitle[64];
@@ -622,11 +638,11 @@ void drawMainChat() {
   drawLabChatHeader(subtitle);
 
   // Message area (with margin for input box)
-  M5Cardputer.Display.fillRoundRect(5, 32, 230, 70, 10, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(5, 32, 230, 70, 10, TFT_ORANGE);
+  canvas.fillRoundRect(5, 32, 230, 70, 10, TFT_BLACK);
+  canvas.drawRoundRect(5, 32, 230, 70, 10, TFT_ORANGE);
 
   // Display messages with wrapping (4 messages visible with 2-line support)
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(1);
   int messageCount = messageHandler.getQueueCount();
 
   // Filter messages by channel or DM mode - build filtered list first
@@ -732,7 +748,7 @@ void drawMainChat() {
 
     // System messages: display centered with terminal gradient
     if (msg->type == MSG_SYSTEM) {
-      M5Cardputer.Display.setTextSize(1);
+      canvas.setTextSize(1);
       String systemMsg = "* " + msg->content + " *";
       int textWidth = systemMsg.length() * 6;
       int centerX = 120 - (textWidth / 2);
@@ -751,8 +767,8 @@ void drawMainChat() {
         float blend = colorPosition - colorIndex1;
 
         uint16_t color = interpolateColor(sysGradientColors[colorIndex1], sysGradientColors[colorIndex2], blend);
-        M5Cardputer.Display.setTextColor(color);
-        M5Cardputer.Display.drawChar(systemMsg.charAt(c), centerX + (c * 6), lineY);
+        canvas.setTextColor(color);
+        canvas.drawChar(systemMsg.charAt(c), centerX + (c * 6), lineY);
       }
 
       lineY += 10;
@@ -763,18 +779,18 @@ void drawMainChat() {
     String content = msg->content;
 
     // Draw username with solid color, size 1
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(userColor);
+    canvas.setTextSize(1);
+    canvas.setTextColor(userColor);
     int xPos = 10;
-    M5Cardputer.Display.drawString(username.c_str(), xPos, lineY);
+    canvas.drawString(username.c_str(), xPos, lineY);
     xPos += username.length() * 6;
 
     // Peppermint pattern - alternate red/white per message
     uint16_t messageColor = (i % 2 == 0) ? TFT_RED : TFT_WHITE;
 
     // Draw message content with emoji support at 1x scale
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(messageColor);
+    canvas.setTextSize(1);
+    canvas.setTextColor(messageColor);
 
     // Calculate remaining space (in pixels, not chars, since emojis are slightly larger)
     int remainingPixels = 220 - (xPos - 10); // Message area is ~220px wide
@@ -845,12 +861,12 @@ void drawMainChat() {
 
   // Show emoji hint with berry centered below if no messages
   if (filteredCount == 0) {
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_DARKGREY);
 
     // Draw text centered
     int y = 65;
-    M5Cardputer.Display.drawString("\\ = emojis", 86, y);
+    canvas.drawString("\\ = emojis", 86, y);
 
     // Draw berry emoji centered on next line
     const char* berry = "\xF0\x9F\x8D\x93";  // 🍓 Strawberry
@@ -858,8 +874,8 @@ void drawMainChat() {
   }
 
   // Input area (black background with yellow outline, terminal style, with margins)
-  M5Cardputer.Display.fillRoundRect(5, 110, 230, 21, 8, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(5, 110, 230, 21, 8, TFT_YELLOW);
+  canvas.fillRoundRect(5, 110, 230, 21, 8, TFT_BLACK);
+  canvas.drawRoundRect(5, 110, 230, 21, 8, TFT_YELLOW);
 
   // Terminal gradient colors (smooth ping-pong)
   uint16_t gradientColors[] = {
@@ -906,9 +922,9 @@ void drawMainChat() {
   int inputY = 115;  // Text Y position (5px from top of input box at y=110)
   for (int i = 0; i < displayInput.length(); i++) {
     int actualIndex = (fullInput.length() > maxChars) ? (fullInput.length() - maxChars + i) : i;
-    M5Cardputer.Display.setTextSize(2);  // Changed from 1 to 2
-    M5Cardputer.Display.setTextColor(getInputGradientColor(actualIndex));
-    M5Cardputer.Display.drawString(String(displayInput[i]).c_str(), xPos, inputY);
+    canvas.setTextSize(2);  // Changed from 1 to 2
+    canvas.setTextColor(getInputGradientColor(actualIndex));
+    canvas.drawString(String(displayInput[i]).c_str(), xPos, inputY);
     xPos += 12;  // Doubled character spacing
   }
 
@@ -916,18 +932,18 @@ void drawMainChat() {
   if (cursorVisible) {
     int cursorX = 10 + (displayInput.length() * 12);  // Doubled spacing
     if (cursorX < 230) {
-      M5Cardputer.Display.fillRect(cursorX, inputY, 12, 16, getInputGradientColor(fullInput.length()));  // Doubled cursor size
+      canvas.fillRect(cursorX, inputY, 12, 16, getInputGradientColor(fullInput.length()));  // Doubled cursor size
     }
   }
 
   // Emoji hint inside message area bottom (only when input is empty)
   if (chatInput.length() == 0) {
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_DARKGREY);
     int hintY = 90;  // Inside message area (ends at y=102)
 
     // Draw "\=emojis" first
-    M5Cardputer.Display.drawString("\\=emojis", 45, hintY);
+    canvas.drawString("\\=emojis", 45, hintY);
 
     // Draw berry centered with text - 45 + 8*8 + 12 = 121
     int berryX = 121;
@@ -936,72 +952,76 @@ void drawMainChat() {
       for (int x = 0; x < 16; x++) {
         uint16_t color = BERRY_ICON[y][x];
         if (color != 0x07E0) { // Skip transparent pixels
-          M5Cardputer.Display.drawPixel(berryX + x, berryY + y, color);
+          canvas.drawPixel(berryX + x, berryY + y, color);
         }
       }
     }
 
     // Draw "  `=settings" after berry - 121 + 16 + 12 = 149
-    M5Cardputer.Display.drawString("  `=settings", 149, hintY);
+    canvas.drawString("  `=settings", 149, hintY);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawUserList() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Users");
 
   // User list box
-  M5Cardputer.Display.fillRoundRect(20, 35, 200, 75, 12, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(20, 35, 200, 75, 12, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(21, 36, 198, 73, 11, TFT_BLACK);
+  canvas.fillRoundRect(20, 35, 200, 75, 12, TFT_WHITE);
+  canvas.drawRoundRect(20, 35, 200, 75, 12, TFT_BLACK);
+  canvas.drawRoundRect(21, 36, 198, 73, 11, TFT_BLACK);
 
   int peerCount = espNowManager.getPeerCount();
 
   if (peerCount == 0) {
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("No users online", 70, 65);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("No users online", 70, 65);
   } else {
     for (int i = 0; i < min(5, peerCount); i++) {
       PeerDevice* peer = espNowManager.getPeer(i);
       if (!peer) continue;
 
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      canvas.setTextSize(1);
+      canvas.setTextColor(TFT_BLACK);
 
       String userLine = String(peer->username) + " (" + String(peer->deviceID) + ")";
       if (userLine.length() > 30) {
         userLine = userLine.substring(0, 27) + "...";
       }
 
-      M5Cardputer.Display.drawString(userLine.c_str(), 30, 42 + (i * 12));
+      canvas.drawString(userLine.c_str(), 30, 42 + (i * 12));
     }
 
     if (peerCount > 5) {
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("...and more", 75, 100);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString("...and more", 75, 100);
     }
   }
 
   drawNavHint("`=Back", 100, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawChatSettings() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Settings");
 
   // Settings box (taller for 5 items)
-  M5Cardputer.Display.fillRoundRect(20, 35, 200, 100, 12, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(20, 35, 200, 100, 12, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(21, 36, 198, 98, 11, TFT_BLACK);
+  canvas.fillRoundRect(20, 35, 200, 100, 12, TFT_WHITE);
+  canvas.drawRoundRect(20, 35, 200, 100, 12, TFT_BLACK);
+  canvas.drawRoundRect(21, 36, 198, 98, 11, TFT_BLACK);
 
   const char* options[] = {"Change Username", "Room: ", "Room Radar", "Manage Emojis", "Leave Network"};
 
   for (int i = 0; i < 5; i++) {
-    M5Cardputer.Display.setTextSize(1);
+    canvas.setTextSize(1);
     if (i == chatSettingsMenuIndex) {
-      M5Cardputer.Display.setTextColor(TFT_WHITE);
-      M5Cardputer.Display.fillRect(30, 40 + (i * 18), 180, 14, TFT_BLACK);
+      canvas.setTextColor(TFT_BLACK);
+      canvas.fillRect(30, 40 + (i * 18), 180, 14, TFT_BLACK);
       if (i == 1) {
         // Room - show current room name or "New Room"
         String roomText = String(options[i]);
@@ -1010,16 +1030,16 @@ void drawChatSettings() {
         } else {
           roomText += "New Room";
         }
-        M5Cardputer.Display.drawString(roomText.c_str(), 40, 43 + (i * 18));
+        canvas.drawString(roomText.c_str(), 40, 43 + (i * 18));
       } else if (i == 3) {
         // Manage Emojis - show count
         String emojiText = String(options[i]) + " (" + String(systemEmojiCount) + "/20)";
-        M5Cardputer.Display.drawString(emojiText.c_str(), 40, 43 + (i * 18));
+        canvas.drawString(emojiText.c_str(), 40, 43 + (i * 18));
       } else {
-        M5Cardputer.Display.drawString(options[i], 40, 43 + (i * 18));
+        canvas.drawString(options[i], 40, 43 + (i * 18));
       }
     } else {
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      canvas.setTextColor(TFT_BLACK);
       if (i == 1) {
         // Room - show current room name or "New Room"
         String roomText = String(options[i]);
@@ -1028,28 +1048,30 @@ void drawChatSettings() {
         } else {
           roomText += "New Room";
         }
-        M5Cardputer.Display.drawString(roomText.c_str(), 40, 43 + (i * 18));
+        canvas.drawString(roomText.c_str(), 40, 43 + (i * 18));
       } else if (i == 3) {
         // Manage Emojis - show count
         String emojiText = String(options[i]) + " (" + String(systemEmojiCount) + "/20)";
-        M5Cardputer.Display.drawString(emojiText.c_str(), 40, 43 + (i * 18));
+        canvas.drawString(emojiText.c_str(), 40, 43 + (i * 18));
       } else {
-        M5Cardputer.Display.drawString(options[i], 40, 43 + (i * 18));
+        canvas.drawString(options[i], 40, 43 + (i * 18));
       }
     }
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawChannelSwitch() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Switch Room");
 
   // Room selector box
-  M5Cardputer.Display.fillRoundRect(30, 45, 180, 50, 10, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(30, 45, 180, 50, 10, TFT_RED);
-  M5Cardputer.Display.drawRoundRect(31, 46, 178, 48, 9, TFT_RED);
+  canvas.fillRoundRect(30, 45, 180, 50, 10, TFT_WHITE);
+  canvas.drawRoundRect(30, 45, 180, 50, 10, TFT_RED);
+  canvas.drawRoundRect(31, 46, 178, 48, 9, TFT_RED);
 
-  M5Cardputer.Display.setTextSize(2);
+  canvas.setTextSize(2);
   String roomName;
   if (currentRoomIndex < activeRoomCount) {
     roomName = activeRooms[currentRoomIndex].name;
@@ -1057,115 +1079,125 @@ void drawChannelSwitch() {
     roomName = "New Room";
   }
 
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
+  canvas.setTextColor(TFT_BLACK);
   int textWidth = roomName.length() * 12;
   int xPos = 120 - (textWidth / 2);
-  M5Cardputer.Display.drawString(roomName.c_str(), xPos, 60);
+  canvas.drawString(roomName.c_str(), xPos, 60);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("< Left/Right >", 85, 105);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("< Left/Right >", 85, 105);
 
   drawNavHint("`=Back  Enter=Select", 60, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawDMSelect() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Direct Message");
 
-  M5Cardputer.Display.fillRoundRect(20, 35, 200, 75, 12, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(20, 35, 200, 75, 12, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(21, 36, 198, 73, 11, TFT_BLACK);
+  canvas.fillRoundRect(20, 35, 200, 75, 12, TFT_WHITE);
+  canvas.drawRoundRect(20, 35, 200, 75, 12, TFT_BLACK);
+  canvas.drawRoundRect(21, 36, 198, 73, 11, TFT_BLACK);
 
   int peerCount = espNowManager.getPeerCount();
 
   if (peerCount == 0) {
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("No users online", 70, 65);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("No users online", 70, 65);
   } else {
     for (int i = 0; i < min(5, peerCount); i++) {
       PeerDevice* peer = espNowManager.getPeer(i);
       if (!peer) continue;
 
-      M5Cardputer.Display.setTextSize(1);
+      canvas.setTextSize(1);
 
       if (i == selectedUserIndex) {
-        M5Cardputer.Display.setTextColor(TFT_WHITE);
-        M5Cardputer.Display.fillRect(30, 42 + (i * 12), 180, 10, TFT_BLACK);
+        canvas.setTextColor(TFT_BLACK);
+        canvas.fillRect(30, 42 + (i * 12), 180, 10, TFT_BLACK);
       } else {
-        M5Cardputer.Display.setTextColor(TFT_BLACK);
+        canvas.setTextColor(TFT_BLACK);
       }
 
       String userLine = String(peer->username);
       if (userLine.length() > 28) {
         userLine = userLine.substring(0, 25) + "...";
       }
-      M5Cardputer.Display.drawString(userLine.c_str(), 35, 42 + (i * 12));
+      canvas.drawString(userLine.c_str(), 35, 42 + (i * 12));
     }
   }
 
   drawNavHint("Up/Down  Enter=Select  `=Back", 30, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawNetworkInfo() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Network Info");
 
-  M5Cardputer.Display.fillRoundRect(20, 35, 200, 75, 12, TFT_WHITE);
-  M5Cardputer.Display.drawRoundRect(20, 35, 200, 75, 12, TFT_BLACK);
+  canvas.fillRoundRect(20, 35, 200, 75, 12, TFT_WHITE);
+  canvas.drawRoundRect(20, 35, 200, 75, 12, TFT_BLACK);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_BLACK);
 
   String networkName = securityManager.getNetworkName();
   String deviceID = securityManager.getDeviceID();
   int peerCount = espNowManager.getPeerCount();
 
-  M5Cardputer.Display.drawString(("Network: " + networkName).c_str(), 30, 45);
-  M5Cardputer.Display.drawString(("Device: " + deviceID).c_str(), 30, 60);
-  M5Cardputer.Display.drawString(("Peers: " + String(peerCount)).c_str(), 30, 75);
+  canvas.drawString(("Network: " + networkName).c_str(), 30, 45);
+  canvas.drawString(("Device: " + deviceID).c_str(), 30, 60);
+  canvas.drawString(("Peers: " + String(peerCount)).c_str(), 30, 75);
 
   drawNavHint("`=Back", 100, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawChangeUsername() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Username");
 
   drawTextInputBox("New Username:", usernameInput, false);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Max 15 characters", 70, 118);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Max 15 characters", 70, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawRenameChannel() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   char subtitle[32];
   snprintf(subtitle, 32, "Rename #%s", channelNames[chatCurrentChannel].c_str());
   drawLabChatHeader(subtitle);
 
   drawTextInputBox("Channel Name:", channelNameInput, false);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Max 15 characters", 70, 118);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Max 15 characters", 70, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawEmojiPicker() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Emojis");
 
   // Picker box (single unified area)
-  M5Cardputer.Display.fillRoundRect(10, 35, 220, 75, 12, TFT_BLACK);
-  M5Cardputer.Display.drawRoundRect(10, 35, 220, 75, 12, TFT_ORANGE);
+  canvas.fillRoundRect(10, 35, 220, 75, 12, TFT_BLACK);
+  canvas.drawRoundRect(10, 35, 220, 75, 12, TFT_ORANGE);
 
   // Info text
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_ORANGE);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_ORANGE);
   String slotInfo = String(systemEmojiCount) + "/20 loaded";
-  M5Cardputer.Display.drawString(slotInfo.c_str(), 85, 40);
+  canvas.drawString(slotInfo.c_str(), 85, 40);
 
   // Draw emojis in two rows (12 per row, max 20 visible)
   int startX = 20;
@@ -1187,7 +1219,7 @@ void drawEmojiPicker() {
 
     // Highlight selected emoji
     if (i == selectedEmojiIndex) {
-      M5Cardputer.Display.fillRoundRect(x - 2, y - 2, 18, 18, 4, TFT_ORANGE);
+      canvas.fillRoundRect(x - 2, y - 2, 18, 18, 4, TFT_ORANGE);
     }
 
     // Draw custom emoji at 1x scale (16x16)
@@ -1196,17 +1228,19 @@ void drawEmojiPicker() {
 
   // Nav hints
   drawNavHint("Arrows=Nav Enter=Add `=Back", 50, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawEmojiManager() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
   drawLabChatHeader("Manage Emojis");
 
   // Info text
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
   String slotInfo = "Slots: " + String(systemEmojiCount) + "/20";
-  M5Cardputer.Display.drawString(slotInfo.c_str(), 85, 30);
+  canvas.drawString(slotInfo.c_str(), 85, 30);
 
   // Draw emoji grid (4 columns x 5 rows = 20 slots)
   int startX = 20;
@@ -1222,10 +1256,10 @@ void drawEmojiManager() {
 
     // Slot box
     if (i == selectedEmojiManagerIndex) {
-      M5Cardputer.Display.drawRect(x - 2, y - 2, 50, 16, TFT_YELLOW);
-      M5Cardputer.Display.drawRect(x - 1, y - 1, 48, 14, TFT_YELLOW);
+      canvas.drawRect(x - 2, y - 2, 50, 16, TFT_YELLOW);
+      canvas.drawRect(x - 1, y - 1, 48, 14, TFT_YELLOW);
     } else {
-      M5Cardputer.Display.drawRect(x - 1, y - 1, 48, 14, TFT_DARKGREY);
+      canvas.drawRect(x - 1, y - 1, 48, 14, TFT_DARKGREY);
     }
 
     if (i < systemEmojiCount) {
@@ -1235,14 +1269,14 @@ void drawEmojiManager() {
       // Draw shortcut name (truncated)
       String shortcut = systemEmojis[i].shortcut;
       if (shortcut.length() > 5) shortcut = shortcut.substring(0, 5);
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString(shortcut.c_str(), x + 18, y + 2);
+      canvas.setTextSize(1);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString(shortcut.c_str(), x + 18, y + 2);
     } else {
       // Empty slot
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.setTextColor(TFT_LIGHTGREY);
-      M5Cardputer.Display.drawString("empty", x + 10, y + 4);
+      canvas.setTextSize(1);
+      canvas.setTextColor(TFT_LIGHTGREY);
+      canvas.drawString("empty", x + 10, y + 4);
     }
   }
 
@@ -1252,21 +1286,23 @@ void drawEmojiManager() {
   } else {
     drawNavHint("Arrows=Nav  `=Back", 70, 118);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawLobby() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
 
   String header = "Lobby: " + lobbyRoomName;
   drawLabChatHeader(header.c_str());
 
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TFT_BLACK);
-  M5Cardputer.Display.drawString("Knocking...", 70, 50);
+  canvas.setTextSize(2);
+  canvas.setTextColor(TFT_BLACK);
+  canvas.drawString("Knocking...", 70, 50);
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString("Waiting for room access", 60, 75);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString("Waiting for room access", 60, 75);
 
   // Show animated dots for waiting
   unsigned long now = millis();
@@ -1275,13 +1311,15 @@ void drawLobby() {
   for (int i = 0; i < dotCount; i++) {
     dots += ".";
   }
-  M5Cardputer.Display.drawString(dots.c_str(), 175, 75);
+  canvas.drawString(dots.c_str(), 175, 75);
 
   drawNavHint("Esc=Cancel", 90, 118);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void drawRoomRadar() {
-  M5Cardputer.Display.fillScreen(TFT_WHITE);
+  canvas.fillScreen(TFT_WHITE);
 
   if (radarTrackingMode) {
     // TRACKING MODE - Hot/Cold display
@@ -1291,21 +1329,21 @@ void drawRoomRadar() {
       NearbyDevice& device = nearbyDevices[selectedRadarIndex];
 
       // Show room/device name with device ID suffix
-      M5Cardputer.Display.setTextSize(2);
-      M5Cardputer.Display.setTextColor(TFT_BLACK);
+      canvas.setTextSize(2);
+      canvas.setTextColor(TFT_BLACK);
       String displayName = device.roomName;
       if (device.deviceID.length() >= 2) {
         displayName += " (" + device.deviceID.substring(device.deviceID.length() - 2) + ")";
       }
       int textWidth = displayName.length() * 12;
       int xPos = 120 - (textWidth / 2);
-      M5Cardputer.Display.drawString(displayName.c_str(), xPos, 35);
+      canvas.drawString(displayName.c_str(), xPos, 35);
 
       // Calculate proximity (rssi ranges: -30 = very close, -90 = far)
       int strength = constrain(map(device.rssi, -90, -30, 0, 10), 0, 10);
 
       // Draw strength indicator with color
-      M5Cardputer.Display.setTextSize(3);
+      canvas.setTextSize(3);
       uint16_t heatColor;
       String heatText;
       if (strength >= 8) {
@@ -1318,37 +1356,37 @@ void drawRoomRadar() {
         heatColor = TFT_BLUE;
         heatText = "COLD";
       }
-      M5Cardputer.Display.setTextColor(heatColor);
+      canvas.setTextColor(heatColor);
       int heatX = 120 - (heatText.length() * 18 / 2);
-      M5Cardputer.Display.drawString(heatText.c_str(), heatX, 60);
+      canvas.drawString(heatText.c_str(), heatX, 60);
 
       // Draw signal bar
-      M5Cardputer.Display.fillRect(30, 95, 180, 10, TFT_LIGHTGREY);
-      M5Cardputer.Display.fillRect(30, 95, strength * 18, 10, heatColor);
+      canvas.fillRect(30, 95, 180, 10, TFT_LIGHTGREY);
+      canvas.fillRect(30, 95, strength * 18, 10, heatColor);
     } else {
       // No device to track yet
-      M5Cardputer.Display.setTextSize(2);
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("Searching...", 65, 60);
+      canvas.setTextSize(2);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString("Searching...", 65, 60);
     }
 
-    M5Cardputer.Display.setTextSize(1);
+    canvas.setTextSize(1);
     drawNavHint("`=Back  T=List", 70, 118);
   } else {
     // LIST MODE - Show nearby rooms/devices
     drawLabChatHeader("Room Radar");
 
-    M5Cardputer.Display.setTextSize(1);
+    canvas.setTextSize(1);
 
     if (nearbyDeviceCount == 0) {
-      M5Cardputer.Display.setTextColor(TFT_RED);
-      M5Cardputer.Display.drawString("No nearby rooms found", 55, 45);
-      M5Cardputer.Display.setTextColor(TFT_BLUE);
-      M5Cardputer.Display.drawString("Scanning for beacons...", 50, 60);
-      M5Cardputer.Display.drawString("Devices broadcast every 10s", 35, 70);
-      M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-      M5Cardputer.Display.drawString("Press esc and then come back,", 25, 85);
-      M5Cardputer.Display.drawString("needs to reload sometimes.", 35, 95);
+      canvas.setTextColor(TFT_RED);
+      canvas.drawString("No nearby rooms found", 55, 45);
+      canvas.setTextColor(TFT_BLUE);
+      canvas.drawString("Scanning for beacons...", 50, 60);
+      canvas.drawString("Devices broadcast every 10s", 35, 70);
+      canvas.setTextColor(TFT_DARKGREY);
+      canvas.drawString("Press esc and then come back,", 25, 85);
+      canvas.drawString("needs to reload sometimes.", 35, 95);
     } else {
       // Draw list of nearby devices/rooms
       int yPos = 40;
@@ -1357,7 +1395,7 @@ void drawRoomRadar() {
         NearbyDevice& device = nearbyDevices[i];
 
         if (isSelected) {
-          M5Cardputer.Display.fillRoundRect(10, yPos - 2, 220, 14, 3, TFT_LIGHTGREY);
+          canvas.fillRoundRect(10, yPos - 2, 220, 14, 3, TFT_LIGHTGREY);
         }
 
         // Show room name with device ID suffix
@@ -1365,17 +1403,17 @@ void drawRoomRadar() {
         if (device.deviceID.length() >= 2) {
           displayName += " (" + device.deviceID.substring(device.deviceID.length() - 2) + ")";
         }
-        M5Cardputer.Display.setTextColor(TFT_BLACK);
-        M5Cardputer.Display.drawString(displayName.c_str(), 15, yPos);
+        canvas.setTextColor(TFT_BLACK);
+        canvas.drawString(displayName.c_str(), 15, yPos);
 
         // Draw signal strength bars
         int bars = constrain(map(device.rssi, -90, -30, 1, 5), 1, 5);
         int barX = 190;
         for (int b = 0; b < 5; b++) {
           if (b < bars) {
-            M5Cardputer.Display.fillRect(barX + (b * 6), yPos + 10 - (b * 2), 4, 2 + (b * 2), TFT_GREEN);
+            canvas.fillRect(barX + (b * 6), yPos + 10 - (b * 2), 4, 2 + (b * 2), TFT_GREEN);
           } else {
-            M5Cardputer.Display.drawRect(barX + (b * 6), yPos + 10 - (b * 2), 4, 2 + (b * 2), TFT_LIGHTGREY);
+            canvas.drawRect(barX + (b * 6), yPos + 10 - (b * 2), 4, 2 + (b * 2), TFT_LIGHTGREY);
           }
         }
 
@@ -1385,6 +1423,8 @@ void drawRoomRadar() {
 
     drawNavHint("Up/Down  Enter=Knock  T=Track  `=Back", 15, 118);
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void enterRoomRadar() {
@@ -1464,13 +1504,15 @@ void drawCustomEmoji(int screenX, int screenY, int emojiIndex, int scale) {
       if (color == TRANSPARENCY_COLOR) continue;
 
       if (scale == 1) {
-        M5Cardputer.Display.drawPixel(screenX + x, screenY + y, color);
+        canvas.drawPixel(screenX + x, screenY + y, color);
       } else {
         // Draw scaled pixel
-        M5Cardputer.Display.fillRect(screenX + (x * scale), screenY + (y * scale), scale, scale, color);
+        canvas.fillRect(screenX + (x * scale), screenY + (y * scale), scale, scale, color);
       }
     }
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void loadFriendEmojis() {
@@ -1829,7 +1871,7 @@ void exitLabChat() {
 
   // Clear screen with color matching UI inversion state
   extern bool uiInverted;
-  M5Cardputer.Display.fillScreen(uiInverted ? TFT_BLACK : TFT_WHITE);
+  canvas.fillScreen(uiInverted ? TFT_BLACK : TFT_WHITE);
 }
 
 void updateLabChat() {
@@ -1886,10 +1928,10 @@ void updateLabChat() {
   // LOBBY timeout - show "no answer" after 20 seconds
   if (chatState == CHAT_LOBBY && lobbyKnockTime > 0 && millis() - lobbyKnockTime > 20000) {
     // Timeout - show rejection screen
-    M5Cardputer.Display.fillScreen(TFT_WHITE);
-    M5Cardputer.Display.setTextSize(3);
-    M5Cardputer.Display.setTextColor(TFT_RED);
-    M5Cardputer.Display.drawString("No Answer", 50, 55);
+    canvas.fillScreen(TFT_WHITE);
+    canvas.setTextSize(3);
+    canvas.setTextColor(TFT_RED);
+    canvas.drawString("No Answer", 50, 55);
     delay(2000);
 
     // Return to settings
@@ -1962,6 +2004,8 @@ void drawLabChat() {
       drawLobby();
       break;
   }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void handleLabChatNavigation(char key) {
@@ -2065,8 +2109,9 @@ void handleLabChatNavigation(char key) {
         exitLabChat();
         currentScreenNumber = 0;
         currentState = MAIN_MENU;
-        extern void drawScreen(bool statusBar);
-        drawScreen(true);
+        extern void drawScreen(bool inverted);
+        extern bool uiInverted;
+        drawScreen(uiInverted);
         return;
       } else if (pinInput.length() < 4) {
         // Validate character
@@ -2097,10 +2142,11 @@ void handleLabChatNavigation(char key) {
         }
       } else if (key == '`') {
         exitLabChat();
-        extern void drawScreen(bool statusBar);
+        extern void drawScreen(bool inverted);
+        extern bool uiInverted;
         currentScreenNumber = 0;
         currentState = MAIN_MENU;
-        drawScreen(true);
+        drawScreen(uiInverted);
         return;
       }
       break;
@@ -2283,11 +2329,11 @@ void handleLabChatNavigation(char key) {
                     Serial.println("  🚀 SENDING EMOJI CHUNKS FOR: " + shortcut);
 
                     // Show visual feedback on screen
-                    M5Cardputer.Display.fillRect(5, 107, 230, 23, TFT_PURPLE);
-                    M5Cardputer.Display.setTextSize(1);
-                    M5Cardputer.Display.setTextColor(TFT_WHITE);
+                    canvas.fillRect(5, 107, 230, 23, TFT_PURPLE);
+                    canvas.setTextSize(1);
+                    canvas.setTextColor(TFT_BLACK);
                     String statusMsg = "Sending :" + shortcut + ":...";
-                    M5Cardputer.Display.drawString(statusMsg.c_str(), 10, 112);
+                    canvas.drawString(statusMsg.c_str(), 10, 112);
 
                     // Send in 8 chunks of 64 bytes each (128 hex chars per chunk)
                     for (int chunk = 0; chunk < 8; chunk++) {
@@ -2313,9 +2359,9 @@ void handleLabChatNavigation(char key) {
                       delay(150); // Increased to 150ms for better reliability
 
                       // Update progress on screen
-                      M5Cardputer.Display.fillRect(5, 107, 230, 23, TFT_PURPLE);
+                      canvas.fillRect(5, 107, 230, 23, TFT_PURPLE);
                       String progressMsg = ":" + shortcut + ": " + String(chunk + 1) + "/8";
-                      M5Cardputer.Display.drawString(progressMsg.c_str(), 10, 112);
+                      canvas.drawString(progressMsg.c_str(), 10, 112);
                     }
 
                     // Mark emoji as sent to recipient(s)
@@ -2335,9 +2381,9 @@ void handleLabChatNavigation(char key) {
                     Serial.println("  ✅ Emoji transfer complete!");
 
                     // Show completion briefly
-                    M5Cardputer.Display.fillRect(5, 107, 230, 23, TFT_GREEN);
-                    M5Cardputer.Display.setTextColor(TFT_BLACK);
-                    M5Cardputer.Display.drawString(("Sent :" + shortcut + ":").c_str(), 10, 112);
+                    canvas.fillRect(5, 107, 230, 23, TFT_GREEN);
+                    canvas.setTextColor(TFT_BLACK);
+                    canvas.drawString(("Sent :" + shortcut + ":").c_str(), 10, 112);
                     delay(300);
                   }
                 }
@@ -2461,10 +2507,10 @@ void handleLabChatNavigation(char key) {
           sentEmojiHistoryCount = 0;
           Serial.println("🔄 EMOJI SEND HISTORY CLEARED - All emojis will be resent!");
           // Show visual feedback
-          M5Cardputer.Display.fillRect(5, 107, 230, 23, TFT_ORANGE);
-          M5Cardputer.Display.setTextSize(1);
-          M5Cardputer.Display.setTextColor(TFT_BLACK);
-          M5Cardputer.Display.drawString("Emoji cache cleared!", 50, 112);
+          canvas.fillRect(5, 107, 230, 23, TFT_ORANGE);
+          canvas.setTextSize(1);
+          canvas.setTextColor(TFT_BLACK);
+          canvas.drawString("Emoji cache cleared!", 50, 112);
           delay(800);
           drawLabChat();
         } else if (key == 27) { // ESC - exit DM mode
@@ -2551,8 +2597,9 @@ void handleLabChatNavigation(char key) {
           exitLabChat();
           currentScreenNumber = 0;
           currentState = MAIN_MENU;
-          extern void drawScreen(bool statusBar);
-          drawScreen(true);
+          extern void drawScreen(bool inverted);
+          extern bool uiInverted;
+          drawScreen(uiInverted);
           return;
         }
       } else if (key == '`') {
@@ -2560,8 +2607,9 @@ void handleLabChatNavigation(char key) {
         exitLabChat();
         currentScreenNumber = 0;
         currentState = MAIN_MENU;
-        extern void drawScreen(bool statusBar);
-        drawScreen(true);
+        extern void drawScreen(bool inverted);
+        extern bool uiInverted;
+        drawScreen(uiInverted);
         return;
       }
       break;

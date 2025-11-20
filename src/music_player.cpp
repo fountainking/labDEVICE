@@ -103,21 +103,21 @@ void exitMusicPlayer() {
 }
 
 void drawMusicPlayer() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
   // No "MUSIC" title - removed
 
   if (musicCount == 0) {
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("No MP3 files found", 50, 60);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Add MP3 files to /mp3", 40, 75);
-    M5Cardputer.Display.drawString("or /mp3s on SD card", 45, 85);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString("No MP3 files found", 50, 60);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("Add MP3 files to /mp3", 40, 75);
+    canvas.drawString("or /mp3s on SD card", 45, 85);
   } else {
     // Show currently playing track info (NO String allocations - prevent fragmentation!)
-    M5Cardputer.Display.setTextSize(1);
+    canvas.setTextSize(1);
     char displayName[34];  // 30 chars + "..." + null
     strncpy(displayName, musicFiles[selectedMusicIndex], 33);
     displayName[33] = '\0';
@@ -137,31 +137,31 @@ void drawMusicPlayer() {
       displayName[30] = '\0';
     }
 
-    M5Cardputer.Display.setTextColor(0xF81F);  // Bright purple for track name
-    M5Cardputer.Display.drawString(displayName, 10, 35);  // Lifted up
+    canvas.setTextColor(0xF81F);  // Bright purple for track name
+    canvas.drawString(displayName, 10, 35);  // Lifted up
 
     // Draw play/pause icon
     if (isPlaying && isAudioPlaying()) {
       // Pause icon (two bars) - purple
-      M5Cardputer.Display.fillRect(215, 33, 4, 10, 0xC99F);  // Light purple
-      M5Cardputer.Display.fillRect(221, 33, 4, 10, 0xC99F);
+      canvas.fillRect(215, 33, 4, 10, 0xC99F);  // Light purple
+      canvas.fillRect(221, 33, 4, 10, 0xC99F);
     } else {
       // Play icon (triangle) - purple
-      M5Cardputer.Display.fillTriangle(215, 33, 215, 43, 225, 38, 0x780F);  // Deep purple
+      canvas.fillTriangle(215, 33, 215, 43, 225, 38, 0x780F);  // Deep purple
     }
 
     // Track counter
-    M5Cardputer.Display.setTextColor(0x780F);  // Deep purple
+    canvas.setTextColor(0x780F);  // Deep purple
     char trackInfo[20];
     sprintf(trackInfo, "%d/%d", selectedMusicIndex + 1, musicCount);
-    M5Cardputer.Display.drawString(trackInfo, 10, 47);  // Lifted
+    canvas.drawString(trackInfo, 10, 47);  // Lifted
 
     // Volume indicator - PURPLE
     int vol = getAudioVolume();
-    M5Cardputer.Display.setTextColor(0xA11F);  // Medium purple
+    canvas.setTextColor(0xA11F);  // Medium purple
     char volInfo[10];
     sprintf(volInfo, "Vol:%d%%", vol);
-    M5Cardputer.Display.drawString(volInfo, 180, 47);  // Lifted
+    canvas.drawString(volInfo, 180, 47);  // Lifted
 
     // Progress bar (simple visual indicator)
     int barWidth = 220;
@@ -169,7 +169,7 @@ void drawMusicPlayer() {
     int barY = 60;  // Lifted
 
     // Draw progress bar background
-    M5Cardputer.Display.drawRect(barX, barY, barWidth, 8, 0x780F);  // Deep purple
+    canvas.drawRect(barX, barY, barWidth, 8, 0x780F);  // Deep purple
 
     // Fill progress if playing
     if (isPlaying && isAudioPlaying()) {
@@ -177,13 +177,13 @@ void drawMusicPlayer() {
       static int animPos = 0;
       animPos = (animPos + 1) % barWidth;
       int fillWidth = (animPos * barWidth) / barWidth;
-      M5Cardputer.Display.fillRect(barX + 1, barY + 1, fillWidth, 6, 0xC99F);  // Light purple
+      canvas.fillRect(barX + 1, barY + 1, fillWidth, 6, 0xC99F);  // Light purple
     }
 
     // Show mini track list below
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(0x780F);  // Deep purple
-    M5Cardputer.Display.drawString("TRACKS:", 10, 75);  // Lifted
+    canvas.setTextSize(1);
+    canvas.setTextColor(0x780F);  // Deep purple
+    canvas.drawString("TRACKS:", 10, 75);  // Lifted
 
     const int maxVisible = 3;
     int startIndex = selectedMusicIndex - 1;
@@ -197,8 +197,8 @@ void drawMusicPlayer() {
     for (int i = startIndex; i < endIndex; i++) {
       bool isSelected = (i == selectedMusicIndex);
 
-      M5Cardputer.Display.setTextSize(1);
-      M5Cardputer.Display.setTextColor(isSelected ? 0xF81F : 0xA11F);  // Bright or medium purple
+      canvas.setTextSize(1);
+      canvas.setTextColor(isSelected ? 0xF81F : 0xA11F);  // Bright or medium purple
 
       // NO String allocations - prevent fragmentation!
       char trackName[30];  // 26 chars + "..." + null
@@ -222,25 +222,27 @@ void drawMusicPlayer() {
 
       // Show selection indicator
       if (isSelected) {
-        M5Cardputer.Display.drawString(">", 10, yPos);
+        canvas.drawString(">", 10, yPos);
       }
 
-      M5Cardputer.Display.drawString(trackName, 20, yPos);
+      canvas.drawString(trackName, 20, yPos);
       yPos += 10;
     }
   }
 
   // Show error message if present
   if (strlen(lastError) > 0) {
-    M5Cardputer.Display.fillRect(0, 115, 240, 10, TFT_RED);
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString(lastError, 10, 116);
+    canvas.fillRect(0, 115, 240, 10, TFT_RED);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString(lastError, 10, 116);
   }
 
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString(",/=Nav +/- =Vol Enter=Play `=Back", 15, 125);
+  canvas.setTextSize(1);
+  canvas.setTextColor(TFT_DARKGREY);
+  canvas.drawString(",/=Nav +/- =Vol Enter=Play `=Back", 15, 125);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void playSelectedTrack() {

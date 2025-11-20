@@ -1,11 +1,12 @@
 #include "roadmap.h"
 #include "config.h"
 #include "captive_portal.h"
+#include "ui.h"
 #include <M5Cardputer.h>
 
 // About screen scroll state
 int aboutScrollOffset = 0;
-const int LINE_HEIGHT = 10;
+const int LINE_HEIGHT = 18;
 unsigned long lastAutoScrollTime = 0;
 const int AUTO_SCROLL_INTERVAL = 2000; // 2 seconds between auto-scrolls
 bool autoScrollEnabled = true;
@@ -135,7 +136,7 @@ static void drawStarEmoji2x(int x, int y) {
             uint16_t color = STAR_ICON[row][col];
             if (color != 0x07E0) { // Skip transparent pixels
                 // Draw 2x2 block for each pixel
-                M5Cardputer.Display.fillRect(x + col * 2, y + row * 2, 2, 2, color);
+                canvas.fillRect(x + col * 2, y + row * 2, 2, 2, color);
             }
         }
     }
@@ -158,64 +159,73 @@ void enterRoadmap() {
 }
 
 void drawRoadmap() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
-
-  // Draw 2x star emoji on right side (centered vertically, same as OTA)
-  drawStarEmoji2x(240 - 32 - 10, 51);
+  canvas.fillScreen(TFT_BLACK);
 
   const char* aboutText[] = {
     "",
     "ABOUT",
     "",
-    "James Edward Fauntleroy II",
+    "James Edward",
+    "Fauntleroy II",
     "Born: May 16, 1984",
     "",
-    "Singer, songwriter, producer,",
-    "and community builder from",
-    "Inglewood, California.",
+    "Singer, songwriter,",
+    "producer, and",
+    "community builder",
+    "from Inglewood, CA",
     "",
-    "Known for songwriting and",
-    "vocal work for:",
+    "Known for",
+    "collaborations with:",
     "",
-    "Bruno Mars, Justin Timberlake,",
-    "Rihanna, Beyonce, Lady Gaga,",
-    "Travis Scott, Frank Ocean,",
-    "Kendrick Lamar, SZA, Drake,",
+    "Bruno Mars,",
+    "Justin Timberlake,",
+    "Rihanna, Beyonce,",
+    "Lady Gaga,",
+    "Travis Scott,",
+    "Frank Ocean,",
+    "Kendrick Lamar,",
+    "SZA, Drake,",
     "Vince Staples, BTS,",
-    "Mariah Carey, Justin Bieber,",
-    "Jay-Z, Chris Brown, John Mayer",
+    "Mariah Carey,",
+    "Justin Bieber,",
+    "Jay-Z, Chris Brown,",
+    "John Mayer",
     "",
     "ACHIEVEMENTS",
     "",
-    "Four-time Grammy Award winner",
+    "Four-time Grammy",
+    "Award winner",
     "",
     "Co-founder of",
     "1500 Sound Academy",
+    "(Taiwan, Beijing,",
+    "Bangkok)",
     "",
-    "Founder of Laboratory",
-    "(Workforce Development)",
+    "Founder of",
+    "Laboratory",
+    "(Workforce Dev)",
     "",
     "Founder of ALL NEW",
     "(Music Pathways)",
     "",
-    "Designed Mickey Mouse toy",
-    "and statue for Disney's",
-    "100th anniversary",
+    "Designed Mickey",
+    "Mouse toy & statue",
+    "for Disney's 100th",
     "",
-    "Designed and coded this device",
+    "Designed and coded",
+    "this device",
     "",
     "---",
     "",
-    "2025 Laboratory M5",
+    "2025 Laboratory.mx",
     "",
     ""
   };
   const int numLines = sizeof(aboutText) / sizeof(aboutText[0]);
 
-  M5Cardputer.Display.setTextSize(1);
+  canvas.setTextSize(2);
 
   int y = 15;
-  int visibleLineCount = 0;
   for (int i = 0; i < numLines; i++) {
     int drawY = y - aboutScrollOffset;
     if (drawY >= 10 && drawY < 125) {
@@ -223,28 +233,33 @@ void drawRoadmap() {
 
       // Yellow for titles (ABOUT, ACHIEVEMENTS), gradient for rest (OTA style)
       if (line == "ABOUT" || line == "ACHIEVEMENTS") {
-        M5Cardputer.Display.setTextColor(TFT_YELLOW);
+        canvas.setTextColor(TFT_YELLOW);
       } else {
-        M5Cardputer.Display.setTextColor(aboutGradientColor(i, numLines));
+        // Apply gradient based on position in the VISIBLE area (10-125 range)
+        float visibleRatio = (float)(drawY - 10) / (125.0 - 10.0);
+        uint8_t r = (uint8_t)(visibleRatio * 31);
+        uint8_t g = (uint8_t)(visibleRatio * 63);
+        uint8_t b = 31;
+        uint16_t gradColor = ((r & 0x1F) << 11) | ((g & 0x3F) << 5) | (b & 0x1F);
+        canvas.setTextColor(gradColor);
       }
 
-      M5Cardputer.Display.drawString(line, 15, drawY); // Left margin: 15px (OTA style)
-      visibleLineCount++;
+      canvas.drawString(line, 15, drawY); // Left margin: 15px (OTA style)
     }
     y += LINE_HEIGHT;
   }
 
-  // Bottom hint bar
-  M5Cardputer.Display.fillRect(0, 125, 240, 10, TFT_BLACK);
-  M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-  M5Cardputer.Display.drawString(";/. scroll | ` back", 50, 125);
+  // Draw 2x star emoji on bottom right corner (on top of text)
+  drawStarEmoji2x(240 - 32 - 10, 135 - 32 - 10);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void updateCreditsScroll() {
   // Auto-scroll with user interrupt capability
   if (autoScrollEnabled && (millis() - lastAutoScrollTime > AUTO_SCROLL_INTERVAL)) {
     aboutScrollOffset += LINE_HEIGHT;
-    const int maxScroll = 400; // Approximate max scroll
+    const int maxScroll = 950; // Approximate max scroll (larger text)
     if (aboutScrollOffset > maxScroll) {
       aboutScrollOffset = maxScroll;
       autoScrollEnabled = false; // Stop at end
@@ -264,7 +279,7 @@ void scrollRoadmapUp() {
 void scrollRoadmapDown() {
   autoScrollEnabled = false; // User interrupt - disable autoscroll
   aboutScrollOffset += LINE_HEIGHT;
-  const int maxScroll = 400;  // Approximate max scroll
+  const int maxScroll = 950;  // Approximate max scroll (larger text)
   if (aboutScrollOffset > maxScroll) aboutScrollOffset = maxScroll;
   drawRoadmap();
 }

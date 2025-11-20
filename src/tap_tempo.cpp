@@ -28,7 +28,7 @@ void enterTapTempo() {
   beatFlash = false;
   metronomeSound = false;  // Start with sound off
 
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawTapTempo();
 }
 
@@ -37,7 +37,7 @@ void exitTapTempo() {
 }
 
 void drawTapTempo() {
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  canvas.fillScreen(TFT_BLACK);
   drawStatusBar(false);
 
   // Beat flash indicator (left side, Ctenophore-inspired bioluminescent colors)
@@ -54,66 +54,68 @@ void drawTapTempo() {
       0x87F0,  // Cyan-white
       0xFFFF   // White (peak flash)
     };
-    M5Cardputer.Display.fillCircle(dotX, dotY, 18, colors[colorIndex % 5]);
+    canvas.fillCircle(dotX, dotY, 18, colors[colorIndex % 5]);
     colorIndex++;
   } else {
-    M5Cardputer.Display.drawCircle(dotX, dotY, 18, TFT_DARKGREY);
+    canvas.drawCircle(dotX, dotY, 18, TFT_DARKGREY);
   }
 
   // BPM display (HUGE) - centered, raised up
-  M5Cardputer.Display.setTextSize(4);
+  canvas.setTextSize(4);
   if (currentBPM > 0) {
     // Ctenophore cyan theme for tempo display
     uint16_t color = tempoLocked ? 0x07FF : 0x87F0;  // Cyan when locked, cyan-white when adjusting
-    M5Cardputer.Display.setTextColor(color);
+    canvas.setTextColor(color);
 
     String bpmStr = String(currentBPM);
     int textW = bpmStr.length() * 24;  // Approx width
     int textX = (240 - textW) / 2;
-    M5Cardputer.Display.drawString(bpmStr, textX, 35);
+    canvas.drawString(bpmStr, textX, 35);
 
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(0x87F0);  // Cyan-white
-    M5Cardputer.Display.drawString("BPM", 105, 70);
+    canvas.setTextSize(1);
+    canvas.setTextColor(0x87F0);  // Cyan-white
+    canvas.drawString("BPM", 105, 70);
   } else {
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("---", 80, 40);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("---", 80, 40);
   }
 
   // Tap counter with progress bar - raised (purple theme)
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(0xA11F);  // Medium purple
+  canvas.setTextSize(1);
+  canvas.setTextColor(0xA11F);  // Medium purple
   String tapsMsg = "Taps: " + String(tapCount) + "/8";
-  M5Cardputer.Display.drawString(tapsMsg, 85, 80);
+  canvas.drawString(tapsMsg, 85, 80);
 
   // Progress bar - raised (purple)
   int barWidth = (tapCount * 200) / 8;
-  M5Cardputer.Display.drawRect(20, 95, 200, 6, 0x780F);  // Dark purple outline
+  canvas.drawRect(20, 95, 200, 6, 0x780F);  // Dark purple outline
   if (tapCount > 0) {
-    M5Cardputer.Display.fillRect(20, 95, barWidth, 6, 0xF81F);  // Bright purple/magenta
+    canvas.fillRect(20, 95, barWidth, 6, 0xF81F);  // Bright purple/magenta
   }
 
   // Status message - raised (purple)
-  M5Cardputer.Display.setTextColor(0xA11F);  // Medium purple
+  canvas.setTextColor(0xA11F);  // Medium purple
   if (tapCount == 0) {
-    M5Cardputer.Display.drawString("Tap SPACE to start", 60, 105);
+    canvas.drawString("Tap SPACE to start", 60, 105);
   } else if (tapCount < 3) {
-    M5Cardputer.Display.drawString("Keep tapping...", 70, 105);
+    canvas.drawString("Keep tapping...", 70, 105);
   } else if (!tempoLocked) {
-    M5Cardputer.Display.drawString("Locking tempo...", 70, 105);
+    canvas.drawString("Locking tempo...", 70, 105);
   } else {
-    M5Cardputer.Display.setTextColor(0xF81F);  // Bright purple when locked
-    M5Cardputer.Display.drawString("Locked!", 90, 105);
+    canvas.setTextColor(0xF81F);  // Bright purple when locked
+    canvas.drawString("Locked!", 90, 105);
   }
 
   // Instructions - raised and not cut off (purple)
-  M5Cardputer.Display.setTextSize(1);
-  M5Cardputer.Display.setTextColor(0xA11F);  // Medium purple
-  M5Cardputer.Display.drawString("SPACE=Tap R=Reset S=Sound `=Back", 20, 118);
+  canvas.setTextSize(1);
+  canvas.setTextColor(0xA11F);  // Medium purple
+  canvas.drawString("SPACE=Tap R=Reset S=Sound `=Back", 20, 118);
 
   // Sound indicator (purple when on)
-  M5Cardputer.Display.setTextColor(metronomeSound ? 0xF81F : 0x780F);  // Bright purple / dark purple
-  M5Cardputer.Display.drawString(metronomeSound ? "SOUND ON" : "SOUND OFF", 165, 25);
+  canvas.setTextColor(metronomeSound ? 0xF81F : 0x780F);  // Bright purple / dark purple
+  canvas.drawString(metronomeSound ? "SOUND ON" : "SOUND OFF", 165, 25);
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 void handleTapTempoNavigation(char key) {

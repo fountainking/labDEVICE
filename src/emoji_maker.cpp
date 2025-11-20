@@ -64,7 +64,7 @@ static const unsigned long REPEAT_INITIAL_DELAY = 500;  // 500ms before repeat s
 static const unsigned long REPEAT_RATE = 150;           // 150ms between repeats
 
 // Canvas data
-static uint16_t canvas[GRID_SIZE][GRID_SIZE];
+static uint16_t pixelGrid[GRID_SIZE][GRID_SIZE];
 static uint16_t undoBuffer[GRID_SIZE][GRID_SIZE];  // For undo functionality
 
 // Tool state
@@ -235,7 +235,7 @@ void enterEmojiMaker() {
     Serial.print(galleryCacheCount);
     Serial.println(" emojis");
 
-    M5Cardputer.Display.fillScreen(TFT_WHITE);
+    canvas.fillScreen(TFT_WHITE);
     drawEmojiMaker();
 }
 
@@ -250,7 +250,7 @@ void exitEmojiMaker() {
 void clearCanvas() {
     for (int y = 0; y < GRID_SIZE; y++) {
         for (int x = 0; x < GRID_SIZE; x++) {
-            canvas[y][x] = TRANSPARENCY_COLOR;  // Lime green = transparent
+            pixelGrid[y][x] = TRANSPARENCY_COLOR;  // Lime green = transparent
         }
     }
 }
@@ -263,7 +263,7 @@ void updateEmojiMaker() {
 }
 
 void drawEmojiMaker() {
-    M5Cardputer.Display.fillScreen(TFT_WHITE);
+    canvas.fillScreen(TFT_WHITE);
     drawStatusBar(false);
 
     // Draw all components
@@ -279,6 +279,8 @@ void drawEmojiMaker() {
     } else if (showLoadMenu) {
         drawLoadMenu();
     }
+  // Push canvas to display
+  canvas.pushSprite(0, 0);
 }
 
 static void drawGrid() {
@@ -289,20 +291,20 @@ static void drawGrid() {
             int screenY = GRID_Y + (y * PIXEL_SIZE);
 
             // Draw pixel
-            M5Cardputer.Display.fillRect(screenX, screenY, PIXEL_SIZE, PIXEL_SIZE, canvas[y][x]);
+            canvas.fillRect(screenX, screenY, PIXEL_SIZE, PIXEL_SIZE, pixelGrid[y][x]);
 
             // Draw very thin grid lines (only right and bottom edges)
             if (x < GRID_SIZE - 1) {
-                M5Cardputer.Display.drawFastVLine(screenX + PIXEL_SIZE - 1, screenY, PIXEL_SIZE, 0x8410);  // Very light grey
+                canvas.drawFastVLine(screenX + PIXEL_SIZE - 1, screenY, PIXEL_SIZE, 0x8410);  // Very light grey
             }
             if (y < GRID_SIZE - 1) {
-                M5Cardputer.Display.drawFastHLine(screenX, screenY + PIXEL_SIZE - 1, PIXEL_SIZE, 0x8410);  // Very light grey
+                canvas.drawFastHLine(screenX, screenY + PIXEL_SIZE - 1, PIXEL_SIZE, 0x8410);  // Very light grey
             }
 
             // Draw cursor (thick border in selected color)
             if (x == cursorX && y == cursorY) {
-                M5Cardputer.Display.drawRect(screenX, screenY, PIXEL_SIZE, PIXEL_SIZE, palette[selectedColor]);
-                M5Cardputer.Display.drawRect(screenX + 1, screenY + 1, PIXEL_SIZE - 2, PIXEL_SIZE - 2, palette[selectedColor]);
+                canvas.drawRect(screenX, screenY, PIXEL_SIZE, PIXEL_SIZE, palette[selectedColor]);
+                canvas.drawRect(screenX + 1, screenY + 1, PIXEL_SIZE - 2, PIXEL_SIZE - 2, palette[selectedColor]);
             }
         }
     }
@@ -323,7 +325,7 @@ static void drawGrid() {
                 if (px >= 0 && px < GRID_SIZE && py >= 0 && py < GRID_SIZE) {
                     int screenX = GRID_X + (px * PIXEL_SIZE);
                     int screenY = GRID_Y + (py * PIXEL_SIZE);
-                    M5Cardputer.Display.drawRect(screenX, screenY, PIXEL_SIZE, PIXEL_SIZE, TFT_YELLOW);
+                    canvas.drawRect(screenX, screenY, PIXEL_SIZE, PIXEL_SIZE, TFT_YELLOW);
                 }
             };
 
@@ -361,7 +363,7 @@ static void drawGrid() {
                 if (x0 >= 0 && x0 < GRID_SIZE && y0 >= 0 && y0 < GRID_SIZE) {
                     int screenX = GRID_X + (x0 * PIXEL_SIZE);
                     int screenY = GRID_Y + (y0 * PIXEL_SIZE);
-                    M5Cardputer.Display.drawRect(screenX, screenY, PIXEL_SIZE, PIXEL_SIZE, TFT_YELLOW);
+                    canvas.drawRect(screenX, screenY, PIXEL_SIZE, PIXEL_SIZE, TFT_YELLOW);
                 }
                 if (x0 == x1 && y0 == y1) break;
                 int e2 = 2 * err;
@@ -372,7 +374,7 @@ static void drawGrid() {
     }
 
     // Outer border (black)
-    M5Cardputer.Display.drawRect(GRID_X - 1, GRID_Y - 1, (GRID_SIZE * PIXEL_SIZE) + 2, (GRID_SIZE * PIXEL_SIZE) + 2, TFT_BLACK);
+    canvas.drawRect(GRID_X - 1, GRID_Y - 1, (GRID_SIZE * PIXEL_SIZE) + 2, (GRID_SIZE * PIXEL_SIZE) + 2, TFT_BLACK);
 }
 
 static void drawPalette() {
@@ -384,18 +386,18 @@ static void drawPalette() {
         int y = PALETTE_Y + (row * (PALETTE_SWATCH_SIZE + 2));
 
         // Draw color swatch
-        M5Cardputer.Display.fillRect(x, y, PALETTE_SWATCH_SIZE, PALETTE_SWATCH_SIZE, palette[i]);
+        canvas.fillRect(x, y, PALETTE_SWATCH_SIZE, PALETTE_SWATCH_SIZE, palette[i]);
 
         // Highlight based on mode
         if (navMode == NAV_PALETTE && i == paletteIndex) {
             // Active selection in palette mode (yellow)
-            M5Cardputer.Display.drawRect(x - 1, y - 1, PALETTE_SWATCH_SIZE + 2, PALETTE_SWATCH_SIZE + 2, TFT_YELLOW);
-            M5Cardputer.Display.drawRect(x - 2, y - 2, PALETTE_SWATCH_SIZE + 4, PALETTE_SWATCH_SIZE + 4, TFT_YELLOW);
+            canvas.drawRect(x - 1, y - 1, PALETTE_SWATCH_SIZE + 2, PALETTE_SWATCH_SIZE + 2, TFT_YELLOW);
+            canvas.drawRect(x - 2, y - 2, PALETTE_SWATCH_SIZE + 4, PALETTE_SWATCH_SIZE + 4, TFT_YELLOW);
         } else if (i == selectedColor) {
             // Current color (even when not in palette mode)
-            M5Cardputer.Display.drawRect(x - 1, y - 1, PALETTE_SWATCH_SIZE + 2, PALETTE_SWATCH_SIZE + 2, TFT_BLUE);
+            canvas.drawRect(x - 1, y - 1, PALETTE_SWATCH_SIZE + 2, PALETTE_SWATCH_SIZE + 2, TFT_BLUE);
         } else {
-            M5Cardputer.Display.drawRect(x - 1, y - 1, PALETTE_SWATCH_SIZE + 2, PALETTE_SWATCH_SIZE + 2, TFT_DARKGREY);
+            canvas.drawRect(x - 1, y - 1, PALETTE_SWATCH_SIZE + 2, PALETTE_SWATCH_SIZE + 2, TFT_DARKGREY);
         }
     }
 }
@@ -408,12 +410,12 @@ static void drawPreview() {
             int screenY = PREVIEW_Y + y;
 
             // Draw pixel at 1x scale
-            M5Cardputer.Display.drawPixel(screenX, screenY, canvas[y][x]);
+            canvas.drawPixel(screenX, screenY, pixelGrid[y][x]);
         }
     }
 
     // Border
-    M5Cardputer.Display.drawRect(PREVIEW_X - 1, PREVIEW_Y - 1, PREVIEW_SIZE + 2, PREVIEW_SIZE + 2, TFT_BLACK);
+    canvas.drawRect(PREVIEW_X - 1, PREVIEW_Y - 1, PREVIEW_SIZE + 2, PREVIEW_SIZE + 2, TFT_BLACK);
 }
 
 static void drawToolButtons() {
@@ -430,8 +432,8 @@ static void drawToolButtons() {
             uint16_t borderColor = isSelected ? TFT_BLACK : TFT_DARKGREY;
 
             // Draw button background
-            M5Cardputer.Display.fillRoundRect(x, y, TOOL_BUTTON_WIDTH, TOOL_BUTTON_HEIGHT, 2, bgColor);
-            M5Cardputer.Display.drawRoundRect(x, y, TOOL_BUTTON_WIDTH, TOOL_BUTTON_HEIGHT, 2, borderColor);
+            canvas.fillRoundRect(x, y, TOOL_BUTTON_WIDTH, TOOL_BUTTON_HEIGHT, 2, bgColor);
+            canvas.drawRoundRect(x, y, TOOL_BUTTON_WIDTH, TOOL_BUTTON_HEIGHT, 2, borderColor);
 
             // Draw tool icons (centered in button)
             int cx = x + TOOL_BUTTON_WIDTH / 2;
@@ -439,11 +441,11 @@ static void drawToolButtons() {
 
             switch (toolIdx) {
                 case TOOL_PENCIL:  // Pencil - small dot
-                    M5Cardputer.Display.fillRect(cx - 1, cy - 1, 3, 3, TFT_BLACK);
+                    canvas.fillRect(cx - 1, cy - 1, 3, 3, TFT_BLACK);
                     break;
 
                 case TOOL_BIG_BRUSH:  // Big brush - larger square
-                    M5Cardputer.Display.fillRect(cx - 4, cy - 4, 8, 8, TFT_BLACK);
+                    canvas.fillRect(cx - 4, cy - 4, 8, 8, TFT_BLACK);
                     break;
 
                 case TOOL_FILL:  // Fill - paint bucket from custom emoji
@@ -452,7 +454,7 @@ static void drawToolButtons() {
                         for (int px = 0; px < 16; px++) {
                             uint16_t color = PAINT_BUCKET_ICON[py][px];
                             if (color != TRANSPARENCY_COLOR) {  // Skip transparent pixels
-                                M5Cardputer.Display.drawPixel(
+                                canvas.drawPixel(
                                     x + 3 + px,
                                     y + 2 + py,
                                     color
@@ -468,7 +470,7 @@ static void drawToolButtons() {
                         for (int px = 0; px < 16; px++) {
                             uint16_t color = CIRCLE_ICON[py][px];
                             if (color != TRANSPARENCY_COLOR) {  // Skip transparent pixels
-                                M5Cardputer.Display.drawPixel(
+                                canvas.drawPixel(
                                     x + 3 + px,
                                     y + 2 + py,
                                     color
@@ -484,7 +486,7 @@ static void drawToolButtons() {
                         for (int px = 0; px < 16; px++) {
                             uint16_t color = LINE_ICON[py][px];
                             if (color != TRANSPARENCY_COLOR) {  // Skip transparent pixels
-                                M5Cardputer.Display.drawPixel(
+                                canvas.drawPixel(
                                     x + 3 + px,
                                     y + 2 + py,
                                     color
@@ -496,12 +498,12 @@ static void drawToolButtons() {
 
                 case TOOL_ROTATE:  // Rotate - circular arrows (from screenshot 3)
                     // Draw circular arrow
-                    M5Cardputer.Display.drawCircle(cx, cy, 4, TFT_BLACK);
-                    M5Cardputer.Display.drawCircle(cx, cy, 3, TFT_BLACK);
+                    canvas.drawCircle(cx, cy, 4, TFT_BLACK);
+                    canvas.drawCircle(cx, cy, 3, TFT_BLACK);
                     // Erase bottom half
-                    M5Cardputer.Display.fillRect(cx - 5, cy + 1, 11, 6, bgColor);
+                    canvas.fillRect(cx - 5, cy + 1, 11, 6, bgColor);
                     // Arrow head at top right
-                    M5Cardputer.Display.fillTriangle(
+                    canvas.fillTriangle(
                         cx + 4, cy - 2,  // tip pointing right
                         cx + 2, cy - 4,  // top
                         cx + 2, cy,      // bottom
@@ -512,7 +514,7 @@ static void drawToolButtons() {
 
             // Highlight active tool with green border
             if ((ToolMode)toolIdx == activeTool) {
-                M5Cardputer.Display.drawRoundRect(x - 1, y - 1, TOOL_BUTTON_WIDTH + 2, TOOL_BUTTON_HEIGHT + 2, 2, TFT_GREEN);
+                canvas.drawRoundRect(x - 1, y - 1, TOOL_BUTTON_WIDTH + 2, TOOL_BUTTON_HEIGHT + 2, 2, TFT_GREEN);
             }
         }
     }
@@ -520,22 +522,22 @@ static void drawToolButtons() {
 
 static void drawHints() {
     // Hints at the bottom
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_DARKGREY);
 
     int hintX = 10;
     int hintY = 125;
 
     // Show transparency indicator with lime green square
-    M5Cardputer.Display.fillRect(2, 118, 6, 6, TRANSPARENCY_COLOR);
-    M5Cardputer.Display.drawRect(1, 117, 8, 8, TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("=Transparent", 10, 118);
+    canvas.fillRect(2, 118, 6, 6, TRANSPARENCY_COLOR);
+    canvas.drawRect(1, 117, 8, 8, TFT_BLACK);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("=Transparent", 10, 118);
 
     if (moveMode) {
-        M5Cardputer.Display.drawString("MOVE MODE: Arrows=Move M=Exit", hintX, hintY);
+        canvas.drawString("MOVE MODE: Arrows=Move M=Exit", hintX, hintY);
     } else {
-        M5Cardputer.Display.drawString("Spc=Erase Del=Undo M=Move S=Save", hintX, hintY);
+        canvas.drawString("Spc=Erase Del=Undo M=Move S=Save", hintX, hintY);
     }
 }
 
@@ -553,17 +555,17 @@ static void drawGallery() {
                 for (int px = 0; px < GRID_SIZE; px++) {
                     int screenX = x + px;
                     int screenY = y + py;
-                    M5Cardputer.Display.drawPixel(screenX, screenY, galleryCache[i][py][px]);
+                    canvas.drawPixel(screenX, screenY, galleryCache[i][py][px]);
                 }
             }
         } else {
             // Draw empty box (white background)
-            M5Cardputer.Display.fillRect(x, y, GALLERY_BOX_SIZE, GALLERY_BOX_SIZE, TFT_WHITE);
+            canvas.fillRect(x, y, GALLERY_BOX_SIZE, GALLERY_BOX_SIZE, TFT_WHITE);
         }
 
         // Draw border (yellow if selected in gallery mode)
         uint16_t borderColor = (navMode == NAV_GALLERY && galleryIndex == i) ? TFT_YELLOW : TFT_DARKGREY;
-        M5Cardputer.Display.drawRect(x - 1, y - 1, GALLERY_BOX_SIZE + 2, GALLERY_BOX_SIZE + 2, borderColor);
+        canvas.drawRect(x - 1, y - 1, GALLERY_BOX_SIZE + 2, GALLERY_BOX_SIZE + 2, borderColor);
     }
 }
 
@@ -575,34 +577,34 @@ static void drawSaveMenu() {
     int menuH = 70;
 
     // Background
-    M5Cardputer.Display.fillRoundRect(menuX, menuY, menuW, menuH, 5, TFT_LIGHTGREY);
-    M5Cardputer.Display.drawRoundRect(menuX, menuY, menuW, menuH, 5, TFT_BLACK);
+    canvas.fillRoundRect(menuX, menuY, menuW, menuH, 5, TFT_LIGHTGREY);
+    canvas.drawRoundRect(menuX, menuY, menuW, menuH, 5, TFT_BLACK);
 
     // Title
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("Save Emoji", menuX + 40, menuY + 5);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("Save Emoji", menuX + 40, menuY + 5);
 
     // Name input label
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("Name:", menuX + 10, menuY + 22);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("Name:", menuX + 10, menuY + 22);
 
     // Name input box
-    M5Cardputer.Display.drawRect(menuX + 45, menuY + 20, 80, 12, TFT_DARKGREY);
-    M5Cardputer.Display.fillRect(menuX + 47, menuY + 22, 76, 8, TFT_WHITE);
+    canvas.drawRect(menuX + 45, menuY + 20, 80, 12, TFT_DARKGREY);
+    canvas.fillRect(menuX + 47, menuY + 22, 76, 8, TFT_WHITE);
 
     // Draw name (blue if editing)
-    M5Cardputer.Display.setTextColor(editingShortcut ? TFT_BLUE : TFT_BLACK);
-    M5Cardputer.Display.drawString(":" + emojiShortcut, menuX + 49, menuY + 22);
+    canvas.setTextColor(editingShortcut ? TFT_BLUE : TFT_BLACK);
+    canvas.drawString(":" + emojiShortcut, menuX + 49, menuY + 22);
 
     // Instructions
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
+    canvas.setTextColor(TFT_DARKGREY);
     if (editingShortcut) {
-        M5Cardputer.Display.drawString("Type name, Enter=Done", menuX + 15, menuY + 45);
+        canvas.drawString("Type name, Enter=Done", menuX + 15, menuY + 45);
     } else {
-        M5Cardputer.Display.drawString("N=Edit Name", menuX + 15, menuY + 45);
-        M5Cardputer.Display.drawString("Enter=Save E=Export", menuX + 15, menuY + 55);
-        M5Cardputer.Display.drawString("`=Cancel", menuX + 15, menuY + 65);
+        canvas.drawString("N=Edit Name", menuX + 15, menuY + 45);
+        canvas.drawString("Enter=Save E=Export", menuX + 15, menuY + 55);
+        canvas.drawString("`=Cancel", menuX + 15, menuY + 65);
     }
 }
 
@@ -614,17 +616,17 @@ static void drawLoadMenu() {
     int menuH = 80;
 
     // Background
-    M5Cardputer.Display.fillRoundRect(menuX, menuY, menuW, menuH, 5, TFT_LIGHTGREY);
-    M5Cardputer.Display.drawRoundRect(menuX, menuY, menuW, menuH, 5, TFT_BLACK);
+    canvas.fillRoundRect(menuX, menuY, menuW, menuH, 5, TFT_LIGHTGREY);
+    canvas.drawRoundRect(menuX, menuY, menuW, menuH, 5, TFT_BLACK);
 
     // Title
-    M5Cardputer.Display.setTextSize(1);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("Load Emoji", menuX + 50, menuY + 5);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("Load Emoji", menuX + 50, menuY + 5);
 
     if (savedEmojis.size() == 0) {
-        M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-        M5Cardputer.Display.drawString("No saved emojis", menuX + 40, menuY + 35);
+        canvas.setTextColor(TFT_DARKGREY);
+        canvas.drawString("No saved emojis", menuX + 40, menuY + 35);
     } else {
         // Show list of saved emojis
         int startIdx = max(0, loadMenuIndex - 3);
@@ -637,35 +639,35 @@ static void drawLoadMenu() {
             name.replace(".emoji", "");
 
             if (i == loadMenuIndex) {
-                M5Cardputer.Display.setTextColor(TFT_BLUE);
-                M5Cardputer.Display.drawString(">", menuX + 5, yPos);
+                canvas.setTextColor(TFT_BLUE);
+                canvas.drawString(">", menuX + 5, yPos);
             } else {
-                M5Cardputer.Display.setTextColor(TFT_BLACK);
+                canvas.setTextColor(TFT_BLACK);
             }
 
-            M5Cardputer.Display.drawString(name, menuX + 15, yPos);
+            canvas.drawString(name, menuX + 15, yPos);
         }
     }
 
-    M5Cardputer.Display.setTextColor(TFT_DARKGREY);
-    M5Cardputer.Display.drawString("ENTER=Load  ESC=Cancel", menuX + 20, menuY + 95);
+    canvas.setTextColor(TFT_DARKGREY);
+    canvas.drawString("ENTER=Load  ESC=Cancel", menuX + 20, menuY + 95);
 }
 
 // Tool helper functions
 static void saveUndo() {
-    memcpy(undoBuffer, canvas, sizeof(canvas));
+    memcpy(undoBuffer, pixelGrid, sizeof(pixelGrid));
 }
 
 static void performUndo() {
-    memcpy(canvas, undoBuffer, sizeof(canvas));
+    memcpy(pixelGrid, undoBuffer, sizeof(pixelGrid));
 }
 
 static void floodFill(int x, int y, uint16_t targetColor, uint16_t replacementColor) {
     if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return;
-    if (canvas[y][x] != targetColor) return;
+    if (pixelGrid[y][x] != targetColor) return;
     if (targetColor == replacementColor) return;
 
-    canvas[y][x] = replacementColor;
+    pixelGrid[y][x] = replacementColor;
 
     floodFill(x + 1, y, targetColor, replacementColor);
     floodFill(x - 1, y, targetColor, replacementColor);
@@ -686,7 +688,7 @@ static void drawCircle(int cx, int cy, int radius, uint16_t color) {
 
                 // Draw if within 0.5 pixels of the radius
                 if (dist >= radius - 0.5f && dist <= radius + 0.5f) {
-                    canvas[py][px] = color;
+                    pixelGrid[py][px] = color;
                 }
             }
         }
@@ -699,14 +701,14 @@ static void drawCircle(int cx, int cy, int radius, uint16_t color) {
     int d = 3 - 2 * radius;
 
     auto drawCirclePoints = [&](int cx, int cy, int x, int y) {
-        if (cx + x >= 0 && cx + x < GRID_SIZE && cy + y >= 0 && cy + y < GRID_SIZE) canvas[cy + y][cx + x] = color;
-        if (cx - x >= 0 && cx - x < GRID_SIZE && cy + y >= 0 && cy + y < GRID_SIZE) canvas[cy + y][cx - x] = color;
-        if (cx + x >= 0 && cx + x < GRID_SIZE && cy - y >= 0 && cy - y < GRID_SIZE) canvas[cy - y][cx + x] = color;
-        if (cx - x >= 0 && cx - x < GRID_SIZE && cy - y >= 0 && cy - y < GRID_SIZE) canvas[cy - y][cx - x] = color;
-        if (cx + y >= 0 && cx + y < GRID_SIZE && cy + x >= 0 && cy + x < GRID_SIZE) canvas[cy + x][cx + y] = color;
-        if (cx - y >= 0 && cx - y < GRID_SIZE && cy + x >= 0 && cy + x < GRID_SIZE) canvas[cy + x][cx - y] = color;
-        if (cx + y >= 0 && cx + y < GRID_SIZE && cy - x >= 0 && cy - x < GRID_SIZE) canvas[cy - x][cx + y] = color;
-        if (cx - y >= 0 && cx - y < GRID_SIZE && cy - x >= 0 && cy - x < GRID_SIZE) canvas[cy - x][cx - y] = color;
+        if (cx + x >= 0 && cx + x < GRID_SIZE && cy + y >= 0 && cy + y < GRID_SIZE) pixelGrid[cy + y][cx + x] = color;
+        if (cx - x >= 0 && cx - x < GRID_SIZE && cy + y >= 0 && cy + y < GRID_SIZE) pixelGrid[cy + y][cx - x] = color;
+        if (cx + x >= 0 && cx + x < GRID_SIZE && cy - y >= 0 && cy - y < GRID_SIZE) pixelGrid[cy - y][cx + x] = color;
+        if (cx - x >= 0 && cx - x < GRID_SIZE && cy - y >= 0 && cy - y < GRID_SIZE) pixelGrid[cy - y][cx - x] = color;
+        if (cx + y >= 0 && cx + y < GRID_SIZE && cy + x >= 0 && cy + x < GRID_SIZE) pixelGrid[cy + x][cx + y] = color;
+        if (cx - y >= 0 && cx - y < GRID_SIZE && cy + x >= 0 && cy + x < GRID_SIZE) pixelGrid[cy + x][cx - y] = color;
+        if (cx + y >= 0 && cx + y < GRID_SIZE && cy - x >= 0 && cy - x < GRID_SIZE) pixelGrid[cy - x][cx + y] = color;
+        if (cx - y >= 0 && cx - y < GRID_SIZE && cy - x >= 0 && cy - x < GRID_SIZE) pixelGrid[cy - x][cx - y] = color;
     };
 
     drawCirclePoints(cx, cy, x, y);
@@ -732,7 +734,7 @@ static void drawLine(int x0, int y0, int x1, int y1, uint16_t color) {
 
     while (true) {
         if (x0 >= 0 && x0 < GRID_SIZE && y0 >= 0 && y0 < GRID_SIZE) {
-            canvas[y0][x0] = color;
+            pixelGrid[y0][x0] = color;
         }
 
         if (x0 == x1 && y0 == y1) break;
@@ -753,10 +755,10 @@ static void rotateCanvas90() {
     uint16_t temp[GRID_SIZE][GRID_SIZE];
     for (int y = 0; y < GRID_SIZE; y++) {
         for (int x = 0; x < GRID_SIZE; x++) {
-            temp[x][GRID_SIZE - 1 - y] = canvas[y][x];
+            temp[x][GRID_SIZE - 1 - y] = pixelGrid[y][x];
         }
     }
-    memcpy(canvas, temp, sizeof(canvas));
+    memcpy(pixelGrid, temp, sizeof(pixelGrid));
 }
 
 // Helper function to process arrow key navigation
@@ -767,15 +769,15 @@ static void processArrowKey(char key) {
             saveUndo();
             uint16_t temp[GRID_SIZE];
             for (int x = 0; x < GRID_SIZE; x++) {
-                temp[x] = canvas[0][x];
+                temp[x] = pixelGrid[0][x];
             }
             for (int y = 0; y < GRID_SIZE - 1; y++) {
                 for (int x = 0; x < GRID_SIZE; x++) {
-                    canvas[y][x] = canvas[y + 1][x];
+                    pixelGrid[y][x] = pixelGrid[y + 1][x];
                 }
             }
             for (int x = 0; x < GRID_SIZE; x++) {
-                canvas[GRID_SIZE - 1][x] = temp[x];
+                pixelGrid[GRID_SIZE - 1][x] = temp[x];
             }
         } else if (navMode == NAV_GRID) {
             cursorY = (cursorY - 1 + GRID_SIZE) % GRID_SIZE;
@@ -794,15 +796,15 @@ static void processArrowKey(char key) {
             saveUndo();
             uint16_t temp[GRID_SIZE];
             for (int x = 0; x < GRID_SIZE; x++) {
-                temp[x] = canvas[GRID_SIZE - 1][x];
+                temp[x] = pixelGrid[GRID_SIZE - 1][x];
             }
             for (int y = GRID_SIZE - 1; y > 0; y--) {
                 for (int x = 0; x < GRID_SIZE; x++) {
-                    canvas[y][x] = canvas[y - 1][x];
+                    pixelGrid[y][x] = pixelGrid[y - 1][x];
                 }
             }
             for (int x = 0; x < GRID_SIZE; x++) {
-                canvas[0][x] = temp[x];
+                pixelGrid[0][x] = temp[x];
             }
         } else if (navMode == NAV_GRID) {
             cursorY = (cursorY + 1) % GRID_SIZE;
@@ -821,15 +823,15 @@ static void processArrowKey(char key) {
             saveUndo();
             uint16_t temp[GRID_SIZE];
             for (int y = 0; y < GRID_SIZE; y++) {
-                temp[y] = canvas[y][0];
+                temp[y] = pixelGrid[y][0];
             }
             for (int y = 0; y < GRID_SIZE; y++) {
                 for (int x = 0; x < GRID_SIZE - 1; x++) {
-                    canvas[y][x] = canvas[y][x + 1];
+                    pixelGrid[y][x] = pixelGrid[y][x + 1];
                 }
             }
             for (int y = 0; y < GRID_SIZE; y++) {
-                canvas[y][GRID_SIZE - 1] = temp[y];
+                pixelGrid[y][GRID_SIZE - 1] = temp[y];
             }
         } else if (navMode == NAV_GRID) {
             if (cursorX == 0) {
@@ -866,15 +868,15 @@ static void processArrowKey(char key) {
             saveUndo();
             uint16_t temp[GRID_SIZE];
             for (int y = 0; y < GRID_SIZE; y++) {
-                temp[y] = canvas[y][GRID_SIZE - 1];
+                temp[y] = pixelGrid[y][GRID_SIZE - 1];
             }
             for (int y = 0; y < GRID_SIZE; y++) {
                 for (int x = GRID_SIZE - 1; x > 0; x--) {
-                    canvas[y][x] = canvas[y][x - 1];
+                    pixelGrid[y][x] = pixelGrid[y][x - 1];
                 }
             }
             for (int y = 0; y < GRID_SIZE; y++) {
-                canvas[y][0] = temp[y];
+                pixelGrid[y][0] = temp[y];
             }
         } else if (navMode == NAV_GRID) {
             if (cursorX == GRID_SIZE - 1) {
@@ -1075,7 +1077,7 @@ void handleEmojiMakerInput() {
         if (key == ' ') {
             if (navMode == NAV_GRID) {
                 saveUndo();
-                canvas[cursorY][cursorX] = TRANSPARENCY_COLOR;
+                pixelGrid[cursorY][cursorX] = TRANSPARENCY_COLOR;
                 drawEmojiMaker();
             }
         }
@@ -1121,18 +1123,18 @@ void handleEmojiMakerInput() {
             saveUndo();  // Save state before any modification
 
             if (activeTool == TOOL_PENCIL) {
-                canvas[cursorY][cursorX] = palette[selectedColor];
+                pixelGrid[cursorY][cursorX] = palette[selectedColor];
                 drawEmojiMaker();
             } else if (activeTool == TOOL_BIG_BRUSH) {
                 // Paint 2x2 block
                 for (int dy = 0; dy < 2 && cursorY + dy < GRID_SIZE; dy++) {
                     for (int dx = 0; dx < 2 && cursorX + dx < GRID_SIZE; dx++) {
-                        canvas[cursorY + dy][cursorX + dx] = palette[selectedColor];
+                        pixelGrid[cursorY + dy][cursorX + dx] = palette[selectedColor];
                     }
                 }
                 drawEmojiMaker();
             } else if (activeTool == TOOL_FILL) {
-                uint16_t targetColor = canvas[cursorY][cursorX];
+                uint16_t targetColor = pixelGrid[cursorY][cursorX];
                 floodFill(cursorX, cursorY, targetColor, palette[selectedColor]);
                 drawEmojiMaker();
             } else if (activeTool == TOOL_CIRCLE) {
@@ -1188,7 +1190,7 @@ void handleEmojiMakerInput() {
         } else if (navMode == NAV_GALLERY) {
             // Load emoji from gallery
             if (galleryIndex < galleryCacheCount) {
-                memcpy(canvas, galleryCache[galleryIndex], sizeof(canvas));
+                memcpy(pixelGrid, galleryCache[galleryIndex], sizeof(pixelGrid));
                 navMode = NAV_GRID;
                 drawEmojiMaker();
             }
@@ -1211,21 +1213,21 @@ static void saveEmojiToLabChat() {
     // Save canvas data
     File file = SD.open(filename, FILE_WRITE);
     if (!file) {
-        M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_RED);
-        M5Cardputer.Display.setTextColor(TFT_WHITE);
-        M5Cardputer.Display.drawString("Save failed!", 10, 5);
+        canvas.fillRect(0, 0, 240, 20, TFT_RED);
+        canvas.setTextColor(TFT_BLACK);
+        canvas.drawString("Save failed!", 10, 5);
         delay(1000);
         return;
     }
 
     // Write 16x16 grid of uint16_t colors
-    file.write((uint8_t*)canvas, sizeof(canvas));
+    file.write((uint8_t*)pixelGrid, sizeof(pixelGrid));
     file.close();
 
     // Success message
-    M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_GREEN);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("Saved: :" + emojiShortcut, 10, 5);
+    canvas.fillRect(0, 0, 240, 20, TFT_GREEN);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("Saved: :" + emojiShortcut, 10, 5);
     delay(1500);
 
     // Reload gallery cache to show new emoji
@@ -1244,9 +1246,9 @@ static void exportEmojiToLabChat() {
     }
 
     // Show converting message
-    M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_BLUE);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.drawString("Converting...", 80, 5);
+    canvas.fillRect(0, 0, 240, 20, TFT_BLUE);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("Converting...", 80, 5);
     delay(300); // Give user visual feedback
 
     // Check if we already have 20 system emojis
@@ -1268,9 +1270,9 @@ static void exportEmojiToLabChat() {
     if (!hasStrawberry) emojiCount++; // Reserve slot 0 for strawberry
 
     if (emojiCount >= 20) {
-        M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_RED);
-        M5Cardputer.Display.setTextColor(TFT_WHITE);
-        M5Cardputer.Display.drawString("Error: 20 slots full!", 50, 5);
+        canvas.fillRect(0, 0, 240, 20, TFT_RED);
+        canvas.setTextColor(TFT_BLACK);
+        canvas.drawString("Error: 20 slots full!", 50, 5);
         delay(2000);
         return;
     }
@@ -1280,15 +1282,15 @@ static void exportEmojiToLabChat() {
 
     File file = SD.open(filename, FILE_WRITE);
     if (!file) {
-        M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_RED);
-        M5Cardputer.Display.setTextColor(TFT_WHITE);
-        M5Cardputer.Display.drawString("Export failed!", 70, 5);
+        canvas.fillRect(0, 0, 240, 20, TFT_RED);
+        canvas.setTextColor(TFT_BLACK);
+        canvas.drawString("Export failed!", 70, 5);
         delay(1000);
         return;
     }
 
     // Write 16x16 grid of uint16_t colors (512 bytes)
-    file.write((uint8_t*)canvas, sizeof(canvas));
+    file.write((uint8_t*)pixelGrid, sizeof(pixelGrid));
     file.flush(); // Force write to SD card
     file.close();
 
@@ -1304,9 +1306,9 @@ static void exportEmojiToLabChat() {
     delay(100);
 
     // Success message
-    M5Cardputer.Display.fillRect(0, 0, 240, 20, TFT_GREEN);
-    M5Cardputer.Display.setTextColor(TFT_BLACK);
-    M5Cardputer.Display.drawString("Exported: :" + emojiShortcut, 50, 5);
+    canvas.fillRect(0, 0, 240, 20, TFT_GREEN);
+    canvas.setTextColor(TFT_BLACK);
+    canvas.drawString("Exported: :" + emojiShortcut, 50, 5);
 
     // Reload system emojis so new emoji is immediately available in LabCHAT
     extern void reloadSystemEmojis();
@@ -1352,7 +1354,7 @@ static void loadEmojiFromFile(const String& filename) {
     }
 
     // Read canvas data
-    file.read((uint8_t*)canvas, sizeof(canvas));
+    file.read((uint8_t*)pixelGrid, sizeof(pixelGrid));
     file.close();
 
     // Extract shortcut name
@@ -1410,7 +1412,7 @@ static bool canvasHasContent() {
     // Check if canvas has any non-white pixels
     for (int y = 0; y < GRID_SIZE; y++) {
         for (int x = 0; x < GRID_SIZE; x++) {
-            if (canvas[y][x] != TFT_WHITE) {
+            if (pixelGrid[y][x] != TFT_WHITE) {
                 return true;
             }
         }
