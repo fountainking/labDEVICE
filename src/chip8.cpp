@@ -577,8 +577,8 @@ void scanForROMs() {
     if (!file.isDirectory()) {
       String name = file.name();
 
-      // Skip hidden files and index files
-      if (name.startsWith(".") || name == "index.txt" || name.endsWith("index.txt")) {
+      // Skip hidden files, index files, and config files
+      if (name.startsWith(".") || name == "index.txt" || name.endsWith("index.txt") || name.endsWith(".cfg")) {
         file = root.openNextFile();
         continue;
       }
