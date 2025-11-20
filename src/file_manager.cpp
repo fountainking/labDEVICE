@@ -1296,18 +1296,27 @@ void loadFile(String path) {
 
 void handleFileManagerNavigation(char key) {
   if (fmState == FM_FOLDER_VIEW) {
+    static int lastSelectedIndex = -1;
+    bool needsRedraw = false;
+
     if (key == ';') {
       if (selectedFileIndex > 0) {
         selectedFileIndex--;
         if (settings.soundEnabled) M5Cardputer.Speaker.tone(800, 50);
-        drawFolderView();
+        needsRedraw = (selectedFileIndex != lastSelectedIndex);
       }
     } else if (key == '.') {
       if (selectedFileIndex < fileCount - 1) {
         selectedFileIndex++;
         if (settings.soundEnabled) M5Cardputer.Speaker.tone(1000, 50);
-        drawFolderView();
+        needsRedraw = (selectedFileIndex != lastSelectedIndex);
       }
+    }
+
+    // Only redraw if selection actually changed
+    if (needsRedraw) {
+      lastSelectedIndex = selectedFileIndex;
+      drawFolderView();
     }
   } else if (fmState == FM_FILE_VIEWER) {
     // Navigate to previous/next file while viewing

@@ -1857,7 +1857,7 @@ void enterLabChat() {
     pinInput = "";
   }
 
-  drawLabChat();
+  needsRedraw = true;  // Use flag instead of direct draw
 }
 
 void exitLabChat() {
@@ -1892,7 +1892,7 @@ void updateLabChat() {
   // Handle redraw flag (only when chat active)
   if (needsRedraw) {
     needsRedraw = false;
-    drawLabChat();
+    needsRedraw = true;  // Use flag instead of direct draw
   }
 
   // Cursor blink (don't redraw entire screen, just toggle cursor state)
@@ -2097,7 +2097,7 @@ void handleLabChatNavigation(char key) {
               pinInput = "";
             } else {
               pinInput = "";
-              drawLabChat();
+              needsRedraw = true;  // Use flag instead of direct draw
             }
           }
         }
@@ -2512,7 +2512,7 @@ void handleLabChatNavigation(char key) {
           canvas.setTextColor(TFT_BLACK);
           canvas.drawString("Emoji cache cleared!", 50, 112);
           delay(800);
-          drawLabChat();
+          needsRedraw = true;  // Use flag instead of direct draw
         } else if (key == 27) { // ESC - exit DM mode
           dmTargetID = "";
           dmTargetUsername = "";
