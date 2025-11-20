@@ -100,6 +100,7 @@ String showTextInputDialog(String title, String defaultValue, String okLabel = "
     String footerText = "Enter=" + okLabel + "  `=" + cancelLabel;
     drawNavHint(footerText.c_str(), 40, 85);
 
+    canvas.pushSprite(0, 0);
     M5Cardputer.update();
 
     if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
@@ -131,8 +132,6 @@ String showTextInputDialog(String title, String defaultValue, String okLabel = "
 
     delay(10);
   }
-  // Push canvas to display
-  canvas.pushSprite(0, 0);
 }
 
 // Generic confirmation dialog - used for delete, etc.
@@ -155,6 +154,7 @@ bool showConfirmDialog(String title, String message, String okLabel = "Yes", Str
   canvas.setTextColor(TFT_DARKGREY);
   String footerText = "Enter=" + okLabel + "  `=" + cancelLabel;
   drawNavHint(footerText.c_str(), 60, 82);
+  canvas.pushSprite(0, 0);
 
   // Wait for confirmation
   while (true) {
@@ -191,8 +191,6 @@ void drawNavHint(const char* text, int x, int y) {
   // Draw black text on yellow background
   canvas.setTextColor(TFT_BLACK);
   canvas.drawString(text, x, y);
-  // Push canvas to display
-  canvas.pushSprite(0, 0);
 }
 
 // Draw star icon (matches WiFi Transfer style!)
@@ -218,8 +216,6 @@ void drawStar(int x, int y, int size, uint16_t color) {
     canvas.fillTriangle(x, y, x1, y1, x2, y2, color);
     canvas.fillTriangle(x, y, x2, y2, x3, y3, color);
   }
-  // Push canvas to display
-  canvas.pushSprite(0, 0);
 }
 
 // Custom header for file manager - matches WiFi Transfer style!
@@ -265,8 +261,6 @@ void drawFileManagerHeader() {
       TFT_BLUE
     );
   }
-  // Push canvas to display
-  canvas.pushSprite(0, 0);
 }
 
 

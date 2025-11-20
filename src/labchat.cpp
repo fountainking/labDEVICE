@@ -195,8 +195,6 @@ bool wasEmojiSentToPeer(const String& shortcut, const String& peerDeviceID) {
     }
   }
   return false; // Not sent yet
-  // Push canvas to display
-  canvas.pushSprite(0, 0);
 }
 
 // Helper to mark emoji as sent to a peer
@@ -467,8 +465,6 @@ void drawLabChatHeader(const char* subtitle) {
     canvas.drawString(" - ", 29 + 42, 14);
     canvas.drawString(subtitle, 29 + 42 + 18, 14);
   }
-  // Push canvas to display
-  canvas.pushSprite(0, 0);
 }
 
 void drawTextInputBox(const char* prompt, String& input, bool isPassword) {
@@ -505,8 +501,6 @@ void drawTextInputBox(const char* prompt, String& input, bool isPassword) {
 
   // Nav hints
   drawNavHint("Enter=OK  Del=Erase  `=Back", 40, 95);
-  // Push canvas to display
-  canvas.pushSprite(0, 0);
 }
 
 // ============================================================================
@@ -1892,7 +1886,7 @@ void updateLabChat() {
   // Handle redraw flag (only when chat active)
   if (needsRedraw) {
     needsRedraw = false;
-    needsRedraw = true;  // Use flag instead of direct draw
+    drawLabChat();
   }
 
   // Cursor blink (don't redraw entire screen, just toggle cursor state)

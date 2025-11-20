@@ -744,6 +744,7 @@ void loop() {
         } else if (currentScreenNumber == 16) {
           // LabCHAT
           enterLabChat();
+          drawLabChat();
         }
       }
 
