@@ -348,7 +348,7 @@ void setup() {
 
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
-  canvas.setRotation(1);
+  M5Cardputer.Display.setRotation(1);
 
   // Initialize canvas for double-buffered rendering (eliminates flicker)
   canvas.createSprite(240, 135);

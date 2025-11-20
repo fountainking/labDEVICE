@@ -154,6 +154,9 @@ void updateStarGifPlayback() {
 
     starGifFrameCount++;
 
+    // Push canvas to display after drawing star frame
+    canvas.pushSprite(0, 0);
+
     // Safety limit
     if (starGifFrameCount > 50) {
       Serial.println(F("Hit safety limit - stopping animation"));
