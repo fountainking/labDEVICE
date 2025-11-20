@@ -351,8 +351,14 @@ void setup() {
   M5Cardputer.Display.setRotation(1);
 
   // Initialize canvas for double-buffered rendering (eliminates flicker)
-  canvas.createSprite(240, 135);
-  canvas.setColorDepth(16); // 16-bit color (RGB565)
+  Serial.printf("Free heap before canvas: %d bytes\n", ESP.getFreeHeap());
+  canvas.setColorDepth(8); // 8-bit color (256 colors) - MUST set BEFORE createSprite
+  bool canvasOk = canvas.createSprite(240, 135);
+  Serial.printf("Canvas created: %s, Free heap after: %d bytes\n",
+                canvasOk ? "SUCCESS" : "FAILED", ESP.getFreeHeap());
+  if (!canvasOk) {
+    Serial.println("ERROR: Canvas creation failed! Display will not work properly.");
+  }
 
   // Set CPU to 80MHz for battery savings (~100mA reduction from 240MHz)
   setCpuFrequencyMhz(80);
