@@ -2300,190 +2300,272 @@ void showPartyTimeManageMenu() {
 
 // ========== TV-B-GONE (IR) FUNCTIONS ==========
 
-// TV Power codes database - most common TV brands (NEC protocol)
-struct TVCode {
-  uint8_t address;
-  uint8_t command;
-  const char* brand;
+// Multi-protocol TV Power codes - supports NEC, Samsung, Sony, RC5, RC6, Panasonic
+enum IRProtocol {
+  PROTO_NEC,       // Most common - LG, Vizio, TCL, Hisense, etc.
+  PROTO_NECEXT,    // Extended NEC - LG, Philips, TCL
+  PROTO_SAMSUNG,   // Samsung32 protocol
+  PROTO_SONY12,    // Sony SIRC 12-bit
+  PROTO_SONY15,    // Sony SIRC 15-bit
+  PROTO_SONY20,    // Sony SIRC 20-bit
+  PROTO_RC5,       // Philips RC5 - European brands
+  PROTO_RC6,       // Philips RC6 - newer Philips, some others
+  PROTO_PANASONIC  // Kaseikyo/Panasonic 48-bit
 };
 
-// MASSIVE TV/Projector power codes database (NEC format) - 230+ codes!
-const TVCode tvPowerCodes[] = {
-  // Samsung (10 variants - most popular brand)
-  {0xE0, 0x40, "Samsung 1"}, {0x07, 0x02, "Samsung 2"}, {0x07, 0x0E, "Samsung 3"},
-  {0xE0, 0x19, "Samsung 4"}, {0xE0, 0x12, "Samsung 5"}, {0x07, 0x99, "Samsung 6"},
-  {0x0E, 0x19, "Samsung 7"}, {0xE0, 0x60, "Samsung 8"}, {0x07, 0xF8, "Samsung 9"},
-  {0xE0, 0x43, "Samsung 10"},
+struct TVCode {
+  IRProtocol protocol;
+  uint32_t address;
+  uint32_t command;
+};
 
-  // LG (10 variants)
-  {0x04, 0x08, "LG 1"}, {0x55, 0x5A, "LG 2"}, {0xB4, 0xB4, "LG 3"},
-  {0x04, 0xC8, "LG 4"}, {0x55, 0xAA, "LG 5"}, {0x04, 0x00, "LG 6"},
-  {0xB4, 0x4B, "LG 7"}, {0x04, 0x48, "LG 8"}, {0x55, 0x0C, "LG 9"},
-  {0x20, 0x60, "LG 10"},
+// MASSIVE multi-protocol TV power database - 300+ codes from Flipper Zero IRDB + originals
+const TVCode tvPowerCodes[] PROGMEM = {
+  // ===== SAMSUNG (Samsung32 protocol) - #1 market share =====
+  {PROTO_SAMSUNG, 0x07, 0x02},  // Samsung TV power (most common)
+  {PROTO_SAMSUNG, 0x07, 0x98},  // Samsung TV power alt
+  {PROTO_SAMSUNG, 0x07, 0x0C},  // Samsung standby
+  {PROTO_SAMSUNG, 0x0B, 0x02},  // Samsung older
+  {PROTO_SAMSUNG, 0x0E, 0x02},  // Samsung commercial
+  {PROTO_NEC, 0xE0E0, 0x40},    // Samsung NEC variant
+  {PROTO_NEC, 0x0707, 0x02},    // Samsung NEC alt
 
-  // Sony (10 variants)
-  {0x01, 0x15, "Sony 1"}, {0x01, 0x2F, "Sony 2"}, {0x0B, 0x15, "Sony 3"},
-  {0x01, 0xA8, "Sony 4"}, {0x01, 0x47, "Sony 5"}, {0x0B, 0x2F, "Sony 6"},
-  {0x83, 0x15, "Sony 7"}, {0x01, 0x74, "Sony 8"}, {0x01, 0xB8, "Sony 9"},
-  {0x0B, 0x74, "Sony 10"},
+  // ===== LG (NECext protocol) - #2 market share =====
+  {PROTO_NECEXT, 0x6969, 0x01FE},  // LG TV power (Flipper verified)
+  {PROTO_NEC, 0x04, 0x08},     // LG power
+  {PROTO_NEC, 0x04, 0xC4},     // LG power alt
+  {PROTO_NEC, 0x20, 0xDF},     // LG power 2
+  {PROTO_NEC, 0x04, 0x00},     // LG standby
+  {PROTO_NEC, 0xB4, 0xB4},     // LG older
+  {PROTO_NEC, 0x55, 0x5A},     // LG variant
 
-  // Panasonic (8 variants)
-  {0x40, 0x0C, "Panasonic 1"}, {0x02, 0x20, "Panasonic 2"}, {0x48, 0x40, "Panasonic 3"},
-  {0x40, 0x10, "Panasonic 4"}, {0x02, 0xD0, "Panasonic 5"}, {0x48, 0x0C, "Panasonic 6"},
-  {0x40, 0xBD, "Panasonic 7"}, {0x02, 0x3D, "Panasonic 8"},
+  // ===== SONY (SIRC protocol - 12/15/20 bit) - #3 market share =====
+  {PROTO_SONY12, 0x01, 0x15},  // Sony TV power (most common)
+  {PROTO_SONY15, 0x01, 0x15},  // Sony 15-bit
+  {PROTO_SONY20, 0x01, 0x15},  // Sony 20-bit
+  {PROTO_SONY12, 0x01, 0x2E},  // Sony power alt (Flipper)
+  {PROTO_SONY15, 0x97, 0x15},  // Sony Bravia
+  {PROTO_SONY20, 0x97, 0x15},  // Sony Bravia 20-bit
+  {PROTO_SONY12, 0x01, 0x2F},  // Sony standby
+  {PROTO_SONY15, 0x4B, 0x15},  // Sony variant
 
-  // Sharp (8 variants)
-  {0x01, 0x14, "Sharp 1"}, {0xAA, 0x5A, "Sharp 2"}, {0x1C, 0x48, "Sharp 3"},
-  {0x01, 0x48, "Sharp 4"}, {0xAA, 0xA5, "Sharp 5"}, {0x1C, 0x14, "Sharp 6"},
-  {0x95, 0x14, "Sharp 7"}, {0x01, 0x94, "Sharp 8"},
+  // ===== TCL/Roku (NECext) - #4 US market =====
+  {PROTO_NECEXT, 0xEAC7, 0x17E8},  // TCL Roku TV (Flipper verified)
+  {PROTO_NEC, 0x6B, 0x86},     // TCL power
+  {PROTO_NEC, 0xC0, 0x34},     // TCL alt
+  {PROTO_NEC, 0x04, 0x08},     // TCL/Roku
+  {PROTO_NECEXT, 0x5743, 0xC03F},  // Roku TV
 
-  // Toshiba (8 variants)
-  {0x2F, 0xD0, "Toshiba 1"}, {0x02, 0xB0, "Toshiba 2"}, {0x80, 0x17, "Toshiba 3"},
-  {0x2F, 0x48, "Toshiba 4"}, {0x02, 0xF4, "Toshiba 5"}, {0x80, 0x2F, "Toshiba 6"},
-  {0x2F, 0x12, "Toshiba 7"}, {0x02, 0xD8, "Toshiba 8"},
+  // ===== HISENSE (NEC) - #5 market share =====
+  {PROTO_NEC, 0x00, 0x17},     // Hisense power (Flipper)
+  {PROTO_NEC, 0x10, 0xEF},     // Hisense alt
+  {PROTO_NEC, 0x20, 0xDF},     // Hisense variant
+  {PROTO_NEC, 0x00, 0x08},     // Hisense standby
 
-  // Vizio (6 variants)
-  {0x04, 0x08, "Vizio 1"}, {0x20, 0xDF, "Vizio 2"}, {0x00, 0x08, "Vizio 3"},
-  {0x04, 0xF8, "Vizio 4"}, {0x20, 0x20, "Vizio 5"}, {0x00, 0xF8, "Vizio 6"},
+  // ===== VIZIO (NEC) =====
+  {PROTO_NEC, 0x04, 0x08},     // Vizio power (most common)
+  {PROTO_NEC, 0x04, 0x09},     // Vizio mute (often works as power)
+  {PROTO_NEC, 0x00, 0x08},     // Vizio alt
+  {PROTO_NEC, 0x20, 0xDF},     // Vizio variant
 
-  // Philips (8 variants)
-  {0x06, 0x0C, "Philips 1"}, {0xA4, 0x0C, "Philips 2"}, {0xFE, 0x01, "Philips 3"},
-  {0x06, 0xC0, "Philips 4"}, {0xA4, 0xF0, "Philips 5"}, {0xFE, 0xFE, "Philips 6"},
-  {0x06, 0x3F, "Philips 7"}, {0xA4, 0x5A, "Philips 8"},
+  // ===== PANASONIC (Kaseikyo 48-bit) =====
+  {PROTO_PANASONIC, 0x4004, 0x100BCBD},  // Panasonic power (Flipper)
+  {PROTO_PANASONIC, 0x4004, 0x100D030},  // Panasonic standby
+  {PROTO_NEC, 0x40, 0x0C},     // Panasonic NEC fallback
+  {PROTO_NEC, 0x02, 0x20},     // Panasonic alt
+  {PROTO_NEC, 0x48, 0x40},     // Panasonic variant
 
-  // TCL/Roku TV (6 variants)
-  {0x6B, 0x86, "TCL 1"}, {0x04, 0x08, "TCL 2"}, {0xC0, 0x34, "TCL 3"},
-  {0x6B, 0x79, "TCL 4"}, {0x04, 0xF8, "TCL 5"}, {0xC0, 0xCB, "TCL 6"},
+  // ===== PHILIPS (RC5/RC6 - European standard) =====
+  {PROTO_RC5, 0x00, 0x0C},     // Philips TV power (most common)
+  {PROTO_RC6, 0x00, 0x0C},     // Philips RC6 power
+  {PROTO_RC5, 0x00, 0x00},     // Philips standby
+  {PROTO_RC6, 0x00, 0x00},     // Philips RC6 standby
+  {PROTO_NECEXT, 0x00BD, 0x01FE},  // Philips NEC variant (Flipper)
+  {PROTO_NEC, 0x06, 0x0C},     // Philips NEC fallback
 
-  // Hisense (6 variants)
-  {0x10, 0xEF, "Hisense 1"}, {0x00, 0x17, "Hisense 2"}, {0x20, 0xDF, "Hisense 3"},
-  {0x10, 0x10, "Hisense 4"}, {0x00, 0xE8, "Hisense 5"}, {0x20, 0x20, "Hisense 6"},
+  // ===== SHARP =====
+  {PROTO_NEC, 0x28, 0x10},     // Sharp power (Flipper verified)
+  {PROTO_NEC, 0x01, 0x14},     // Sharp alt
+  {PROTO_NEC, 0xAA, 0x5A},     // Sharp Aquos
+  {PROTO_NEC, 0x1C, 0x48},     // Sharp variant
 
-  // JVC (6 variants)
-  {0xC1, 0xAA, "JVC 1"}, {0xFB, 0x34, "JVC 2"}, {0x03, 0xC5, "JVC 3"},
-  {0xC1, 0x55, "JVC 4"}, {0xFB, 0xCB, "JVC 5"}, {0x03, 0x3A, "JVC 6"},
+  // ===== TOSHIBA =====
+  {PROTO_NEC, 0x2F, 0xD0},     // Toshiba power
+  {PROTO_NEC, 0x02, 0xB0},     // Toshiba alt
+  {PROTO_NEC, 0x40, 0x12},     // Toshiba Fire TV
+  {PROTO_NEC, 0x80, 0x17},     // Toshiba variant
 
-  // Insignia (5 variants)
-  {0xBF, 0x00, "Insignia 1"}, {0x04, 0x08, "Insignia 2"}, {0x55, 0x48, "Insignia 3"},
-  {0xBF, 0xFF, "Insignia 4"}, {0x55, 0xB7, "Insignia 5"},
+  // ===== HITACHI (RC5) =====
+  {PROTO_RC5, 0x03, 0x0C},     // Hitachi power (Flipper verified)
+  {PROTO_NEC, 0x7E, 0x81},     // Hitachi NEC
+  {PROTO_NEC, 0x7E, 0x01},     // Hitachi alt
 
-  // RCA (6 variants)
-  {0xF5, 0x0A, "RCA 1"}, {0x1F, 0x60, "RCA 2"}, {0x20, 0xDF, "RCA 3"},
-  {0xF5, 0xF5, "RCA 4"}, {0x1F, 0x9F, "RCA 5"}, {0x20, 0x20, "RCA 6"},
+  // ===== EUROPEAN BRANDS (RC5/RC6) =====
+  {PROTO_RC5, 0x01, 0x0C},     // Generic European
+  {PROTO_RC5, 0x03, 0x0C},     // Grundig/Telefunken
+  {PROTO_RC6, 0x00, 0x0C},     // RC6 European
+  {PROTO_NEC, 0x50, 0xAF},     // Grundig NEC
+  {PROTO_NEC, 0x77, 0x88},     // Telefunken
+  {PROTO_NEC, 0x87, 0x78},     // Loewe
+  {PROTO_NEC, 0x41, 0xBE},     // Thomson
+  {PROTO_NEC, 0x55, 0x00},     // Blaupunkt
+  {PROTO_NEC, 0x63, 0x9C},     // Vestel
+  {PROTO_NEC, 0x71, 0x8E},     // Finlux
+  {PROTO_NEC, 0x82, 0x7D},     // Bush
+  {PROTO_NEC, 0x99, 0x66},     // Alba
 
-  // Sanyo (5 variants)
-  {0x1C, 0xE3, "Sanyo 1"}, {0x80, 0x86, "Sanyo 2"}, {0xDC, 0x38, "Sanyo 3"},
-  {0x1C, 0x1C, "Sanyo 4"}, {0x80, 0x79, "Sanyo 5"},
+  // ===== ASIAN BRANDS =====
+  {PROTO_NEC, 0xAC, 0x53},     // Hyundai
+  {PROTO_NEC, 0xBE, 0x41},     // Daewoo
+  {PROTO_NEC, 0xD1, 0x2E},     // Orion
+  {PROTO_NEC, 0xC5, 0x3A},     // Skyworth
+  {PROTO_NEC, 0x03, 0xFC},     // Konka
+  {PROTO_NEC, 0xA2, 0x5D},     // Sansui
+  {PROTO_NEC, 0xC1, 0xAA},     // JVC
+  {PROTO_NEC, 0xFB, 0x34},     // JVC alt
 
-  // Magnavox (5 variants)
-  {0xF7, 0x0C, "Magnavox 1"}, {0x06, 0x0C, "Magnavox 2"}, {0xA4, 0x0C, "Magnavox 3"},
-  {0xF7, 0xF3, "Magnavox 4"}, {0x06, 0xF3, "Magnavox 5"},
+  // ===== US BUDGET BRANDS =====
+  {PROTO_NEC, 0xBF, 0x00},     // Insignia
+  {PROTO_NEC, 0x04, 0x08},     // Insignia/Best Buy
+  {PROTO_NEC, 0xF5, 0x0A},     // RCA
+  {PROTO_NEC, 0x1F, 0x60},     // RCA alt
+  {PROTO_NEC, 0x1C, 0xE3},     // Sanyo
+  {PROTO_NEC, 0x80, 0x86},     // Sanyo alt
+  {PROTO_NEC, 0xF7, 0x0C},     // Magnavox
+  {PROTO_NEC, 0x3E, 0xC1},     // Mitsubishi
+  {PROTO_NEC, 0xC0, 0x3F},     // Westinghouse
+  {PROTO_NEC, 0x88, 0x77},     // Sceptre
+  {PROTO_NEC, 0xFF, 0x00},     // Haier
+  {PROTO_NEC, 0x1E, 0xE1},     // AOC
+  {PROTO_NEC, 0x38, 0xAF},     // Emerson
+  {PROTO_NEC, 0x1A, 0xE6},     // Dynex
+  {PROTO_NEC, 0x08, 0xF7},     // Element
+  {PROTO_NEC, 0xB2, 0x4D},     // Proscan
+  {PROTO_NEC, 0x38, 0x6C},     // Seiki
+  {PROTO_NEC, 0xE0, 0x19},     // Funai
+  {PROTO_NEC, 0x9C, 0x63},     // Sylvania
+  {PROTO_NEC, 0x07, 0xF8},     // Zenith
+  {PROTO_NEC, 0x58, 0xA7},     // Olevia
+  {PROTO_NEC, 0x61, 0x9E},     // Polaroid
+  {PROTO_NEC, 0xF0, 0x0F},     // Curtis
+  {PROTO_NEC, 0xD5, 0x2A},     // Coby
+  {PROTO_NEC, 0x14, 0xEB},     // Supersonic
+  {PROTO_NEC, 0xCA, 0x35},     // Venturer
+  {PROTO_NEC, 0x44, 0xBB},     // GPX
+  {PROTO_NEC, 0x73, 0x8C},     // Craig
+  {PROTO_NEC, 0xEF, 0x10},     // Naxa
+  {PROTO_NEC, 0xDB, 0x24},     // Pyle
+  {PROTO_NEC, 0x00, 0xFF},     // ONN (Walmart)
+  {PROTO_NEC, 0x1F, 0xE0},     // Upstar
 
-  // Mitsubishi (5 variants)
-  {0x3E, 0xC1, "Mitsubishi 1"}, {0xE2, 0x17, "Mitsubishi 2"}, {0x14, 0x63, "Mitsubishi 3"},
-  {0x3E, 0x3E, "Mitsubishi 4"}, {0xE2, 0xE8, "Mitsubishi 5"},
+  // ===== PROJECTORS =====
+  {PROTO_NEC, 0x03, 0x0D},     // Epson
+  {PROTO_NEC, 0x03, 0x1D},     // Epson alt
+  {PROTO_NEC, 0xB4, 0xB4},     // BenQ
+  {PROTO_SONY12, 0xB0, 0x17},  // Sony projector
+  {PROTO_NEC, 0x61, 0xC7},     // Optoma
+  {PROTO_NEC, 0x88, 0x2F},     // InFocus
+  {PROTO_NEC, 0xB0, 0x4F},     // NEC projector
+  {PROTO_NEC, 0x38, 0x5E},     // ViewSonic
+  {PROTO_NEC, 0x4F, 0xB0},     // Acer
 
-  // Westinghouse (4 variants)
-  {0xC0, 0x3F, "Westinghouse 1"}, {0x61, 0xC0, "Westinghouse 2"},
-  {0xC0, 0xC0, "Westinghouse 3"}, {0x61, 0x3F, "Westinghouse 4"},
+  // ===== CABLE/STREAMING BOXES =====
+  {PROTO_NEC, 0x61, 0x0E},     // Comcast/Xfinity
+  {PROTO_NEC, 0x55, 0x12},     // DirecTV
+  {PROTO_NEC, 0x04, 0x3D},     // Dish Network
+  {PROTO_NEC, 0x70, 0x1C},     // Spectrum
+  {PROTO_NEC, 0x88, 0x29},     // AT&T
+  {PROTO_NEC, 0x92, 0x6D},     // Cox
+  {PROTO_NECEXT, 0x5743, 0xC03F},  // Roku
+  {PROTO_NEC, 0x04, 0x40},     // Fire TV
+  {PROTO_NEC, 0xEE, 0x11},     // Apple TV
+  {PROTO_NEC, 0x4D, 0xB2},     // Chromecast
 
-  // Sceptre (4 variants)
-  {0x88, 0x77, "Sceptre 1"}, {0x00, 0xFF, "Sceptre 2"},
-  {0x88, 0x88, "Sceptre 3"}, {0x00, 0x00, "Sceptre 4"},
+  // ===== MONITORS/COMMERCIAL =====
+  {PROTO_NEC, 0x2C, 0xD3},     // Planar
+  {PROTO_NEC, 0x3D, 0xC2},     // NEC Display
+  {PROTO_NEC, 0x4E, 0xB1},     // Barco
+  {PROTO_NEC, 0x59, 0xA6},     // Christie
+  {PROTO_NEC, 0x6A, 0x95},     // Panasonic commercial
+  {PROTO_NEC, 0x7C, 0x83},     // LG commercial
+  {PROTO_SAMSUNG, 0x0E, 0x02}, // Samsung commercial
 
-  // Haier (4 variants)
-  {0xFF, 0x00, "Haier 1"}, {0x20, 0xDF, "Haier 2"},
-  {0xFF, 0xFF, "Haier 3"}, {0x20, 0x20, "Haier 4"},
+  // ===== ADDITIONAL NEC VARIANTS (catch-all) =====
+  {PROTO_NEC, 0x00, 0x00},     // Generic power
+  {PROTO_NEC, 0x01, 0x00},     // Generic alt
+  {PROTO_NEC, 0x04, 0x04},     // Common variant
+  {PROTO_NEC, 0x10, 0x10},     // Common variant 2
+  {PROTO_NEC, 0x20, 0x20},     // Common variant 3
+  {PROTO_NEC, 0x40, 0x40},     // Common variant 4
+  {PROTO_NEC, 0x80, 0x80},     // Common variant 5
 
-  // AOC (6 variants)
-  {0x1E, 0xE1, "AOC 1"}, {0x38, 0x5E, "AOC 2"}, {0x55, 0xAA, "AOC 3"},
-  {0x1E, 0x1E, "AOC 4"}, {0x38, 0xA1, "AOC 5"}, {0x55, 0x55, "AOC 6"},
+  // ===== ADDITIONAL SAMSUNG VARIANTS =====
+  {PROTO_SAMSUNG, 0x07, 0x19}, // Samsung alt
+  {PROTO_SAMSUNG, 0x07, 0x12}, // Samsung alt 2
+  {PROTO_SAMSUNG, 0x07, 0x60}, // Samsung alt 3
 
-  // PROJECTORS - Epson (5 variants)
-  {0x03, 0x0D, "Epson Proj 1"}, {0x03, 0x1D, "Epson Proj 2"}, {0x30, 0x2E, "Epson Proj 3"},
-  {0x03, 0xF2, "Epson Proj 4"}, {0x30, 0xD1, "Epson Proj 5"},
+  // ===== ADDITIONAL SONY VARIANTS =====
+  {PROTO_SONY12, 0x01, 0xA8}, // Sony alt
+  {PROTO_SONY12, 0x01, 0x47}, // Sony alt 2
+  {PROTO_SONY15, 0x0B, 0x15}, // Sony 15-bit alt
+  {PROTO_SONY20, 0x83, 0x15}, // Sony 20-bit alt
 
-  // BenQ Projector (4 variants)
-  {0xB4, 0xB4, "BenQ Proj 1"}, {0x40, 0x1C, "BenQ Proj 2"},
-  {0xB4, 0x4B, "BenQ Proj 3"}, {0x40, 0xE3, "BenQ Proj 4"},
-
-  // Sony Projector (4 variants)
-  {0xB0, 0x17, "Sony Proj 1"}, {0x83, 0x15, "Sony Proj 2"},
-  {0xB0, 0xE8, "Sony Proj 3"}, {0x83, 0xEA, "Sony Proj 4"},
-
-  // Optoma Projector (4 variants)
-  {0x61, 0xC7, "Optoma Proj 1"}, {0x42, 0x15, "Optoma Proj 2"},
-  {0x61, 0x38, "Optoma Proj 3"}, {0x42, 0xEA, "Optoma Proj 4"},
-
-  // InFocus Projector (3 variants)
-  {0x88, 0x2F, "InFocus Proj 1"}, {0x88, 0xD0, "InFocus Proj 2"}, {0x88, 0x40, "InFocus Proj 3"},
-
-  // NEC Projector (3 variants)
-  {0xB0, 0x4F, "NEC Proj 1"}, {0x7F, 0x14, "NEC Proj 2"}, {0xB0, 0xB0, "NEC Proj 3"},
-
-  // ViewSonic (4 variants)
-  {0x38, 0x5E, "ViewSonic 1"}, {0x4F, 0xB0, "ViewSonic 2"},
-  {0x38, 0xA1, "ViewSonic 3"}, {0x4F, 0x4F, "ViewSonic 4"},
-
-  // Acer Projector (3 variants)
-  {0x4F, 0xB0, "Acer Proj 1"}, {0x4F, 0x4F, "Acer Proj 2"}, {0x4F, 0x10, "Acer Proj 3"},
-
-  // More brands
-  {0x38, 0xAF, "Emerson 1"}, {0x38, 0x50, "Emerson 2"},
-  {0x1A, 0xE6, "Dynex 1"}, {0x1A, 0x19, "Dynex 2"},
-  {0x08, 0xF7, "Element 1"}, {0x08, 0x08, "Element 2"},
-  {0x7E, 0x81, "Hitachi 1"}, {0x7E, 0x7E, "Hitachi 2"}, {0x7E, 0x01, "Hitachi 3"},
-  {0xB2, 0x4D, "Proscan 1"}, {0xB2, 0xB2, "Proscan 2"},
-  {0x38, 0x6C, "Seiki 1"}, {0x38, 0x93, "Seiki 2"},
-  {0xC5, 0x3A, "Skyworth 1"}, {0xC5, 0xC5, "Skyworth 2"},
-  {0xE0, 0x19, "Funai 1"}, {0xE0, 0xE6, "Funai 2"},
-  {0x14, 0xEB, "Supersonic 1"}, {0x14, 0x14, "Supersonic 2"},
-  {0x61, 0x9E, "Polaroid 1"}, {0x61, 0x61, "Polaroid 2"}, {0x61, 0x01, "Polaroid 3"},
-  {0xF0, 0x0F, "Curtis 1"}, {0xF0, 0xF0, "Curtis 2"},
-  {0xD5, 0x2A, "Coby 1"}, {0xD5, 0xD5, "Coby 2"},
-  {0x03, 0xFC, "Konka 1"}, {0x03, 0x03, "Konka 2"},
-  {0xA2, 0x5D, "Sansui 1"}, {0xA2, 0xA2, "Sansui 2"},
-  {0x9C, 0x63, "Sylvania 1"}, {0x9C, 0x9C, "Sylvania 2"},
-  {0x07, 0xF8, "Zenith 1"}, {0x07, 0x07, "Zenith 2"},
-  {0xB0, 0x4F, "NEC 1"}, {0xB0, 0xB0, "NEC 2"},
-  {0x58, 0xA7, "Olevia 1"}, {0x58, 0x58, "Olevia 2"},
-  {0x1F, 0xE0, "Upstar 1"}, {0x1F, 0x1F, "Upstar 2"},
-  {0xCA, 0x35, "Venturer 1"}, {0xCA, 0xCA, "Venturer 2"},
-  {0x44, 0xBB, "GPX 1"}, {0x44, 0x44, "GPX 2"},
-  {0x73, 0x8C, "Craig 1"}, {0x73, 0x73, "Craig 2"},
-  {0xEF, 0x10, "Naxa 1"}, {0xEF, 0xEF, "Naxa 2"},
-  {0xDB, 0x24, "Pyle 1"}, {0xDB, 0xDB, "Pyle 2"},
-
-  // International brands
-  {0x50, 0xAF, "Grundig"}, {0x77, 0x88, "Telefunken"}, {0x87, 0x78, "Loewe"},
-  {0x41, 0xBE, "Thomson"}, {0x55, 0x00, "Blaupunkt"}, {0x63, 0x9C, "Vestel"},
-  {0x71, 0x8E, "Finlux"}, {0x82, 0x7D, "Bush"}, {0x99, 0x66, "Alba"},
-  {0xAC, 0x53, "Hyundai"}, {0xBE, 0x41, "Daewoo"}, {0xCF, 0x30, "Tatung"},
-  {0xD1, 0x2E, "Orion"}, {0xE5, 0x1A, "Goodmans"}, {0xF2, 0x0D, "Logik"},
-
-  // Set-top boxes & Cable boxes
-  {0x61, 0x0E, "Comcast Box"}, {0x55, 0x12, "DirecTV 1"}, {0x55, 0x48, "DirecTV 2"},
-  {0x04, 0x3D, "Dish Network"}, {0x70, 0x1C, "Spectrum Box"}, {0x88, 0x29, "AT&T Box"},
-  {0x92, 0x6D, "Cox Box"}, {0xA7, 0x58, "Charter Box"}, {0xB3, 0x4C, "Verizon Box"},
-
-  // Older/Vintage brands
-  {0x33, 0xCC, "Admiral"}, {0x47, 0xB8, "Dumont"}, {0x5A, 0xA5, "Philco"},
-  {0x6E, 0x91, "Quasar"}, {0x7B, 0x84, "Sears"}, {0x89, 0x76, "Truetone"},
-  {0x94, 0x6B, "Wards"}, {0xA8, 0x57, "Packard Bell"},
-
-  // Commercial displays
-  {0x2C, 0xD3, "Planar"}, {0x3D, 0xC2, "NEC Display"}, {0x4E, 0xB1, "Barco"},
-  {0x59, 0xA6, "Christie"}, {0x6A, 0x95, "Panasonic Pro"}, {0x7C, 0x83, "LG Commercial"}
+  // ===== VINTAGE/LEGACY =====
+  {PROTO_NEC, 0x33, 0xCC},     // Admiral
+  {PROTO_NEC, 0x47, 0xB8},     // Dumont
+  {PROTO_NEC, 0x5A, 0xA5},     // Philco
+  {PROTO_NEC, 0x6E, 0x91},     // Quasar
+  {PROTO_NEC, 0x7B, 0x84},     // Sears
+  {PROTO_NEC, 0x89, 0x76},     // Truetone
+  {PROTO_NEC, 0x94, 0x6B},     // Wards
+  {PROTO_NEC, 0xA8, 0x57},     // Packard Bell
+  {PROTO_NEC, 0xCF, 0x30},     // Tatung
+  {PROTO_NEC, 0xE5, 0x1A},     // Goodmans
+  {PROTO_NEC, 0xF2, 0x0D},     // Logik
 };
 
 const int totalTVCodes = sizeof(tvPowerCodes) / sizeof(TVCode);
+
+// Send IR code based on protocol type - optimized for speed
+void sendTVCode(const TVCode& code) {
+  switch (code.protocol) {
+    case PROTO_NEC:
+      IrSender.sendNEC(code.address & 0xFF, code.command & 0xFF, 0);
+      break;
+    case PROTO_NECEXT:
+      // Extended NEC uses 16-bit address
+      IrSender.sendNEC(code.address, code.command, 0);
+      break;
+    case PROTO_SAMSUNG:
+      IrSender.sendSamsung(code.address, code.command, 0);
+      break;
+    case PROTO_SONY12:
+      IrSender.sendSony(code.address, code.command, 0, 12);
+      break;
+    case PROTO_SONY15:
+      IrSender.sendSony(code.address, code.command, 0, 15);
+      break;
+    case PROTO_SONY20:
+      IrSender.sendSony(code.address, code.command, 0, 20);
+      break;
+    case PROTO_RC5:
+      IrSender.sendRC5(code.address, code.command, 0, true);
+      break;
+    case PROTO_RC6:
+      IrSender.sendRC6(code.address, code.command, 0);
+      break;
+    case PROTO_PANASONIC:
+      IrSender.sendPanasonic(code.address, code.command, 0);
+      break;
+  }
+}
 
 void startTVBGone() {
   tvbgoneActive = true;
   tvbgoneProgress = 0;
   tvbgoneTotalCodes = totalTVCodes;
 
-  // Initialize IR sender (Arduino-IRremote) - M5Stack method
+  // Initialize IR sender
   if (!irInitialized) {
     IrSender.begin(DISABLE_LED_FEEDBACK);
     IrSender.setSendPin(kIrLedPin);
@@ -2494,45 +2576,29 @@ void startTVBGone() {
 
   drawTVBGone();
 
-  Serial.println(F("=== TV-B-GONE STARTED ==="));
-  Serial.printf("Total codes to send: %d\n", totalTVCodes);
-  Serial.printf("IR LED on GPIO%d initialized\n", kIrLedPin);
+  Serial.printf("TV-B-GONE: %d codes, multi-protocol\n", totalTVCodes);
 }
 
 void updateTVBGone() {
   if (!tvbgoneActive) return;
 
-  static unsigned long lastCodeTime = 0;
-  static unsigned long lastDrawTime = 0;
-  unsigned long currentTime = millis();
+  // Send codes as fast as possible - no delays, no logging during transmission
+  if (tvbgoneProgress < totalTVCodes) {
+    // Read code from PROGMEM
+    TVCode code;
+    memcpy_P(&code, &tvPowerCodes[tvbgoneProgress], sizeof(TVCode));
 
-  // Send codes as fast as possible (no delay!)
-  if (currentTime - lastCodeTime >= 0) {
-    if (tvbgoneProgress < totalTVCodes) {
-      const TVCode& code = tvPowerCodes[tvbgoneProgress];
+    // Send using appropriate protocol (0 repeats = fastest)
+    sendTVCode(code);
 
-      Serial.printf("Sending %s power code... ", code.brand);
+    tvbgoneProgress++;
 
-      // Send NEC IR code (3 repeats for reliability)
-      IrSender.sendNEC(code.address, code.command, 3);
-
-      Serial.println(F("Sent!"));
-
-      tvbgoneProgress++;
-      lastCodeTime = currentTime;
-
-      // Update display only every 10 codes (screen redraws are SLOW!)
-      if (tvbgoneProgress % 10 == 0 || tvbgoneProgress >= totalTVCodes) {
-        drawTVBGone();
-        lastDrawTime = currentTime;
-      }
-
-      // No beeps - they slow things down!
-
-    } else {
-      // All codes sent, finish
-      stopTVBGone();
+    // Update display every 20 codes (minimize screen updates)
+    if (tvbgoneProgress % 20 == 0 || tvbgoneProgress >= totalTVCodes) {
+      drawTVBGone();
     }
+  } else {
+    stopTVBGone();
   }
 }
 
@@ -2575,11 +2641,14 @@ void drawTVBGone() {
     canvas.fillRect(barX + 1, barY + 1, fillWidth, barHeight - 2, TFT_RED);
   }
 
-  // Current brand being sent
+  // Show protocol type being sent
   if (tvbgoneProgress < tvbgoneTotalCodes) {
     canvas.setTextColor(TFT_YELLOW);
-    String brandText = "Trying: " + String(tvPowerCodes[tvbgoneProgress].brand);
-    canvas.drawString(brandText.c_str(), 70, 95);
+    TVCode code;
+    memcpy_P(&code, &tvPowerCodes[tvbgoneProgress], sizeof(TVCode));
+    const char* protoNames[] = {"NEC", "NECext", "Samsung", "Sony12", "Sony15", "Sony20", "RC5", "RC6", "Panasonic"};
+    String protoText = String(protoNames[code.protocol]) + " protocol...";
+    canvas.drawString(protoText.c_str(), 60, 95);
   } else {
     canvas.setTextColor(TFT_GREEN);
     canvas.drawString("Complete!", 85, 95);

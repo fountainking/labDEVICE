@@ -5,7 +5,7 @@
 #include <vector>
 
 // Star rain configuration
-#define MAX_STARS 1500  // Heavy pouring rain effect (2.5x more)
+#define MAX_STARS 400  // Heavy rain effect - reduced from 1500 to fit with 32KB canvas buffer
 #define STAR_COLUMNS 40  // 240px width / 6px per char = 40 columns
 #define STAR_SPEED_BASE 3  // Base speed for rain
 #define STAR_SPAWN_CHANCE 98  // Very frequent spawning for heavy rain

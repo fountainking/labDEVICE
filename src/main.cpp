@@ -167,20 +167,16 @@ void initStarfield() {
     stars[i].brightness = random(150, stars[i].maxBrightness);
     stars[i].type = random(0, 10) > 5 ? random(1, 3) : 0; // 50% crosses
 
-    // More colorful distribution
+    // Colorful distribution - NO purple/magenta or green
     int colorChoice = random(0, 100);
-    if (colorChoice < 40) {
-      stars[i].baseColor = 0; // 40% white
-    } else if (colorChoice < 60) {
-      stars[i].baseColor = 1; // 20% blue
+    if (colorChoice < 50) {
+      stars[i].baseColor = 0; // 50% white
     } else if (colorChoice < 75) {
+      stars[i].baseColor = 1; // 25% blue
+    } else if (colorChoice < 90) {
       stars[i].baseColor = 2; // 15% cyan
-    } else if (colorChoice < 85) {
-      stars[i].baseColor = 3; // 10% green
-    } else if (colorChoice < 95) {
-      stars[i].baseColor = 4; // 10% purple/pink
     } else {
-      stars[i].baseColor = 5; // 5% yellow/orange
+      stars[i].baseColor = 5; // 10% yellow
     }
 
     stars[i].twinkleDirection = random(0, 2) ? 1 : -1;
@@ -1982,6 +1978,7 @@ void loop() {
                 canvas.println("WiFi not connected!");
                 canvas.println("\nConnect WiFi first.");
                 canvas.println("\nPress any key...");
+                canvas.pushSprite(0, 0);
                 delay(2000);
                 drawSettingsMenu();
               } else {
@@ -2499,10 +2496,12 @@ void loop() {
   updateAudioIfPlaying();
 #endif
 
-  // Update star GIF animation (skip during audio to prevent I2S conflicts)
-  if (!isAudioPlaying() && !isRadioPlaying()) {
-    // Update star GIF animation (non-blocking)
-    if (currentState == APPS_MENU || currentState == MAIN_MENU) {
+  // Update menu slide animation (runs every frame when active)
+  if (currentState == APPS_MENU || currentState == MAIN_MENU) {
+    if (updateMenuAnimation()) {
+      // Animation is active, skip star GIF update this frame
+    } else if (!isAudioPlaying() && !isRadioPlaying()) {
+      // No menu animation, update star GIF animation (non-blocking)
       updateStarGifPlayback();
     }
   }

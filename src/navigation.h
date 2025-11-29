@@ -8,7 +8,7 @@ void navigateLeft();
 void navigateRight();
 void handleSelect();
 void handleBack();
-void drawStillStar();
+void drawStillStar(bool pushToDisplay = true);
 void updateStarGifPlayback();
 void returnToMainMenu(); // Helper to return to main menu with CPU scaling
 

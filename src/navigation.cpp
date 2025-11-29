@@ -66,7 +66,7 @@ void StarGIFDraw(GIFDRAW *pDraw) {
   }
 }
 
-void drawStillStar() {
+void drawStillStar(bool pushToDisplay) {
   // Initialize GIF with Little Endian palette
   starGif.begin(GIF_PALETTE_RGB565_LE);
 
@@ -85,8 +85,10 @@ void drawStillStar() {
     starGif.playFrame(false, NULL);
     starGif.close();
   }
-  // Push canvas to display
-  canvas.pushSprite(0, 0);
+  // Only push if requested (skip when called from drawScreen which pushes later)
+  if (pushToDisplay) {
+    canvas.pushSprite(0, 0);
+  }
 }
 
 void startStarGif(bool isLeft) {
@@ -192,12 +194,12 @@ void navigateLeft() {
   } else if (currentState == APPS_MENU) {
     if (currentAppIndex > 0) {
       if (settings.soundEnabled) M5Cardputer.Speaker.tone(800, 50);
-      // INSTANT RESPONSE: Change state and draw new screen IMMEDIATELY
+      // Start slide animation
+      int fromIdx = currentAppIndex;
       currentAppIndex--;
-      drawScreen(inverted);
-      // THEN start star animation (plays on top of already-drawn screen)
+      startMenuAnimation(fromIdx, currentAppIndex, -1, true);  // -1 = sliding left
+      // Start star animation too
       startStarGif(true);  // true = left
-      updateStarGifPlayback();
     } else {
       // At first app, go back to screensaver with star rain
       if (settings.soundEnabled) M5Cardputer.Speaker.tone(800, 50);
@@ -210,12 +212,12 @@ void navigateLeft() {
   } else if (currentState == MAIN_MENU) {
     if (currentMainIndex > 0) {
       if (settings.soundEnabled) M5Cardputer.Speaker.tone(800, 50);
-      // INSTANT RESPONSE: Change state and draw new screen IMMEDIATELY
+      // Start slide animation
+      int fromIdx = currentMainIndex;
       currentMainIndex--;
-      drawScreen(inverted);
-      // THEN start star animation (plays on top of already-drawn screen)
+      startMenuAnimation(fromIdx, currentMainIndex, -1, false);  // -1 = sliding left
+      // Start star animation too
       startStarGif(true);  // true = left
-      updateStarGifPlayback();
     }
     // At first item - do nothing (no landing page)
   }
@@ -241,22 +243,22 @@ void navigateRight() {
   } else if (currentState == APPS_MENU) {
     if (currentAppIndex < totalApps - 1) {
       if (settings.soundEnabled) M5Cardputer.Speaker.tone(1000, 50);
-      // INSTANT RESPONSE: Change state and draw new screen IMMEDIATELY
+      // Start slide animation
+      int fromIdx = currentAppIndex;
       currentAppIndex++;
-      drawScreen(inverted);
-      // THEN start star animation (plays on top of already-drawn screen)
+      startMenuAnimation(fromIdx, currentAppIndex, 1, true);  // 1 = sliding right
+      // Start star animation too
       startStarGif(false);  // false = right
-      updateStarGifPlayback();
     }
   } else if (currentState == MAIN_MENU) {
     if (currentMainIndex < totalMainItems - 1) {
       if (settings.soundEnabled) M5Cardputer.Speaker.tone(1000, 50);
-      // INSTANT RESPONSE: Change state and draw new screen IMMEDIATELY
+      // Start slide animation
+      int fromIdx = currentMainIndex;
       currentMainIndex++;
-      drawScreen(inverted);
-      // THEN start star animation (plays on top of already-drawn screen)
+      startMenuAnimation(fromIdx, currentMainIndex, 1, false);  // 1 = sliding right
+      // Start star animation too
       startStarGif(false);  // false = right
-      updateStarGifPlayback();
     }
   }
 }

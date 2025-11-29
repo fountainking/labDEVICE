@@ -6,7 +6,7 @@
 #include <Update.h>
 #include "config.h"
 
-#define GITHUB_API_URL "https://api.github.com/repos/fountainking/LaboratoryM5/releases/latest"
+#define GITHUB_API_URL "https://api.github.com/repos/fountainking/labDEVICE/releases/latest"
 
 class OTAManager {
 public:

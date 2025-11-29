@@ -7,6 +7,109 @@
 // Global canvas for double-buffered rendering (240x135)
 M5Canvas canvas(&M5Cardputer.Display);
 
+// Menu animation state
+MenuAnimation menuAnim = {false, 0, 0, 0, 0, false};
+
+// Easing function: smooth overshoot (Back ease-out)
+// Single continuous curve - overshoots to ~1.12 around t=0.7, settles to 1.0
+float easeOutBounce(float t) {
+    // Classic "back" ease-out formula
+    // Higher overshoot value = more pronounced effect (try 1.7 to 3.0)
+    const float overshoot = 0.5f;
+    float t1 = t - 1.0f;
+    return 1.0f + t1 * t1 * ((overshoot + 1.0f) * t1 + overshoot);
+}
+
+// Start a menu animation
+void startMenuAnimation(int fromIdx, int toIdx, int dir, bool isApps) {
+    menuAnim.active = true;
+    menuAnim.startTime = millis();
+    menuAnim.fromIndex = fromIdx;
+    menuAnim.toIndex = toIdx;
+    menuAnim.direction = dir;
+    menuAnim.isAppsMenu = isApps;
+}
+
+// Update menu animation - returns true if still animating
+bool updateMenuAnimation() {
+    if (!menuAnim.active) return false;
+
+    extern bool uiInverted;
+    bool inverted = uiInverted;
+    uint16_t bgColor = inverted ? TFT_BLACK : TFT_WHITE;
+
+    unsigned long elapsed = millis() - menuAnim.startTime;
+    float t = (float)elapsed / MENU_ANIM_DURATION;
+
+    if (t >= 1.0f) {
+        // Animation complete
+        menuAnim.active = false;
+        drawScreen(inverted);
+        return false;
+    }
+
+    // Apply bounce easing
+    float eased = easeOutBounce(t);
+
+    // Calculate positions
+    // Old card slides out OPPOSITE to direction of movement
+    // New card slides in FROM the direction of movement
+    int slideDistance = SCREEN_WIDTH + 20;  // Full width + padding
+
+    int oldCardX = (int)(eased * slideDistance * (-menuAnim.direction));
+    int newCardX = (int)((1.0f - eased) * slideDistance * menuAnim.direction);
+
+    // Get the labels
+    const char* oldLabel;
+    const char* newLabel;
+
+    if (menuAnim.isAppsMenu) {
+        oldLabel = apps[menuAnim.fromIndex].name.c_str();
+        newLabel = apps[menuAnim.toIndex].name.c_str();
+    } else {
+        oldLabel = mainItems[menuAnim.fromIndex].name.c_str();
+        newLabel = mainItems[menuAnim.toIndex].name.c_str();
+    }
+
+    // Clear and redraw
+    canvas.fillRect(0, 0, 240, 28, bgColor);  // Status bar area
+    canvas.fillRect(0, 28, 240, 20, bgColor);  // Dots area
+    canvas.fillRect(0, 48, 240, 60, bgColor);  // Card area
+    canvas.fillRect(0, 108, 240, 27, bgColor); // Bottom area
+
+    drawStatusBar(inverted);
+
+    // Draw indicator dots for the TARGET index (so they update immediately)
+    int totalItems = menuAnim.isAppsMenu ? totalApps : totalMainItems;
+    drawIndicatorDots(menuAnim.toIndex, totalItems, inverted);
+
+    // Draw both cards with offsets
+    drawCard(oldLabel, oldCardX, inverted);
+    drawCard(newLabel, newCardX, inverted);
+
+    // Draw still star (centered, doesn't animate with cards)
+    extern void drawStillStar(bool pushToDisplay);
+    drawStillStar(false);
+
+    // Draw device name if on main menu
+    if (!menuAnim.isAppsMenu) {
+        extern SystemSettings settings;
+        uint16_t fgColor = inverted ? TFT_WHITE : TFT_BLACK;
+        canvas.setTextSize(1);
+        canvas.setTextColor(fgColor);
+        String deviceName = settings.deviceName;
+        if (deviceName.length() > 20) {
+            deviceName = deviceName.substring(0, 20);
+        }
+        int textWidth = deviceName.length() * 6;
+        int xPos = 220 - textWidth;
+        canvas.drawString(deviceName.c_str(), xPos, 114);
+    }
+
+    canvas.pushSprite(0, 0);
+    return true;
+}
+
 // Berry emoji - hardcoded from cberry.emoji (centered for title bar/WiFi icons)
 static const uint16_t BERRY_ICON[16][16] = {
     {0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0},
@@ -920,18 +1023,22 @@ void drawStatusBar(bool inverted) {
 #endif
 }
 
-void drawCard(const char* label, bool inverted) {
-  int cardX = 20;
+void drawCard(const char* label, int xOffset, bool inverted) {
+  int cardX = 20 + xOffset;
   int cardY = 50;
   int cardW = 200;
   int cardH = 50;
+
+  // Skip drawing if card is completely off-screen
+  if (cardX + cardW < 0 || cardX > 240) return;
 
   uint16_t bgColor = inverted ? TFT_BLACK : TFT_WHITE;
   uint16_t fgColor = inverted ? TFT_WHITE : TFT_BLACK;
   uint16_t fillColor = bgColor;  // Default to background color
 
   // Special colored backgrounds for APPS menu (page 2)
-  if (currentState == APPS_MENU && !inverted) {
+  // Check by label since we might be animating between menus
+  if (!inverted) {
     if (strcmp(label, "Files") == 0) {
       fillColor = TFT_YELLOW;  // System yellow
     } else if (strcmp(label, "Fun") == 0) {
@@ -987,30 +1094,32 @@ void drawScreen(bool inverted) {
   uint16_t bgColor = inverted ? TFT_BLACK : TFT_WHITE;
   uint16_t fgColor = inverted ? TFT_WHITE : TFT_BLACK;
 
-  // Clear regions selectively to avoid flashing the star area
+  // Clear regions selectively to avoid flashing
   // Clear top area (status bar)
   canvas.fillRect(0, 0, 240, 28, bgColor);
   // Clear middle area (dots)
   canvas.fillRect(0, 28, 240, 20, bgColor);
   // Clear card area
   canvas.fillRect(0, 48, 240, 60, bgColor);
-  // Clear bottom - full clear to avoid colored bars from flash animations
-  canvas.fillRect(0, 108, 240, 27, bgColor);  // Clear entire bottom area including star
+  // Clear bottom area (includes star and device name)
+  canvas.fillRect(0, 108, 240, 27, bgColor);
 
   drawStatusBar(inverted);
 
   if (currentState == APPS_MENU) {
-    drawCard(apps[currentAppIndex].name.c_str(), inverted);
+    drawCard(apps[currentAppIndex].name.c_str(), 0, inverted);
     drawIndicatorDots(currentAppIndex, totalApps, inverted);
-    // Draw static star (will be overwritten during navigation animations)
-    drawStillStar();
+    // Draw static star (don't push yet - more drawing follows)
+    drawStillStar(false);
   } else if (currentState == MAIN_MENU) {
-    drawCard(mainItems[currentMainIndex].name.c_str(), inverted);
+    drawCard(mainItems[currentMainIndex].name.c_str(), 0, inverted);
     drawIndicatorDots(currentMainIndex, totalMainItems, inverted);
-    // Draw static star (will be overwritten during navigation animations)
-    drawStillStar();
+    // Draw static star (don't push yet - device name drawn after)
+    drawStillStar(false);
+  }
 
-    // Draw device name - right-aligned with card edge
+  // Draw device name AFTER star so it appears on top (star overlaps at y=110-126)
+  if (currentState == MAIN_MENU) {
     canvas.setTextSize(1);
     canvas.setTextColor(fgColor);
     String deviceName = settings.deviceName;
